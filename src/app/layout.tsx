@@ -1,9 +1,22 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Plus_Jakarta_Sans, Figtree } from "next/font/google";
+import localFont from "next/font/local";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
 
-const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
+const googleSans = localFont({
+  src: [
+    { path: "../../public/font/GoogleSans-Regular.ttf", weight: "400", style: "normal" },
+    { path: "../../public/font/GoogleSans-Italic.ttf", weight: "400", style: "italic" },
+    { path: "../../public/font/GoogleSans-Medium.ttf", weight: "500", style: "normal" },
+    { path: "../../public/font/GoogleSans-MediumItalic.ttf", weight: "500", style: "italic" },
+    { path: "../../public/font/GoogleSans-SemiBold.ttf", weight: "600", style: "normal" },
+    { path: "../../public/font/GoogleSans-SemiBoldItalic.ttf", weight: "600", style: "italic" },
+    { path: "../../public/font/GoogleSans-Bold.ttf", weight: "700", style: "normal" },
+    { path: "../../public/font/GoogleSans-BoldItalic.ttf", weight: "700", style: "italic" },
+  ],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,12 +26,6 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-google-sans",
-  subsets: ["latin", "latin-ext"],
-  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -32,9 +39,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", figtree.variable)}>
+    <html lang="en" className={googleSans.variable}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} antialiased`}
+        className={`${googleSans.className} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
       </body>
