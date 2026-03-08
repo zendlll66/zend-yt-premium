@@ -16,6 +16,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { getSessionUser } from "@/lib/auth-server"
+import { getPermissionsForGuard } from "@/features/page-permission/page-permission.repo"
 
 export default async function DashboardLayout({
   children,
@@ -25,6 +26,12 @@ export default async function DashboardLayout({
   const user = await getSessionUser()
   if (!user) {
     redirect("/login?from=/dashboard")
+  }
+  let permissions: { path: string; roles: string[] }[] | null = null
+  try {
+    permissions = await getPermissionsForGuard()
+  } catch {
+    permissions = null
   }
 
   return (
@@ -52,7 +59,7 @@ export default async function DashboardLayout({
           </div>
         </header>
         <div className="flex flex-1 flex-col p-4 pt-0">
-          <PermissionGuard user={user}>{children}</PermissionGuard>
+          <PermissionGuard user={user} permissions={permissions}>{children}</PermissionGuard>
         </div>
       </SidebarInset>
     </SidebarProvider>

@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { canAccess } from "@/config/permissions";
+import { canAccess, type PermissionRule } from "@/config/permissions";
 import { Button } from "@/components/ui/button";
 
 type Props = {
   user: { role: string };
+  permissions?: PermissionRule[] | null;
   children: React.ReactNode;
 };
 
-export function PermissionGuard({ user, children }: Props) {
+export function PermissionGuard({ user, permissions, children }: Props) {
   const pathname = usePathname();
-  const allowed = canAccess(pathname ?? "", user.role);
+  const allowed = canAccess(pathname ?? "", user.role, permissions);
 
   if (!allowed) {
     return (

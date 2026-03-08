@@ -7,7 +7,7 @@ export type SessionUser = {
   id: number;
   name: string;
   email: string;
-  role: "admin" | "cashier";
+  role: "admin" | "cashier" | "chef" | "super_admin";
 };
 
 /** Verify session cookie (Node only - same algorithm as middleware) */
@@ -35,6 +35,6 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     id: user.id,
     name: user.name,
     email: user.email,
-    role: user.role as "admin" | "cashier",
+    role: user.role as SessionUser["role"],
   };
 }

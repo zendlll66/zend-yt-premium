@@ -14,20 +14,30 @@ export type PagePermission = {
 export const PAGE_PERMISSIONS: PagePermission[] = [
   { path: "/dashboard/user-list/add", label: "เพิ่มผู้ใช้", roles: ["super_admin", "admin"] },
   { path: "/dashboard/user-list", label: "รายการผู้ใช้", roles: ["super_admin", "admin"] },
-  { path: "/dashboard/permissions", label: "สิทธิ์การเข้าถึงหน้า", roles: ["super_admin", "admin"] },
+  { path: "/dashboard/permissions", label: "สิทธิ์การเข้าถึงหน้า", roles: ["super_admin"] },
   { path: "/dashboard", label: "แดชบอร์ด", roles: ["super_admin", "admin", "cashier", "chef"] },
 ];
 
-/** เช็คว่า role นี้เข้า path นี้ได้ไหม */
-export function canAccess(pathname: string, role: string): boolean {
+export type PermissionRule = { path: string; roles: string[] };
+
+/** เช็คว่า role นี้เข้า path นี้ได้ไหม (ใช้ rules จาก DB หรือ fallback เป็น PAGE_PERMISSIONS) */
+export function canAccess(
+  pathname: string,
+  role: string,
+  rulesFromDb?: PermissionRule[] | null
+): boolean {
   const normalized = pathname.replace(/\/$/, "") || "/";
-  const sorted = [...PAGE_PERMISSIONS].sort((a, b) => b.path.length - a.path.length);
+  const rules =
+    rulesFromDb && rulesFromDb.length > 0
+      ? rulesFromDb
+      : PAGE_PERMISSIONS.map((r) => ({ path: r.path, roles: r.roles }));
+  const sorted = [...rules].sort((a, b) => b.path.length - a.path.length);
   const rule = sorted.find((r) => {
-    const p = r.path.replace(/\/$/, "") || "/";
+    const p = (r.path || "").replace(/\/$/, "") || "/";
     return normalized === p || normalized.startsWith(p + "/");
   });
   if (!rule) return true;
-  return rule.roles.includes(role as Role);
+  return rule.roles.includes(role);
 }
 
 /** label ของ role (สำหรับแสดงในหน้า permissions) */
