@@ -32,6 +32,7 @@ const NAV_MAIN = [
     items: [
       { title: "รายการสินค้า", url: "/dashboard/products" },
       { title: "เพิ่มสินค้า", url: "/dashboard/products/add" },
+      { title: "ตัวเลือก (Modifiers)", url: "/dashboard/modifiers" },
     ],
   },
   {

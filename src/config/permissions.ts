@@ -12,6 +12,8 @@ export type PagePermission = {
 
 /** รายการ path กับ role ที่เข้าได้ (path ที่ยาวกว่าก่อน) */
 export const PAGE_PERMISSIONS: PagePermission[] = [
+  { path: "/dashboard/modifiers/add", label: "เพิ่มกลุ่มตัวเลือก", roles: ["super_admin", "admin"] },
+  { path: "/dashboard/modifiers", label: "ตัวเลือกสินค้า", roles: ["super_admin", "admin"] },
   { path: "/dashboard/categories/add", label: "เพิ่มหมวดหมู่", roles: ["super_admin", "admin"] },
   { path: "/dashboard/categories", label: "หมวดหมู่สินค้า", roles: ["super_admin", "admin"] },
   { path: "/dashboard/products/add", label: "เพิ่มสินค้า", roles: ["super_admin", "admin"] },

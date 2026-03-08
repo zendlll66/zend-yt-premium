@@ -1,0 +1,180 @@
+import { asc, eq } from "drizzle-orm";
+import { db } from "@/db";
+import {
+  modifierGroups,
+  modifiers,
+  productModifiers,
+} from "@/db/schema/modifier.schema";
+
+// ---------- Modifier Groups ----------
+
+export type ModifierGroupWithModifiers = {
+  id: number;
+  name: string;
+  required: boolean;
+  modifiers: { id: number; name: string; price: number }[];
+};
+
+export async function findAllModifierGroups(): Promise<ModifierGroupWithModifiers[]> {
+  const groups = await db
+    .select()
+    .from(modifierGroups)
+    .orderBy(asc(modifierGroups.name));
+
+  const mods = await db.select().from(modifiers).orderBy(asc(modifiers.name));
+
+  const modsByGroup = mods.reduce(
+    (acc, m) => {
+      if (!acc[m.groupId]) acc[m.groupId] = [];
+      acc[m.groupId].push({ id: m.id, name: m.name, price: m.price });
+      return acc;
+    },
+    {} as Record<number, { id: number; name: string; price: number }[]>
+  );
+
+  return groups.map((g) => ({
+    id: g.id,
+    name: g.name,
+    required: g.required,
+    modifiers: modsByGroup[g.id] ?? [],
+  }));
+}
+
+export async function findModifierGroupById(id: number) {
+  const [group] = await db
+    .select()
+    .from(modifierGroups)
+    .where(eq(modifierGroups.id, id))
+    .limit(1);
+  return group ?? null;
+}
+
+export async function findModifierGroupWithModifiers(
+  id: number
+): Promise<ModifierGroupWithModifiers | null> {
+  const group = await findModifierGroupById(id);
+  if (!group) return null;
+
+  const mods = await db
+    .select({ id: modifiers.id, name: modifiers.name, price: modifiers.price })
+    .from(modifiers)
+    .where(eq(modifiers.groupId, id))
+    .orderBy(asc(modifiers.name));
+
+  return {
+    id: group.id,
+    name: group.name,
+    required: group.required,
+    modifiers: mods,
+  };
+}
+
+export async function createModifierGroup(data: {
+  name: string;
+  required?: boolean;
+}) {
+  const [row] = await db.insert(modifierGroups).values({
+    name: data.name,
+    required: data.required ?? false,
+  }).returning();
+  return row ?? null;
+}
+
+export async function updateModifierGroup(
+  id: number,
+  data: { name?: string; required?: boolean }
+) {
+  const payload: Record<string, unknown> = {};
+  if (data.name != null) payload.name = data.name;
+  if (data.required != null) payload.required = data.required;
+  if (Object.keys(payload).length === 0) return findModifierGroupById(id);
+  const [row] = await db
+    .update(modifierGroups)
+    .set(payload as Partial<typeof modifierGroups.$inferInsert>)
+    .where(eq(modifierGroups.id, id))
+    .returning();
+  return row ?? null;
+}
+
+export async function deleteModifierGroupById(id: number): Promise<boolean> {
+  const [row] = await db
+    .delete(modifierGroups)
+    .where(eq(modifierGroups.id, id))
+    .returning({ id: modifierGroups.id });
+  return row != null;
+}
+
+// ---------- Modifiers (options in a group) ----------
+
+export async function findModifierById(id: number) {
+  const [row] = await db
+    .select()
+    .from(modifiers)
+    .where(eq(modifiers.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function createModifier(data: {
+  groupId: number;
+  name: string;
+  price?: number;
+}) {
+  const [row] = await db.insert(modifiers).values({
+    groupId: data.groupId,
+    name: data.name,
+    price: data.price ?? 0,
+  }).returning();
+  return row ?? null;
+}
+
+export async function updateModifier(
+  id: number,
+  data: { name?: string; price?: number }
+) {
+  const payload: Record<string, unknown> = {};
+  if (data.name != null) payload.name = data.name;
+  if (data.price != null) payload.price = data.price;
+  if (Object.keys(payload).length === 0) return findModifierById(id);
+  const [row] = await db
+    .update(modifiers)
+    .set(payload as Partial<typeof modifiers.$inferInsert>)
+    .where(eq(modifiers.id, id))
+    .returning();
+  return row ?? null;
+}
+
+export async function deleteModifierById(id: number): Promise<boolean> {
+  const [row] = await db
+    .delete(modifiers)
+    .where(eq(modifiers.id, id))
+    .returning({ id: modifiers.id });
+  return row != null;
+}
+
+// ---------- Product-Modifier mapping ----------
+
+export async function getModifierGroupIdsByProductId(
+  productId: number
+): Promise<number[]> {
+  const rows = await db
+    .select({ modifierGroupId: productModifiers.modifierGroupId })
+    .from(productModifiers)
+    .where(eq(productModifiers.productId, productId));
+  return rows.map((r) => r.modifierGroupId);
+}
+
+export async function setProductModifierGroups(
+  productId: number,
+  modifierGroupIds: number[]
+) {
+  await db.delete(productModifiers).where(eq(productModifiers.productId, productId));
+  if (modifierGroupIds.length === 0) return;
+
+  await db.insert(productModifiers).values(
+    modifierGroupIds.map((modifierGroupId) => ({
+      productId,
+      modifierGroupId,
+    }))
+  );
+}
