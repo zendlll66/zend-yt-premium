@@ -3,8 +3,6 @@
 import * as React from "react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -17,101 +15,76 @@ import {
 } from "@/components/ui/sidebar"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ComputerTerminalIcon, Settings05Icon, CommandIcon } from "@hugeicons/core-free-icons"
+import { canAccess, type PermissionRule } from "@/config/permissions"
 
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+const NAV_MAIN = [
+  {
+    title: "dashboard",
+    url: "/dashboard",
+    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    isActive: true,
   },
-  navMain: [
-    {
-      title: "user management",
-      url: "#",
-      icon: (
-        <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />
-      ),
-      isActive: true,
-      items: [
-        {
-          title: "user list",
-          url: "/dashboard/user-list",
-        },
-        {
-          title: "add user",
-          url: "/dashboard/user-list/add",
-        },
-      ],
-    },
-    {
-      title: "สิทธิ์การเข้าถึง",
-      url: "/dashboard/permissions",
-      icon: (
-        <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />
-      ),
-      items: [
-        {
-          title: "กำหนดสิทธิ์หน้า",
-          url: "/dashboard/permissions",
-        },
-      ],
-    },
-  ],
-  // navSecondary: [
-  //   {
-  //     title: "Support",
-  //     url: "#",
-  //     icon: (
-  //       <HugeiconsIcon icon={ChartRingIcon} strokeWidth={2} />
-  //     ),
-  //   },
-  //   {
-  //     title: "Feedback",
-  //     url: "#",
-  //     icon: (
-  //       <HugeiconsIcon icon={SentIcon} strokeWidth={2} />
-  //     ),
-  //   },
-  // ],
-  // projects: [
-  //   {
-  //     name: "Design Engineering",
-  //     url: "#",
-  //     icon: (
-  //       <HugeiconsIcon icon={CropIcon} strokeWidth={2} />
-  //     ),
-  //   },
-  //   {
-  //     name: "Sales & Marketing",
-  //     url: "#",
-  //     icon: (
-  //       <HugeiconsIcon icon={PieChartIcon} strokeWidth={2} />
-  //     ),
-  //   },
-  //   {
-  //     name: "Travel",
-  //     url: "#",
-  //     icon: (
-  //       <HugeiconsIcon icon={MapsIcon} strokeWidth={2} />
-  //     ),
-  //   },
-  // ],
+  {
+    title: "user management",
+    url: "#",
+    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    isActive: true,
+    items: [
+      { title: "user list", url: "/dashboard/user-list" },
+      { title: "add user", url: "/dashboard/user-list/add" },
+    ],
+  },
+  {
+    title: "สิทธิ์การเข้าถึง",
+    url: "/dashboard/permissions",
+    icon: <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />,
+    items: [
+      { title: "กำหนดสิทธิ์หน้า", url: "/dashboard/permissions" },
+    ],
+  },
+]
+
+type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
+  user: { name: string; email: string; role?: string }
+  permissions?: PermissionRule[] | null
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+function filterNavByPermission(
+  nav: typeof NAV_MAIN,
+  role: string,
+  permissions: PermissionRule[] | null | undefined
+) {
+  const roleSafe = role || ""
+  return nav
+    .map((group) => {
+      const items = group.items?.filter((item) =>
+        canAccess(item.url, roleSafe, permissions)
+      ) ?? []
+      if (group.url && group.url !== "#" && !canAccess(group.url, roleSafe, permissions)) {
+        return null
+      }
+      if (items.length === 0 && (!group.url || group.url === "#")) return null
+      return { ...group, items }
+    })
+    .filter((g): g is NonNullable<typeof g> => g != null)
+}
+
+export function AppSidebar({ user, permissions, ...props }: AppSidebarProps) {
+  const navMain = filterNavByPermission(NAV_MAIN, user.role ?? "", permissions)
+
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <a href="/dashboard">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <HugeiconsIcon icon={CommandIcon} strokeWidth={2} className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Acme Inc</span>
-                  <span className="truncate text-xs">Enterprise</span>
+                  <span className="truncate font-medium">Zend POS</span>
+                  <span className="truncate text-xs">Dashboard</span>
                 </div>
               </a>
             </SidebarMenuButton>
@@ -119,12 +92,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        {/* <NavProjects projects={data.projects} /> */}
-        {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
+        <NavMain items={navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   )
