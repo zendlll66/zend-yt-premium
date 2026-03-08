@@ -26,7 +26,7 @@ const data = {
   },
   navMain: [
     {
-      title: "Playground",
+      title: "user management",
       url: "#",
       icon: (
         <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />
@@ -34,130 +34,55 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "user list",
+          url: "/dashboard/user-list",
         },
         {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Models",
-      url: "#",
-      icon: (
-        <HugeiconsIcon icon={RoboticIcon} strokeWidth={2} />
-      ),
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: (
-        <HugeiconsIcon icon={BookOpen02Icon} strokeWidth={2} />
-      ),
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: (
-        <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />
-      ),
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
+          title: "add user",
+          url: "/dashboard/user-list/add",
         },
       ],
     },
   ],
-  navSecondary: [
-    {
-      title: "Support",
-      url: "#",
-      icon: (
-        <HugeiconsIcon icon={ChartRingIcon} strokeWidth={2} />
-      ),
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: (
-        <HugeiconsIcon icon={SentIcon} strokeWidth={2} />
-      ),
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: (
-        <HugeiconsIcon icon={CropIcon} strokeWidth={2} />
-      ),
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: (
-        <HugeiconsIcon icon={PieChartIcon} strokeWidth={2} />
-      ),
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: (
-        <HugeiconsIcon icon={MapsIcon} strokeWidth={2} />
-      ),
-    },
-  ],
+  // navSecondary: [
+  //   {
+  //     title: "Support",
+  //     url: "#",
+  //     icon: (
+  //       <HugeiconsIcon icon={ChartRingIcon} strokeWidth={2} />
+  //     ),
+  //   },
+  //   {
+  //     title: "Feedback",
+  //     url: "#",
+  //     icon: (
+  //       <HugeiconsIcon icon={SentIcon} strokeWidth={2} />
+  //     ),
+  //   },
+  // ],
+  // projects: [
+  //   {
+  //     name: "Design Engineering",
+  //     url: "#",
+  //     icon: (
+  //       <HugeiconsIcon icon={CropIcon} strokeWidth={2} />
+  //     ),
+  //   },
+  //   {
+  //     name: "Sales & Marketing",
+  //     url: "#",
+  //     icon: (
+  //       <HugeiconsIcon icon={PieChartIcon} strokeWidth={2} />
+  //     ),
+  //   },
+  //   {
+  //     name: "Travel",
+  //     url: "#",
+  //     icon: (
+  //       <HugeiconsIcon icon={MapsIcon} strokeWidth={2} />
+  //     ),
+  //   },
+  // ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -182,8 +107,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        {/* <NavProjects projects={data.projects} /> */}
+        {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
