@@ -25,6 +25,28 @@ const NAV_MAIN = [
     isActive: true,
   },
   {
+    title: "บิล (Orders)",
+    url: "/dashboard/orders",
+    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
+    title: "Kitchen Display",
+    url: "/dashboard/kitchen",
+    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
+    title: "จัดการโต๊ะ",
+    url: "#",
+    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    isActive: true,
+    items: [
+      { title: "รายการโต๊ะ", url: "/dashboard/tables" },
+      { title: "เพิ่มโต๊ะ", url: "/dashboard/tables/add" },
+    ],
+  },
+  {
     title: "จัดการสินค้า",
     url: "#",
     icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,

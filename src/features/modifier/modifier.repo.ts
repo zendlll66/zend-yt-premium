@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   modifierGroups,
@@ -177,4 +177,76 @@ export async function setProductModifierGroups(
       modifierGroupId,
     }))
   );
+}
+
+/** เมนูสำหรับหน้าสั่งอาหาร: สินค้าที่ขายได้ + กลุ่มตัวเลือกของแต่ละรายการ */
+export type MenuProduct = {
+  id: number;
+  name: string;
+  price: number;
+  modifierGroups: {
+    id: number;
+    name: string;
+    required: boolean;
+    modifiers: { id: number; name: string; price: number }[];
+  }[];
+};
+
+export async function getMenuForOrder(): Promise<MenuProduct[]> {
+  const { products } = await import("@/db/schema/product.schema");
+  const activeProducts = await db
+    .select({ id: products.id, name: products.name, price: products.price })
+    .from(products)
+    .where(eq(products.isActive, true))
+    .orderBy(products.name);
+
+  const productIds = activeProducts.map((p) => p.id);
+  if (productIds.length === 0) return [];
+
+  const links = await db
+    .select({ productId: productModifiers.productId, modifierGroupId: productModifiers.modifierGroupId })
+    .from(productModifiers)
+    .where(inArray(productModifiers.productId, productIds));
+
+  const groupIds = [...new Set(links.map((l) => l.modifierGroupId))];
+  const allGroups = await db.select().from(modifierGroups).where(inArray(modifierGroups.id, groupIds));
+  const allMods = groupIds.length
+    ? await db.select().from(modifiers).where(inArray(modifiers.groupId, groupIds))
+    : [];
+  const modsByGroup = allMods.reduce(
+    (acc, m) => {
+      if (!acc[m.groupId]) acc[m.groupId] = [];
+      acc[m.groupId].push({ id: m.id, name: m.name, price: m.price });
+      return acc;
+    },
+    {} as Record<number, { id: number; name: string; price: number }[]>
+  );
+
+  const groupsByProduct = links.reduce(
+    (acc, l) => {
+      if (!acc[l.productId]) acc[l.productId] = [];
+      if (!acc[l.productId].includes(l.modifierGroupId)) acc[l.productId].push(l.modifierGroupId);
+      return acc;
+    },
+    {} as Record<number, number[]>
+  );
+
+  return activeProducts.map((p) => {
+    const gIds = groupsByProduct[p.id] ?? [];
+    const modifierGroups = gIds
+      .map((gid) => allGroups.find((g) => g.id === gid))
+      .filter(Boolean)
+      .map((g) => ({
+        id: g!.id,
+        name: g!.name,
+        required: g!.required,
+        modifiers: modsByGroup[g!.id] ?? [],
+      }));
+    return {
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      modifierGroups,
+    };
+  });
 }

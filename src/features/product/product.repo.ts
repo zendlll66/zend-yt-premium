@@ -53,6 +53,7 @@ export async function findProductById(id: number) {
 export async function createProduct(data: {
   name: string;
   categoryId?: number | null;
+  kitchenCategoryId?: number | null;
   price: number;
   cost?: number | null;
   sku?: string | null;
@@ -65,6 +66,7 @@ export async function createProduct(data: {
     .values({
       name: data.name,
       categoryId: data.categoryId ?? null,
+      kitchenCategoryId: data.kitchenCategoryId ?? null,
       price: data.price,
       cost: data.cost ?? null,
       sku: data.sku ?? null,
@@ -81,6 +83,7 @@ export async function updateProduct(
   data: {
     name?: string;
     categoryId?: number | null;
+    kitchenCategoryId?: number | null;
     price?: number;
     cost?: number | null;
     sku?: string | null;

@@ -12,6 +12,7 @@ type ProductRow = {
   id: number;
   name: string;
   categoryId: number | null;
+  kitchenCategoryId: number | null;
   price: number;
   cost: number | null;
   sku: string | null;
@@ -22,11 +23,12 @@ type ProductRow = {
 
 type Props = {
   categories: { id: number; name: string }[];
+  kitchenCategories: { id: number; name: string }[];
   product?: ProductRow | null;
   action: typeof createProductAction | typeof updateProductAction;
 };
 
-export function ProductForm({ categories, product, action }: Props) {
+export function ProductForm({ categories, kitchenCategories, product, action }: Props) {
   const isEdit = !!product;
   const [imageUrl, setImageUrl] = useState(product?.imageUrl ?? "");
   const [state, formAction, isPending] = useActionState(
@@ -67,6 +69,26 @@ export function ProductForm({ categories, product, action }: Props) {
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="kitchen_category_id" className="mb-1.5 block text-sm font-medium">
+          Station (Kitchen)
+        </label>
+        <select
+          id="kitchen_category_id"
+          name="kitchen_category_id"
+          defaultValue={product?.kitchenCategoryId ?? ""}
+          className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          disabled={isPending}
+        >
+          <option value="">-- ไม่ระบุ --</option>
+          {kitchenCategories.map((k) => (
+            <option key={k.id} value={k.id}>
+              {k.name}
             </option>
           ))}
         </select>

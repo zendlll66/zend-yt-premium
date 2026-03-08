@@ -13,6 +13,9 @@ import {
 
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: "แดชบอร์ด",
+  orders: "รายการบิล",
+  kitchen: "Kitchen Display",
+  tables: "จัดการโต๊ะ",
   products: "จัดการสินค้า",
   categories: "หมวดหมู่สินค้า",
   modifiers: "ตัวเลือกสินค้า",

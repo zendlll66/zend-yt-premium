@@ -26,6 +26,7 @@ export async function createProductAction(
 ): Promise<CreateProductState> {
   const name = (formData.get("name") as string)?.trim() ?? "";
   const categoryId = parseNum(formData.get("category_id"));
+  const kitchenCategoryId = parseNum(formData.get("kitchen_category_id"));
   const price = parseNum(formData.get("price")) ?? 0;
   const cost = parseNum(formData.get("cost"));
   const sku = (formData.get("sku") as string)?.trim() || null;
@@ -39,6 +40,7 @@ export async function createProductAction(
   const product = await createProduct({
     name,
     categoryId: categoryId ?? null,
+    kitchenCategoryId: kitchenCategoryId ?? null,
     price,
     cost: cost ?? null,
     sku,
@@ -59,6 +61,7 @@ export async function updateProductAction(
   const id = parseNum(formData.get("id")) ?? 0;
   const name = (formData.get("name") as string)?.trim() ?? "";
   const categoryId = parseNum(formData.get("category_id"));
+  const kitchenCategoryId = parseNum(formData.get("kitchen_category_id"));
   const price = parseNum(formData.get("price")) ?? 0;
   const cost = parseNum(formData.get("cost"));
   const sku = (formData.get("sku") as string)?.trim() || null;
@@ -75,6 +78,7 @@ export async function updateProductAction(
   const product = await updateProduct(id, {
     name,
     categoryId: categoryId ?? null,
+    kitchenCategoryId: kitchenCategoryId ?? null,
     price,
     cost: cost ?? null,
     sku,

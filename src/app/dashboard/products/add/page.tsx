@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { createProductAction } from "@/features/product/product.actions";
 import { findAllCategories } from "@/features/category/category.repo";
+import { findAllKitchenCategories } from "@/features/kitchen-category/kitchen-category.repo";
 import { Button } from "@/components/ui/button";
 import { ProductForm } from "../product-form";
 
 export default async function AddProductPage() {
-  const categories = await findAllCategories();
+  const [categories, kitchenCategories] = await Promise.all([
+    findAllCategories(),
+    findAllKitchenCategories(),
+  ]);
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -15,7 +19,11 @@ export default async function AddProductPage() {
         </Button>
       </div>
       <h1 className="text-xl font-semibold">เพิ่มสินค้า</h1>
-      <ProductForm categories={categories} action={createProductAction} />
+      <ProductForm
+        categories={categories}
+        kitchenCategories={kitchenCategories}
+        action={createProductAction}
+      />
     </div>
   );
 }

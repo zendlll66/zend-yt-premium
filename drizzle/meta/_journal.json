@@ -29,6 +29,27 @@
       "when": 1772994155922,
       "tag": "0003_stale_colonel_america",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1772996984885,
+      "tag": "0004_optimal_stepford_cuckoos",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1772997975248,
+      "tag": "0005_striped_purifiers",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1772998988736,
+      "tag": "0006_loving_stark_industries",
+      "breakpoints": true
     }
   ]
 }

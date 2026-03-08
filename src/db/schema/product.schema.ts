@@ -1,10 +1,12 @@
 import { sqliteTable, integer, text, real } from "drizzle-orm/sqlite-core";
 import { categories } from "./category.schema";
+import { kitchenCategories } from "./kitchen-category.schema";
 
 export const products = sqliteTable("products", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   categoryId: integer("category_id").references(() => categories.id, { onDelete: "set null" }),
+  kitchenCategoryId: integer("kitchen_category_id").references(() => kitchenCategories.id, { onDelete: "set null" }),
   price: real("price").notNull(),
   cost: real("cost"),
   sku: text("sku"),
