@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
@@ -13,12 +14,18 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { getSessionUser } from "@/lib/auth-server"
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const user = await getSessionUser()
+  if (!user) {
+    redirect("/login?from=/dashboard")
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const COOKIE_NAME = "admin_session";
-const SECRET = process.env.ADMIN_SESSION_SECRET || "dev-secret-change-in-production";
+const SECRET =
+  process.env.ADMIN_SESSION_SECRET || "dev-secret-change-in-production";
 
 /** Hex string to Uint8Array */
 function hexToBytes(hex: string): Uint8Array {
@@ -23,7 +24,7 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 /** Verify cookie using Web Crypto (Edge-compatible) */
-async function verify(value: string): Promise<boolean> {
+async function verifySession(value: string): Promise<boolean> {
   const parts = value.split(".");
   if (parts.length !== 2) return false;
   const [idStr, sigHex] = parts;
@@ -49,17 +50,44 @@ async function verify(value: string): Promise<boolean> {
   }
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
-  if (!path.startsWith("/admin")) return NextResponse.next();
-
   const cookie = req.cookies.get(COOKIE_NAME)?.value;
-  if (!cookie || !(await verify(cookie))) {
-    const login = new URL("/login", req.url);
-    login.searchParams.set("from", path);
-    return NextResponse.redirect(login);
+  const isLoggedIn = !!(cookie && (await verifySession(cookie)));
+
+  // Protect dashboard: require login
+  if (path.startsWith("/dashboard")) {
+    if (!isLoggedIn) {
+      const login = new URL("/login", req.url);
+      login.searchParams.set("from", path);
+      return NextResponse.redirect(login);
+    }
+    return NextResponse.next();
   }
+
+  // If already logged in and visiting login, redirect to dashboard or "from"
+  if (path.startsWith("/login")) {
+    if (isLoggedIn) {
+      const from = req.nextUrl.searchParams.get("from");
+      const to = from && from.startsWith("/") ? from : "/dashboard";
+      return NextResponse.redirect(new URL(to, req.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Legacy: protect /admin the same way
+  if (path.startsWith("/admin")) {
+    if (!isLoggedIn) {
+      const login = new URL("/login", req.url);
+      login.searchParams.set("from", path);
+      return NextResponse.redirect(login);
+    }
+    return NextResponse.next();
+  }
+
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/admin", "/admin/:path*"] };
+export const config = {
+  matcher: ["/dashboard", "/dashboard/:path*", "/login", "/login/", "/admin", "/admin/:path*"],
+};
