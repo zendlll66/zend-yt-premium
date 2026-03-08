@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
+import { PermissionGuard } from "@/components/permission-guard"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -51,7 +52,7 @@ export default async function DashboardLayout({
           </div>
         </header>
         <div className="flex flex-1 flex-col p-4 pt-0">
-          {children}
+          <PermissionGuard user={user}>{children}</PermissionGuard>
         </div>
       </SidebarInset>
     </SidebarProvider>

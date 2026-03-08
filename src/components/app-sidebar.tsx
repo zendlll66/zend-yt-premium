@@ -16,7 +16,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ComputerTerminalIcon, RoboticIcon, BookOpen02Icon, Settings05Icon, ChartRingIcon, SentIcon, CropIcon, PieChartIcon, MapsIcon, CommandIcon } from "@hugeicons/core-free-icons"
+import { ComputerTerminalIcon, Settings05Icon, CommandIcon } from "@hugeicons/core-free-icons"
 
 const data = {
   user: {
@@ -40,6 +40,19 @@ const data = {
         {
           title: "add user",
           url: "/dashboard/user-list/add",
+        },
+      ],
+    },
+    {
+      title: "สิทธิ์การเข้าถึง",
+      url: "/dashboard/permissions",
+      icon: (
+        <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />
+      ),
+      items: [
+        {
+          title: "กำหนดสิทธิ์หน้า",
+          url: "/dashboard/permissions",
         },
       ],
     },
