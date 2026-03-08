@@ -355,7 +355,7 @@ export async function addItemsToOrder(
     addedTotal += lineTotal;
   }
 
-  return db.transaction(async (tx) => {
+  await db.transaction(async (tx) => {
     for (const item of newItems) {
       const modifierTotal = item.modifiers.reduce((s, m) => s + m.price, 0);
       const lineTotal = (item.price + modifierTotal) * item.quantity;
@@ -389,10 +389,15 @@ export async function addItemsToOrder(
       })
       .where(eq(orders.id, orderId));
   });
+
   const result = await findOrderById(orderId);
   if (result?.tableId) {
-    const { updateTable } = await import("@/features/table/table.repo");
-    await updateTable(result.tableId, { status: "occupied" });
+    try {
+      const { updateTable } = await import("@/features/table/table.repo");
+      await updateTable(result.tableId, { status: "occupied" });
+    } catch {
+      // ไม่ให้การอัปเดตสถานะโต๊ะทำให้การเพิ่มรายการล้มเหลว
+    }
   }
   return result;
 }

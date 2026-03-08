@@ -184,6 +184,9 @@ export type MenuProduct = {
   id: number;
   name: string;
   price: number;
+  imageUrl: string | null;
+  categoryId: number | null;
+  categoryName: string | null;
   modifierGroups: {
     id: number;
     name: string;
@@ -194,11 +197,20 @@ export type MenuProduct = {
 
 export async function getMenuForOrder(): Promise<MenuProduct[]> {
   const { products } = await import("@/db/schema/product.schema");
+  const { categories } = await import("@/db/schema/category.schema");
   const activeProducts = await db
-    .select({ id: products.id, name: products.name, price: products.price })
+    .select({
+      id: products.id,
+      name: products.name,
+      price: products.price,
+      imageUrl: products.imageUrl,
+      categoryId: products.categoryId,
+      categoryName: categories.name,
+    })
     .from(products)
+    .leftJoin(categories, eq(products.categoryId, categories.id))
     .where(eq(products.isActive, true))
-    .orderBy(products.name);
+    .orderBy(asc(categories.name), asc(products.name));
 
   const productIds = activeProducts.map((p) => p.id);
   if (productIds.length === 0) return [];
@@ -246,6 +258,9 @@ export async function getMenuForOrder(): Promise<MenuProduct[]> {
       id: p.id,
       name: p.name,
       price: p.price,
+      imageUrl: p.imageUrl ?? null,
+      categoryId: p.categoryId ?? null,
+      categoryName: p.categoryName ?? null,
       modifierGroups,
     };
   });
