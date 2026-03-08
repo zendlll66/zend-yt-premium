@@ -1,6 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { tables } from "@/db/schema/table.schema";
+import { tables, type TableStatus } from "@/db/schema/table.schema";
 
 export async function findAllTables() {
   return db.select().from(tables).orderBy(asc(tables.tableNumber));
@@ -13,14 +13,15 @@ export async function findTableById(id: number) {
 
 export async function createTable(data: {
   tableNumber: string;
-  status?: string;
+  status?: TableStatus;
   capacity?: number;
 }) {
+  const status: TableStatus = data.status ?? "available";
   const [row] = await db
     .insert(tables)
     .values({
       tableNumber: data.tableNumber,
-      status: data.status ?? "available",
+      status,
       capacity: data.capacity ?? 4,
     })
     .returning();
@@ -29,9 +30,9 @@ export async function createTable(data: {
 
 export async function updateTable(
   id: number,
-  data: { tableNumber?: string; status?: string; capacity?: number; qrToken?: string | null }
+  data: { tableNumber?: string; status?: TableStatus; capacity?: number; qrToken?: string | null }
 ) {
-  const payload: Record<string, unknown> = {};
+  const payload: Partial<{ tableNumber: string; status: TableStatus; capacity: number; qrToken: string | null }> = {};
   if (data.tableNumber != null) payload.tableNumber = data.tableNumber;
   if (data.status != null) payload.status = data.status;
   if (data.capacity != null) payload.capacity = data.capacity;
@@ -39,7 +40,7 @@ export async function updateTable(
   if (Object.keys(payload).length === 0) return findTableById(id);
   const [row] = await db
     .update(tables)
-    .set(payload as Partial<typeof tables.$inferInsert>)
+    .set(payload)
     .where(eq(tables.id, id))
     .returning();
   return row ?? null;

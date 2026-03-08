@@ -2,7 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { TABLE_STATUSES, type TableStatus } from "@/db/schema/table.schema";
 import { findTableById, createTable, updateTable, deleteTableById } from "./table.repo";
+
+function parseTableStatus(s: string): TableStatus {
+  return TABLE_STATUSES.includes(s as TableStatus) ? (s as TableStatus) : "available";
+}
 
 export type CreateTableState = { error?: string };
 export type UpdateTableState = { error?: string };
@@ -28,7 +33,7 @@ export async function updateTableAction(
 ): Promise<UpdateTableState> {
   const id = parseInt((formData.get("id") as string) ?? "0", 10);
   const tableNumber = (formData.get("table_number") as string)?.trim() ?? "";
-  const status = (formData.get("status") as string) ?? "available";
+  const status = parseTableStatus((formData.get("status") as string) ?? "available");
   const capacity = parseInt((formData.get("capacity") as string) ?? "4", 10) || 4;
   if (!id || !tableNumber) return { error: "กรุณากรอกเลขโต๊ะ" };
 
