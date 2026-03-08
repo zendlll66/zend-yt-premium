@@ -13,8 +13,11 @@ import {
 
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: "แดชบอร์ด",
+  products: "จัดการสินค้า",
+  categories: "หมวดหมู่สินค้า",
   "user-list": "รายการผู้ใช้",
   add: "เพิ่มผู้ใช้",
+  edit: "แก้ไข",
   permissions: "สิทธิ์การเข้าถึงหน้า",
 }
 

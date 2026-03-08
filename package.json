@@ -11,9 +11,12 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
-    "db:seed-pages": "tsx src/db/seed-pages.ts"
+    "db:seed-pages": "tsx src/db/seed-pages.ts",
+    "db:seed-categories": "tsx src/db/seed-categories.ts",
+    "db:seed-products": "tsx src/db/seed-products.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1004.0",
     "@hugeicons/core-free-icons": "^4.0.0",
     "@hugeicons/react": "^1.1.5",
     "@libsql/client": "^0.17.0",
@@ -40,10 +43,10 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
     "drizzle-kit": "^0.31.9",
-    "tsx": "^4.19.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
+    "tsx": "^4.19.0",
     "typescript": "^5"
   }
 }

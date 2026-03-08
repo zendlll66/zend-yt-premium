@@ -25,6 +25,26 @@ const NAV_MAIN = [
     isActive: true,
   },
   {
+    title: "จัดการสินค้า",
+    url: "#",
+    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    isActive: true,
+    items: [
+      { title: "รายการสินค้า", url: "/dashboard/products" },
+      { title: "เพิ่มสินค้า", url: "/dashboard/products/add" },
+    ],
+  },
+  {
+    title: "หมวดหมู่สินค้า",
+    url: "#",
+    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    isActive: true,
+    items: [
+      { title: "รายการหมวดหมู่", url: "/dashboard/categories" },
+      { title: "เพิ่มหมวดหมู่", url: "/dashboard/categories/add" },
+    ],
+  },
+  {
     title: "user management",
     url: "#",
     icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,

@@ -63,8 +63,9 @@ export async function createPage(data: { path: string; label: string; roles: str
     .returning();
   if (!page) return null;
   if (data.roles.length > 0) {
+    type Role = "admin" | "cashier" | "chef" | "super_admin";
     await db.insert(pageRoles).values(
-      data.roles.map((role) => ({ pageId: page.id, role }))
+      data.roles.map((role) => ({ pageId: page.id, role: role as Role }))
     );
   }
   return page.id;
@@ -82,10 +83,11 @@ export async function updatePage(
     await db.update(pages).set(payload).where(eq(pages.id, id));
   }
   if (data.roles != null) {
+    type Role = "admin" | "cashier" | "chef" | "super_admin";
     await db.delete(pageRoles).where(eq(pageRoles.pageId, id));
     if (data.roles.length > 0) {
       await db.insert(pageRoles).values(
-        data.roles.map((role) => ({ pageId: id, role }))
+        data.roles.map((role) => ({ pageId: id, role: role as Role }))
       );
     }
   }
