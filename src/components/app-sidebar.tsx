@@ -88,6 +88,12 @@ const NAV_MAIN = [
     ],
   },
   {
+    title: "ตั้งค่าร้าน",
+    url: "/dashboard/settings",
+    icon: <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
     title: "สิทธิ์การเข้าถึง",
     url: "/dashboard/permissions",
     icon: <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />,

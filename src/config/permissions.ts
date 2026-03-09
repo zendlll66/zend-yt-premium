@@ -27,6 +27,7 @@ export const PAGE_PERMISSIONS: PagePermission[] = [
   { path: "/dashboard/user-list/add", label: "เพิ่มผู้ใช้", roles: ["super_admin", "admin"] },
   { path: "/dashboard/user-list", label: "รายการผู้ใช้", roles: ["super_admin", "admin"] },
   { path: "/dashboard/permissions", label: "สิทธิ์การเข้าถึงหน้า", roles: ["super_admin"] },
+  { path: "/dashboard/settings", label: "ตั้งค่าร้าน", roles: ["super_admin", "admin"] },
   { path: "/dashboard", label: "แดชบอร์ด", roles: ["super_admin", "admin", "cashier", "chef"] },
 ];
 
