@@ -94,7 +94,7 @@ export function DashboardCharts({ revenueByDay, ordersByStatus, topProducts }: P
               <XAxis dataKey="dateShort" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${v} ฿`} />
               <Tooltip
-                formatter={(value: number) => [formatMoney(value), "รายได้"]}
+                formatter={(value) => [formatMoney(Number(value ?? 0)), "รายได้"]}
                 labelFormatter={(label) => `วันที่ ${label}`}
               />
               <Area
@@ -151,8 +151,8 @@ export function DashboardCharts({ revenueByDay, ordersByStatus, topProducts }: P
               <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
               <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
               <Tooltip
-                formatter={(value: number, name: string) =>
-                  name === "รายได้" ? [formatMoney(value), name] : [value, name]
+                formatter={(value, name) =>
+                  name === "รายได้" ? [formatMoney(Number(value ?? 0)), name] : [value ?? 0, name]
                 }
               />
               <Legend />

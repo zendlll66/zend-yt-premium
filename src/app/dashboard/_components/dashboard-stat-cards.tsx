@@ -61,7 +61,7 @@ const cards: { key: keyof Stats; label: string; sub: string; color: string }[] =
 function getValue(stats: Stats, key: keyof Stats): string {
   if (key === "paidOrders") return String(stats.revenue); // กำไร+ต้นทุน = รายได้
   const v = stats[key];
-  return typeof v === "number" && key !== "paidOrders" ? formatMoney(v) : String(v);
+  return typeof v === "number" ? formatMoney(v) : String(v);
 }
 
 function getProfitColor(profit: number) {

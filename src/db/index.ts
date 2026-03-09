@@ -22,6 +22,6 @@ function getDb(): LibSQLDatabase {
 /** Lazy-initialized so process.env is read when the first query runs (env is available in request context). */
 export const db = new Proxy({} as LibSQLDatabase, {
   get(_, prop) {
-    return (getDb() as Record<string | symbol, unknown>)[prop];
+    return (getDb() as unknown as Record<string | symbol, unknown>)[prop];
   },
 });
