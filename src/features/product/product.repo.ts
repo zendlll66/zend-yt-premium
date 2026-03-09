@@ -9,10 +9,12 @@ export type ProductListItem = {
   categoryId: number | null;
   categoryName: string | null;
   price: number;
+  deposit: number | null;
   cost: number | null;
   sku: string | null;
   barcode: string | null;
   imageUrl: string | null;
+  description: string | null;
   isActive: boolean;
   createdAt: Date | null;
 };
@@ -25,10 +27,12 @@ export async function findAllProducts(): Promise<ProductListItem[]> {
       categoryId: products.categoryId,
       categoryName: categories.name,
       price: products.price,
+      deposit: products.deposit,
       cost: products.cost,
       sku: products.sku,
       barcode: products.barcode,
       imageUrl: products.imageUrl,
+      description: products.description,
       isActive: products.isActive,
       createdAt: products.createdAt,
     })
@@ -38,27 +42,26 @@ export async function findAllProducts(): Promise<ProductListItem[]> {
   return rows.map((r) => ({
     ...r,
     categoryName: r.categoryName ?? null,
+    deposit: r.deposit ?? null,
+    description: r.description ?? null,
   }));
 }
 
 export async function findProductById(id: number) {
-  const [row] = await db
-    .select()
-    .from(products)
-    .where(eq(products.id, id))
-    .limit(1);
+  const [row] = await db.select().from(products).where(eq(products.id, id)).limit(1);
   return row ?? null;
 }
 
 export async function createProduct(data: {
   name: string;
   categoryId?: number | null;
-  kitchenCategoryId?: number | null;
   price: number;
+  deposit?: number | null;
   cost?: number | null;
   sku?: string | null;
   barcode?: string | null;
   imageUrl?: string | null;
+  description?: string | null;
   isActive?: boolean;
 }) {
   const [row] = await db
@@ -66,12 +69,13 @@ export async function createProduct(data: {
     .values({
       name: data.name,
       categoryId: data.categoryId ?? null,
-      kitchenCategoryId: data.kitchenCategoryId ?? null,
       price: data.price,
+      deposit: data.deposit ?? null,
       cost: data.cost ?? null,
       sku: data.sku ?? null,
       barcode: data.barcode ?? null,
       imageUrl: data.imageUrl ?? null,
+      description: data.description ?? null,
       isActive: data.isActive ?? true,
     })
     .returning();
@@ -83,12 +87,13 @@ export async function updateProduct(
   data: {
     name?: string;
     categoryId?: number | null;
-    kitchenCategoryId?: number | null;
     price?: number;
+    deposit?: number | null;
     cost?: number | null;
     sku?: string | null;
     barcode?: string | null;
     imageUrl?: string | null;
+    description?: string | null;
     isActive?: boolean;
   }
 ) {
@@ -103,18 +108,11 @@ export async function updateProduct(
 }
 
 export async function deleteProductById(id: number): Promise<boolean> {
-  const [row] = await db
-    .delete(products)
-    .where(eq(products.id, id))
-    .returning({ id: products.id });
+  const [row] = await db.delete(products).where(eq(products.id, id)).returning({ id: products.id });
   return row != null;
 }
 
 export async function setProductActive(id: number, isActive: boolean) {
-  const [row] = await db
-    .update(products)
-    .set({ isActive })
-    .where(eq(products.id, id))
-    .returning();
+  const [row] = await db.update(products).set({ isActive }).where(eq(products.id, id)).returning();
   return row ?? null;
 }

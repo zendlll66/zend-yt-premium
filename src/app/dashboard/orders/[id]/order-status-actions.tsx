@@ -5,25 +5,21 @@ import { updateOrderStatusAction } from "@/features/order/order.actions";
 import { Button } from "@/components/ui/button";
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: "รอจัดเตรียม",
-  preparing: "กำลังจัดเตรียม",
-  ready: "พร้อมเสิร์ฟ",
-  served: "จัดเสิร์ฟแล้ว",
+  pending: "รอชำระเงิน",
   paid: "ชำระแล้ว",
+  completed: "คืนแล้ว",
   cancelled: "ยกเลิก",
 };
 
-/** บิล: เปลี่ยนได้เฉพาะ ชำระแล้ว / ยกเลิก (สถานะรายการสั่งครัวจัดการที่หน้า Kitchen) */
+/** คำสั่งเช่า: ชำระผ่าน Stripe; แอดมินเปลี่ยนได้เฉพาะ ยกเลิก / คืนแล้ว */
 const NEXT_STATUS: Record<string, string[] | null> = {
-  pending: ["paid", "cancelled"],
-  preparing: ["paid", "cancelled"],
-  ready: ["paid", "cancelled"],
-  served: ["paid", "cancelled"],
-  paid: null,
+  pending: ["cancelled"],
+  paid: ["completed", "cancelled"],
+  completed: null,
   cancelled: null,
 };
 
-type Status = "pending" | "preparing" | "ready" | "served" | "paid" | "cancelled";
+type Status = "pending" | "paid" | "completed" | "cancelled";
 
 export function OrderStatusActions({
   orderId,
@@ -35,14 +31,14 @@ export function OrderStatusActions({
   const router = useRouter();
   const options = NEXT_STATUS[currentStatus];
 
-  async function handleStatus(status: Status) {
-    await updateOrderStatusAction(orderId, status);
+  async function handleStatus(s: Status) {
+    await updateOrderStatusAction(orderId, s);
     router.refresh();
   }
 
   if (!options || options.length === 0) {
     return (
-      <span className="text-muted-foreground text-sm">
+      <span className="text-sm text-muted-foreground">
         {STATUS_LABELS[currentStatus] ?? currentStatus}
       </span>
     );
@@ -56,9 +52,13 @@ export function OrderStatusActions({
           variant={s === "cancelled" ? "outline" : "default"}
           size="sm"
           onClick={() => handleStatus(s as Status)}
-          className={s === "cancelled" ? "text-destructive hover:bg-destructive/10 hover:text-destructive" : ""}
+          className={
+            s === "cancelled"
+              ? "text-destructive hover:bg-destructive/10 hover:text-destructive"
+              : ""
+          }
         >
-          {s === "cancelled" ? "ยกเลิกบิล" : s === "paid" ? "ชำระแล้ว" : `→ ${STATUS_LABELS[s]}`}
+          {s === "cancelled" ? "ยกเลิกคำสั่ง" : s === "completed" ? "บันทึกว่าคืนแล้ว" : STATUS_LABELS[s]}
         </Button>
       ))}
     </div>

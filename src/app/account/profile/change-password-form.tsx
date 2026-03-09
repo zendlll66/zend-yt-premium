@@ -1,0 +1,79 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { changePasswordAction } from "@/features/customer/customer.actions";
+
+export function ChangePasswordForm() {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+    const form = e.currentTarget;
+    const current = (form.elements.namedItem("currentPassword") as HTMLInputElement).value;
+    const newPass = (form.elements.namedItem("newPassword") as HTMLInputElement).value;
+
+    setLoading(true);
+    const result = await changePasswordAction(current, newPass);
+    setLoading(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setSuccess(true);
+    form.reset();
+    router.refresh();
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div>
+        <label htmlFor="currentPassword" className="mb-1.5 block text-sm font-medium">
+          รหัสผ่านปัจจุบัน
+        </label>
+        <Input
+          id="currentPassword"
+          name="currentPassword"
+          type="password"
+          autoComplete="current-password"
+          required
+          disabled={loading}
+        />
+      </div>
+      <div>
+        <label htmlFor="newPassword" className="mb-1.5 block text-sm font-medium">
+          รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)
+        </label>
+        <Input
+          id="newPassword"
+          name="newPassword"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={6}
+          disabled={loading}
+        />
+      </div>
+      {error && (
+        <p className="text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+      {success && (
+        <p className="text-sm text-green-600 dark:text-green-400" role="status">
+          เปลี่ยนรหัสผ่านเรียบร้อยแล้ว
+        </p>
+      )}
+      <Button type="submit" disabled={loading}>
+        {loading ? "กำลังเปลี่ยน…" : "เปลี่ยนรหัสผ่าน"}
+      </Button>
+    </form>
+  );
+}

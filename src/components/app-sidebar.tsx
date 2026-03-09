@@ -1,9 +1,8 @@
-"use client"
+"use client";
 
-import * as React from "react"
-
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
+import * as React from "react";
+import { NavMain } from "@/components/nav-main";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -13,22 +12,18 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { HugeiconsIcon } from "@hugeicons/react"
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
   CommandIcon,
   DashboardSquare01Icon,
   ReceiptTextIcon,
-  MenuRestaurantIcon,
-  LayoutGridIcon,
-  Layers01Icon,
-  RestaurantTableIcon,
   Package01Icon,
   Folder01Icon,
   UserMultipleIcon,
   Settings05Icon,
   SecurityIcon,
-} from "@hugeicons/core-free-icons"
-import { canAccess, type PermissionRule } from "@/config/permissions"
+} from "@hugeicons/core-free-icons";
+import { canAccess, type PermissionRule } from "@/config/permissions";
 
 const NAV_MAIN = [
   {
@@ -38,42 +33,10 @@ const NAV_MAIN = [
     isActive: true,
   },
   {
-    title: "บิล (Orders)",
+    title: "รายการคำสั่งเช่า",
     url: "/dashboard/orders",
     icon: <HugeiconsIcon icon={ReceiptTextIcon} strokeWidth={2} />,
     isActive: true,
-  },
-  {
-    title: "Kitchen Display",
-    url: "/dashboard/kitchen",
-    icon: <HugeiconsIcon icon={MenuRestaurantIcon} strokeWidth={2} />,
-    isActive: true,
-  },
-  {
-    title: "มัลติดิสเพลย์",
-    url: "/dashboard/multidisplay",
-    icon: <HugeiconsIcon icon={LayoutGridIcon} strokeWidth={2} />,
-    isActive: true,
-  },
-  {
-    title: "จัดการ Station",
-    url: "#",
-    icon: <HugeiconsIcon icon={Layers01Icon} strokeWidth={2} />,
-    isActive: true,
-    items: [
-      { title: "รายการ Station", url: "/dashboard/stations" },
-      { title: "เพิ่ม Station", url: "/dashboard/stations/add" },
-    ],
-  },
-  {
-    title: "จัดการโต๊ะ",
-    url: "#",
-    icon: <HugeiconsIcon icon={RestaurantTableIcon} strokeWidth={2} />,
-    isActive: true,
-    items: [
-      { title: "รายการโต๊ะ", url: "/dashboard/tables" },
-      { title: "เพิ่มโต๊ะ", url: "/dashboard/tables/add" },
-    ],
   },
   {
     title: "จัดการสินค้า",
@@ -120,35 +83,35 @@ const NAV_MAIN = [
       { title: "กำหนดสิทธิ์หน้า", url: "/dashboard/permissions" },
     ],
   },
-]
+];
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
-  user: { name: string; email: string; role?: string }
-  permissions?: PermissionRule[] | null
-}
+  user: { name: string; email: string; role?: string };
+  permissions?: PermissionRule[] | null;
+};
 
 function filterNavByPermission(
   nav: typeof NAV_MAIN,
   role: string,
   permissions: PermissionRule[] | null | undefined
 ) {
-  const roleSafe = role || ""
+  const roleSafe = role || "";
   return nav
     .map((group) => {
       const items = group.items?.filter((item) =>
         canAccess(item.url, roleSafe, permissions)
-      ) ?? []
+      ) ?? [];
       if (group.url && group.url !== "#" && !canAccess(group.url, roleSafe, permissions)) {
-        return null
+        return null;
       }
-      if (items.length === 0 && (!group.url || group.url === "#")) return null
-      return { ...group, items }
+      if (items.length === 0 && (!group.url || group.url === "#")) return null;
+      return { ...group, items };
     })
-    .filter((g): g is NonNullable<typeof g> => g != null)
+    .filter((g): g is NonNullable<typeof g> => g != null);
 }
 
 export function AppSidebar({ user, permissions, ...props }: AppSidebarProps) {
-  const navMain = filterNavByPermission(NAV_MAIN, user.role ?? "", permissions)
+  const navMain = filterNavByPermission(NAV_MAIN, user.role ?? "", permissions);
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -161,7 +124,7 @@ export function AppSidebar({ user, permissions, ...props }: AppSidebarProps) {
                   <HugeiconsIcon icon={CommandIcon} strokeWidth={2} className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Zend POS</span>
+                  <span className="truncate font-medium">Zend Rental</span>
                   <span className="truncate text-xs">Dashboard</span>
                 </div>
               </a>
@@ -176,5 +139,5 @@ export function AppSidebar({ user, permissions, ...props }: AppSidebarProps) {
         <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

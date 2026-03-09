@@ -12,23 +12,23 @@ type ProductRow = {
   id: number;
   name: string;
   categoryId: number | null;
-  kitchenCategoryId: number | null;
   price: number;
+  deposit: number | null;
   cost: number | null;
   sku: string | null;
   barcode: string | null;
   imageUrl: string | null;
+  description: string | null;
   isActive: boolean;
 };
 
 type Props = {
   categories: { id: number; name: string }[];
-  kitchenCategories: { id: number; name: string }[];
   product?: ProductRow | null;
   action: typeof createProductAction | typeof updateProductAction;
 };
 
-export function ProductForm({ categories, kitchenCategories, product, action }: Props) {
+export function ProductForm({ categories, product, action }: Props) {
   const isEdit = !!product;
   const [imageUrl, setImageUrl] = useState(product?.imageUrl ?? "");
   const [state, formAction, isPending] = useActionState(
@@ -42,7 +42,7 @@ export function ProductForm({ categories, kitchenCategories, product, action }: 
 
       <div>
         <label htmlFor="name" className="mb-1.5 block text-sm font-medium">
-          ชื่อสินค้า *
+          ชื่อสินค้า/ของเช่า *
         </label>
         <Input
           id="name"
@@ -74,30 +74,10 @@ export function ProductForm({ categories, kitchenCategories, product, action }: 
         </select>
       </div>
 
-      <div>
-        <label htmlFor="kitchen_category_id" className="mb-1.5 block text-sm font-medium">
-          Station (Kitchen)
-        </label>
-        <select
-          id="kitchen_category_id"
-          name="kitchen_category_id"
-          defaultValue={product?.kitchenCategoryId ?? ""}
-          className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          disabled={isPending}
-        >
-          <option value="">-- ไม่ระบุ --</option>
-          {kitchenCategories.map((k) => (
-            <option key={k.id} value={k.id}>
-              {k.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="price" className="mb-1.5 block text-sm font-medium">
-            ราคาขาย *
+            ราคาเช่าต่อวัน (บาท) *
           </label>
           <Input
             id="price"
@@ -110,6 +90,24 @@ export function ProductForm({ categories, kitchenCategories, product, action }: 
             disabled={isPending}
           />
         </div>
+        <div>
+          <label htmlFor="deposit" className="mb-1.5 block text-sm font-medium">
+            ค่ามัดจำ (บาท)
+          </label>
+          <Input
+            id="deposit"
+            name="deposit"
+            type="number"
+            min={0}
+            step={0.01}
+            defaultValue={product?.deposit ?? ""}
+            placeholder="0"
+            disabled={isPending}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="cost" className="mb-1.5 block text-sm font-medium">
             ต้นทุน
@@ -124,6 +122,21 @@ export function ProductForm({ categories, kitchenCategories, product, action }: 
             disabled={isPending}
           />
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="description" className="mb-1.5 block text-sm font-medium">
+          คำอธิบาย
+        </label>
+        <textarea
+          id="description"
+          name="description"
+          defaultValue={product?.description ?? ""}
+          placeholder="รายละเอียดของเช่า"
+          rows={3}
+          disabled={isPending}
+          className="w-full rounded-lg border border-input bg-input/30 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -176,7 +189,7 @@ export function ProductForm({ categories, kitchenCategories, product, action }: 
             className="h-4 w-4 rounded border-input"
           />
           <label htmlFor="is_active" className="text-sm">
-            เปิดการขาย
+            เปิดให้เช่า
           </label>
         </div>
       )}

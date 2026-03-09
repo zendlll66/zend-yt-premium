@@ -39,8 +39,8 @@ export default async function ProductsPage() {
                 <th className="px-4 py-3 font-medium">รูป</th>
                 <th className="px-4 py-3 font-medium">ชื่อ</th>
                 <th className="px-4 py-3 font-medium">หมวดหมู่</th>
-                <th className="px-4 py-3 font-medium">ราคา</th>
-                <th className="px-4 py-3 font-medium">SKU</th>
+                <th className="px-4 py-3 font-medium">ราคา/วัน</th>
+                <th className="px-4 py-3 font-medium">มัดจำ</th>
                 <th className="px-4 py-3 font-medium">สถานะ</th>
                 <th className="px-4 py-3 font-medium">สร้างเมื่อ</th>
                 <th className="px-4 py-3 text-right font-medium">จัดการ</th>
@@ -71,8 +71,10 @@ export default async function ProductsPage() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {p.categoryName ?? "-"}
                     </td>
-                    <td className="px-4 py-3">{formatMoney(p.price)}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{p.sku ?? "-"}</td>
+                    <td className="px-4 py-3">{formatMoney(p.price)} ฿</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {p.deposit != null && p.deposit > 0 ? `${formatMoney(p.deposit)} ฿` : "-"}
+                    </td>
                     <td className="px-4 py-3">
                       <span
                         className={
@@ -81,7 +83,7 @@ export default async function ProductsPage() {
                             : "text-muted-foreground"
                         }
                       >
-                        {p.isActive ? "ขายได้" : "ปิดขาย"}
+                        {p.isActive ? "เปิดให้เช่า" : "ปิด"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">

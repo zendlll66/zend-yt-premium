@@ -1,0 +1,25 @@
+import Link from "next/link";
+import { CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+export default function RentSuccessPage() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-4">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20 text-green-600 dark:text-green-400">
+        <CheckCircle className="h-10 w-10" />
+      </div>
+      <h1 className="text-center text-xl font-semibold">ชำระเงินสำเร็จ</h1>
+      <p className="max-w-sm text-center text-sm text-muted-foreground">
+        ขอบคุณที่ใช้บริการ เราจะติดต่อคุณตามข้อมูลที่กรอกไว้
+      </p>
+      <div className="flex gap-3">
+        <Button variant="outline" asChild>
+          <Link href="/rent">เช่าอื่นต่อ</Link>
+        </Button>
+        <Button asChild>
+          <Link href="/">กลับหน้าหลัก</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}

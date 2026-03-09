@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { findProductById } from "@/features/product/product.repo";
 import { findAllCategories } from "@/features/category/category.repo";
-import { findAllKitchenCategories } from "@/features/kitchen-category/kitchen-category.repo";
 import { findAllModifierGroups } from "@/features/modifier/modifier.repo";
 import { getModifierGroupIdsByProductId } from "@/features/modifier/modifier.repo";
 import { Button } from "@/components/ui/button";
@@ -19,14 +18,12 @@ export default async function EditProductPage({
   const productId = parseInt(id, 10);
   if (!Number.isFinite(productId)) notFound();
 
-  const [product, categories, kitchenCategories, modifierGroups, productModifierIds] =
-    await Promise.all([
-      findProductById(productId),
-      findAllCategories(),
-      findAllKitchenCategories(),
-      findAllModifierGroups(),
-      getModifierGroupIdsByProductId(productId),
-    ]);
+  const [product, categories, modifierGroups, productModifierIds] = await Promise.all([
+    findProductById(productId),
+    findAllCategories(),
+    findAllModifierGroups(),
+    getModifierGroupIdsByProductId(productId),
+  ]);
 
   if (!product) notFound();
 
@@ -39,20 +36,20 @@ export default async function EditProductPage({
           <Link href="/dashboard/products">← จัดการสินค้า</Link>
         </Button>
       </div>
-      <h1 className="text-xl font-semibold">แก้ไขสินค้า</h1>
+      <h1 className="text-xl font-semibold">แก้ไขสินค้า/ของเช่า</h1>
       <ProductForm
         categories={categories}
-        kitchenCategories={kitchenCategories}
         product={{
           id: product.id,
           name: product.name,
           categoryId: product.categoryId,
-          kitchenCategoryId: product.kitchenCategoryId,
           price: product.price,
+          deposit: product.deposit,
           cost: product.cost,
           sku: product.sku,
           barcode: product.barcode,
           imageUrl: product.imageUrl,
+          description: product.description,
           isActive: product.isActive,
         }}
         action={updateProductAction}

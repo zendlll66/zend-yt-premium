@@ -41,9 +41,9 @@ export function ProductRowActions({
         variant="outline"
         size="sm"
         onClick={handleToggle}
-        title={isActive ? "ปิดการขาย" : "เปิดการขาย"}
+        title={isActive ? "ปิดการให้เช่า" : "เปิดการให้เช่า"}
       >
-        {isActive ? "ปิดขาย" : "เปิดขาย"}
+        {isActive ? "ปิด" : "เปิดให้เช่า"}
       </Button>
       <Button
         variant="outline"

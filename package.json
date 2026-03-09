@@ -1,5 +1,5 @@
 {
-  "name": "zend-pos",
+  "name": "zend-rental",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -16,9 +16,7 @@
     "db:seed-products": "tsx src/db/seed-products.ts",
     "db:seed-modifiers": "tsx src/db/seed-modifiers.ts",
     "db:seed-orders": "tsx src/db/seed-orders.ts",
-    "db:seed-kitchen-categories": "tsx src/db/seed-kitchen-categories.ts",
-    "db:seed-tables": "tsx src/db/seed-tables.ts",
-    "db:migrate-kitchen-orders": "tsx src/db/migrate-kitchen-orders.ts"
+    "db:seed-all": "tsx src/db/seed.ts && tsx src/db/seed-pages.ts && tsx src/db/seed-categories.ts && tsx src/db/seed-products.ts && tsx src/db/seed-modifiers.ts && tsx src/db/seed-orders.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1004.0",
@@ -38,6 +36,7 @@
     "react-dom": "19.2.3",
     "recharts": "^3.8.0",
     "shadcn": "^4.0.0",
+    "stripe": "^20.4.1",
     "tailwind-merge": "^3.5.0",
     "tw-animate-css": "^1.4.0",
     "zustand": "^5.0.11"

@@ -4,14 +4,11 @@ import { db } from "@/db";
 import { modifierGroups } from "@/db/schema/modifier.schema";
 import { modifiers } from "@/db/schema/modifier.schema";
 
-/** [ชื่อกลุ่ม, บังคับเลือก, [[ชื่อตัวเลือก, ราคาเพิ่ม], ...] ] */
+/** [ชื่อกลุ่ม, บังคับเลือก, [[ชื่อตัวเลือก, ราคาเพิ่ม], ...] ] - ใช้กับของเช่าได้ (ประกัน, เพิ่มวัน) */
 const SEED_MODIFIERS: [string, boolean, [string, number][]][] = [
-  ["Size", true, [["Small", 0], ["Medium", 10], ["Large", 20]]],
-  ["Extra shot", false, [["ไม่เพิ่ม", 0], ["เพิ่ม 1 shot", 20]]],
-  ["นม", false, [["นมธรรมดา", 0], ["Oat milk", 15], ["Almond", 15]]],
-  ["ระดับความเผ็ด", false, [["ไม่เผ็ด", 0], ["เผ็ดน้อย", 0], ["เผ็ดปานกลาง", 0], ["เผ็ดมาก", 0]]],
-  ["ไม่ใส่ผัก", false, [["ใส่ผักตามปกติ", 0], ["ไม่ใส่ผัก", 0]]],
-  ["เพิ่มไข่", false, [["ไม่เพิ่ม", 0], ["เพิ่มไข่", 10]]],
+  ["ประกัน", false, [["ไม่รับ", 0], ["รับประกัน (ค่ามัดจำลด 50%)", 0]]],
+  ["เพิ่มวัน", false, [["ไม่เพิ่ม", 0], ["+1 วัน", 0], ["+3 วัน", 0]]],
+  ["Size", false, [["Standard", 0], ["Large", 100]]],
 ];
 
 async function getOrCreateGroupId(name: string, required: boolean): Promise<number> {

@@ -4,72 +4,32 @@ import { db } from "@/db";
 import { categories } from "@/db/schema/category.schema";
 import { products } from "@/db/schema/product.schema";
 
-/** หมวดหมู่ร้านชาบู */
-const SHABU_CATEGORIES = [
-  "เนื้อวัว",
-  "เนื้อหมู",
-  "ซีฟู๊ด",
-  "ผักและของใส่ชาบู",
-  "เครื่องดื่ม",
-  "ซอสและของเสริม",
-];
-
-/** สินค้าตามหมวดหมู่: [ชื่อหมวด, [ [ชื่อสินค้า, ราคา, ต้นทุน?] ] ] */
-const SHABU_PRODUCTS: [string, [string, number, number?][]][] = [
+/** สินค้าเช่าตัวอย่าง: [หมวด, [ชื่อ, ราคา/วัน, มัดจำ?, ต้นทุน?] ] */
+const RENTAL_PRODUCTS: [string, [string, number, number?, number?][]][] = [
   [
-    "เนื้อวัว",
+    "กล้อง",
     [
-      ["สันในวัว", 299, 180],
-      ["สันนอกวัว", 279, 160],
-      ["ซี่โครงวัว", 259, 150],
-      ["เนื้อสไลด์พรีเมียม", 349, 200],
+      ["Canon EOS R5", 1500, 10000, 800],
+      ["Sony A7 IV", 1200, 8000, 650],
+      ["กล้องวิดีโอ Sony FX3", 2000, 15000, 1000],
+      ["เลนส์ 24-70mm f/2.8", 500, 5000, 200],
+      ["ขาตั้งกล้อง Manfrotto", 150, 1000, 50],
     ],
   ],
   [
-    "เนื้อหมู",
+    "รถ",
     [
-      ["สันในหมู", 159, 90],
-      ["สามชั้นหมู", 139, 75],
-      ["หมูสไลด์", 179, 95],
+      ["Toyota Camry", 2500, 20000, 1200],
+      ["Honda City", 1500, 10000, 800],
+      ["จักรยานยนต์ Honda PCX", 800, 5000, 300],
     ],
   ],
   [
-    "ซีฟู๊ด",
+    "อื่นๆ",
     [
-      ["กุ้งสด", 189, 120],
-      ["ปลาหมึก", 169, 100],
-      ["หอยแมลงภู่", 129, 70],
-      ["ลูกชิ้นปลา", 79, 40],
-    ],
-  ],
-  [
-    "ผักและของใส่ชาบู",
-    [
-      ["ผักกาดขาว", 49, 20],
-      ["เห็ดเข็มทอง", 59, 30],
-      ["เห็ดนางรม", 59, 28],
-      ["บะหมี่ไข่", 29, 12],
-      ["วุ้นเส้น", 29, 10],
-      ["เต้าหู้", 39, 18],
-      ["เซ็ตผักรวม", 89, 45],
-    ],
-  ],
-  [
-    "เครื่องดื่ม",
-    [
-      ["น้ำอัดลม", 25, 8],
-      ["ชาเย็น", 35, 12],
-      ["น้ำเปล่า", 15, 3],
-      ["น้ำส้ม", 45, 18],
-      ["โซดา", 30, 10],
-    ],
-  ],
-  [
-    "ซอสและของเสริม",
-    [
-      ["ซอสชาบู", 15, 5],
-      ["ไข่ไก่ (สำหรับทานกับเนื้อ)", 10, 4],
-      ["ข้าวสวย", 15, 5],
+      ["โปรเจคเตอร์ Epson", 400, 3000, 150],
+      ["ไมค์ไร้สาย Shure", 200, 2000, 80],
+      ["ไฟสตูดิโอ Godox", 300, 2500, 100],
     ],
   ],
 ];
@@ -89,16 +49,15 @@ async function getOrCreateCategoryId(name: string): Promise<number> {
 async function seedProducts() {
   console.log("Seeding categories...");
   const categoryIds: Record<string, number> = {};
-  for (const name of SHABU_CATEGORIES) {
+  for (const name of ["กล้อง", "รถ", "อื่นๆ"]) {
     categoryIds[name] = await getOrCreateCategoryId(name);
-    console.log("  Category:", name, "-> id", categoryIds[name]);
   }
 
   console.log("Seeding products...");
   let added = 0;
-  for (const [catName, items] of SHABU_PRODUCTS) {
+  for (const [catName, items] of RENTAL_PRODUCTS) {
     const categoryId = categoryIds[catName];
-    for (const [productName, price, cost] of items) {
+    for (const [productName, pricePerDay, deposit, cost] of items) {
       const [existing] = await db
         .select({ id: products.id })
         .from(products)
@@ -109,14 +68,16 @@ async function seedProducts() {
       await db.insert(products).values({
         name: productName,
         categoryId,
-        price,
+        price: pricePerDay,
+        deposit: deposit ?? null,
         cost: cost ?? null,
         sku: null,
         barcode: null,
         imageUrl: null,
+        description: null,
         isActive: true,
       });
-      console.log("  +", productName, price, "฿");
+      console.log("  +", productName, pricePerDay, "฿/วัน", deposit != null ? `(มัดจำ ${deposit} ฿)` : "");
       added++;
     }
   }

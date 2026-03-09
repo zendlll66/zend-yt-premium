@@ -2,23 +2,33 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  createOrder,
+  createRentalOrder,
   findOrderById,
   updateOrderStatus,
-  updateKitchenOrderStatus,
-  updateOrderItemStatus,
 } from "./order.repo";
 import type { OrderItemInput } from "./order.repo";
+import type { RentalOrderStatus } from "@/db/schema/order.schema";
 
-export type CreateOrderState = { orderId?: number; orderNumber?: string; error?: string };
+export type CreateRentalOrderState = { orderId?: number; orderNumber?: string; error?: string };
 
-export async function createOrderAction(input: {
-  tableId?: number | null;
-  createdBy?: number | null;
+export async function createRentalOrderAction(input: {
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string | null;
+  rentalStart: Date;
+  rentalEnd: Date;
   items: OrderItemInput[];
-}): Promise<CreateOrderState> {
+}): Promise<CreateRentalOrderState> {
   if (!input.items?.length) {
     return { error: "ไม่มีรายการสินค้า" };
+  }
+  if (!input.customerName?.trim()) return { error: "กรุณากรอกชื่อ" };
+  if (!input.customerEmail?.trim()) return { error: "กรุณากรอกอีเมล" };
+  if (!(input.rentalStart instanceof Date) || !(input.rentalEnd instanceof Date)) {
+    return { error: "กรุณาเลือกวันที่เช่า" };
+  }
+  if (input.rentalEnd <= input.rentalStart) {
+    return { error: "วันที่คืนต้องอยู่หลังวันที่เริ่มเช่า" };
   }
 
   for (const item of input.items) {
@@ -26,88 +36,26 @@ export async function createOrderAction(input: {
     if (typeof item.price !== "number" || item.price < 0) return { error: "ราคาไม่ถูกต้อง" };
     if (!Number.isInteger(item.quantity) || item.quantity < 1) return { error: "จำนวนไม่ถูกต้อง" };
     if (!Array.isArray(item.modifiers)) item.modifiers = [];
-    for (const m of item.modifiers) {
-      if (!m.modifierName?.trim()) return { error: "ชื่อตัวเลือกไม่ถูกต้อง" };
-      if (typeof m.price !== "number" || m.price < 0) return { error: "ราคาตัวเลือกไม่ถูกต้อง" };
-    }
   }
 
-  const order = await createOrder({
-    tableId: input.tableId ?? null,
-    createdBy: input.createdBy ?? null,
+  const order = await createRentalOrder({
+    customerName: input.customerName.trim(),
+    customerEmail: input.customerEmail.trim(),
+    customerPhone: input.customerPhone?.trim() || null,
+    rentalStart: input.rentalStart,
+    rentalEnd: input.rentalEnd,
     items: input.items,
   });
 
-  if (!order) return { error: "สร้างบิลไม่สำเร็จ" };
+  if (!order) return { error: "สร้างคำสั่งเช่าไม่สำเร็จ" };
 
   revalidatePath("/dashboard/orders");
   return { orderId: order.id, orderNumber: order.orderNumber };
 }
 
-export async function updateOrderStatusAction(
-  orderId: number,
-  status: "pending" | "preparing" | "ready" | "served" | "paid" | "cancelled"
-) {
+export async function updateOrderStatusAction(orderId: number, status: RentalOrderStatus) {
   const order = await updateOrderStatus(orderId, status);
   revalidatePath("/dashboard/orders");
   revalidatePath(`/dashboard/orders/${orderId}`);
-  revalidatePath("/dashboard/kitchen");
-  return order ? {} : { error: "ไม่พบบิล" };
-}
-
-/**
- * อัปเดตสถานะรายการสั่งครัว
- * - stationId ไม่ส่ง (อยู่ "ทั้งหมด"): เปลี่ยนทั้ง order + ทุกรายการ
- * - stationId ส่งมา: เปลี่ยนเฉพาะรายการของ station นั้น
- */
-export async function updateKitchenOrderStatusAction(
-  kitchenOrderId: number,
-  status: "pending" | "preparing" | "ready" | "served",
-  stationId?: number | null
-) {
-  const row = await updateKitchenOrderStatus(kitchenOrderId, status, {
-    onlyForKitchenCategoryId: stationId ?? undefined,
-  });
-  revalidatePath("/dashboard/kitchen");
-  if (row) {
-    revalidatePath(`/dashboard/orders/${row.orderId}`);
-  }
-  return row ? {} : { error: "ไม่พบรายการสั่ง" };
-}
-
-/** อัปเดตสถานะต่อรายการ (แต่ละ station จัดแยกได้) */
-export async function updateOrderItemStatusAction(
-  orderItemId: number,
-  status: "pending" | "preparing" | "ready"
-) {
-  const row = await updateOrderItemStatus(orderItemId, status);
-  revalidatePath("/dashboard/kitchen");
-  return row ? {} : { error: "ไม่พบรายการ" };
-}
-
-/** ลูกค้าส่งคำสั่งโต๊ะ: สร้างบิลใหม่หรือเพิ่มเข้าบิลเดิมของโต๊ะ */
-export async function submitTableOrderAction(
-  tableId: number,
-  items: OrderItemInput[]
-): Promise<{ orderId?: number; orderNumber?: string; error?: string }> {
-  if (!items?.length) return { error: "ไม่มีรายการ" };
-
-  for (const item of items) {
-    if (!item.productName?.trim()) return { error: "ชื่อสินค้าไม่ถูกต้อง" };
-    if (typeof item.price !== "number" || item.price < 0) return { error: "ราคาไม่ถูกต้อง" };
-    if (!Number.isInteger(item.quantity) || item.quantity < 1) return { error: "จำนวนไม่ถูกต้อง" };
-    if (!Array.isArray(item.modifiers)) item.modifiers = [];
-  }
-
-  const { getTableOrder, createOrder, addItemsToOrder } = await import("./order.repo");
-  const existing = await getTableOrder(tableId);
-
-  if (existing) {
-    const updated = await addItemsToOrder(existing.id, items);
-    return updated ? { orderId: updated.id, orderNumber: updated.orderNumber } : { error: "เพิ่มรายการไม่สำเร็จ" };
-  }
-
-  const order = await createOrder({ tableId, createdBy: null, items });
-  if (!order) return { error: "สร้างบิลไม่สำเร็จ" };
-  return { orderId: order.id, orderNumber: order.orderNumber };
+  return order ? {} : { error: "ไม่พบคำสั่ง" };
 }

@@ -3,10 +3,11 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { categories } from "@/db/schema/category.schema";
 
-const DEFAULT_CATEGORIES = ["เครื่องดื่ม", "ของว่าง", "ของใช้"];
+/** หมวดหมู่สำหรับระบบเช่า: กล้อง รถ อื่นๆ */
+const RENTAL_CATEGORIES = ["กล้อง", "รถ", "อื่นๆ"];
 
 async function seedCategories() {
-  for (const name of DEFAULT_CATEGORIES) {
+  for (const name of RENTAL_CATEGORIES) {
     const [existing] = await db
       .select()
       .from(categories)
@@ -14,7 +15,7 @@ async function seedCategories() {
       .limit(1);
     if (existing) continue;
     await db.insert(categories).values({ name });
-    console.log("Added category:", name);
+    console.log("  + หมวดหมู่:", name);
   }
   console.log("Seed categories done.");
 }

@@ -13,16 +13,16 @@ import {
 
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: "แดชบอร์ด",
-  orders: "รายการบิล",
-  kitchen: "Kitchen Display",
-  tables: "จัดการโต๊ะ",
+  orders: "รายการคำสั่งเช่า",
   products: "จัดการสินค้า",
   categories: "หมวดหมู่สินค้า",
   modifiers: "ตัวเลือกสินค้า",
   "user-list": "รายการผู้ใช้",
-  add: "เพิ่มผู้ใช้",
+  add: "เพิ่ม",
   edit: "แก้ไข",
   permissions: "สิทธิ์การเข้าถึงหน้า",
+  stations: "Station",
+  tables: "โต๊ะ",
 }
 
 function getBreadcrumbs(pathname: string) {

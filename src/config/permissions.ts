@@ -1,6 +1,6 @@
 /**
  * กำหนดว่า path ไหน role ไหนเข้าได้
- * เรียงจาก path เฉพาะมากไปน้อย (path ยาวมาก่อน) เพื่อให้ match ถูก path
+ * เรียงจาก path เฉพาะมากไปน้อย (path ยาวมาก่อน)
  */
 export type Role = "super_admin" | "admin" | "cashier" | "chef";
 
@@ -10,15 +10,8 @@ export type PagePermission = {
   roles: Role[];
 };
 
-/** รายการ path กับ role ที่เข้าได้ (path ที่ยาวกว่าก่อน) */
 export const PAGE_PERMISSIONS: PagePermission[] = [
-  { path: "/dashboard/multidisplay", label: "มัลติดิสเพลย์", roles: ["super_admin", "admin", "cashier", "chef"] },
-  { path: "/dashboard/kitchen", label: "Kitchen Display", roles: ["super_admin", "admin", "chef"] },
-  { path: "/dashboard/stations/add", label: "เพิ่ม Station", roles: ["super_admin", "admin"] },
-  { path: "/dashboard/stations", label: "จัดการ Station", roles: ["super_admin", "admin"] },
-  { path: "/dashboard/tables/add", label: "เพิ่มโต๊ะ", roles: ["super_admin", "admin"] },
-  { path: "/dashboard/tables", label: "จัดการโต๊ะ", roles: ["super_admin", "admin", "cashier"] },
-  { path: "/dashboard/orders", label: "รายการบิล", roles: ["super_admin", "admin", "cashier", "chef"] },
+  { path: "/dashboard/orders", label: "รายการคำสั่งเช่า", roles: ["super_admin", "admin", "cashier", "chef"] },
   { path: "/dashboard/modifiers/add", label: "เพิ่มกลุ่มตัวเลือก", roles: ["super_admin", "admin"] },
   { path: "/dashboard/modifiers", label: "ตัวเลือกสินค้า", roles: ["super_admin", "admin"] },
   { path: "/dashboard/categories/add", label: "เพิ่มหมวดหมู่", roles: ["super_admin", "admin"] },
@@ -34,7 +27,6 @@ export const PAGE_PERMISSIONS: PagePermission[] = [
 
 export type PermissionRule = { path: string; roles: string[] };
 
-/** เช็คว่า role นี้เข้า path นี้ได้ไหม (ใช้ rules จาก DB หรือ fallback เป็น PAGE_PERMISSIONS) */
 export function canAccess(
   pathname: string,
   role: string,
@@ -54,7 +46,6 @@ export function canAccess(
   return rule.roles.includes(role);
 }
 
-/** label ของ role (สำหรับแสดงในหน้า permissions) */
 export const ROLE_LABELS: Record<Role, string> = {
   super_admin: "Super Admin",
   admin: "แอดมิน",
