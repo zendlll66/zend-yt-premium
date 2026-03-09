@@ -49,7 +49,11 @@ export default async function TablesPage() {
                     <td className="px-4 py-3">{STATUS_LABELS[t.status] ?? t.status}</td>
                     <td className="px-4 py-3">{t.capacity} ที่นั่ง</td>
                     <td className="px-4 py-3">
-                      <TableQrCell tableId={t.id} tableNumber={t.tableNumber} />
+                      <TableQrCell
+                        tableId={t.id}
+                        tableNumber={t.tableNumber}
+                        qrToken={t.qrToken}
+                      />
                     </td>
                     <td className="px-4 py-3 text-right">
                       <TableRowActions id={t.id} />
