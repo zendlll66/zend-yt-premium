@@ -14,38 +14,51 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ComputerTerminalIcon, Settings05Icon, CommandIcon } from "@hugeicons/core-free-icons"
+import {
+  CommandIcon,
+  DashboardSquare01Icon,
+  ReceiptTextIcon,
+  MenuRestaurantIcon,
+  LayoutGridIcon,
+  Layers01Icon,
+  RestaurantTableIcon,
+  Package01Icon,
+  Folder01Icon,
+  UserMultipleIcon,
+  Settings05Icon,
+  SecurityIcon,
+} from "@hugeicons/core-free-icons"
 import { canAccess, type PermissionRule } from "@/config/permissions"
 
 const NAV_MAIN = [
   {
     title: "dashboard",
     url: "/dashboard",
-    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    icon: <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} />,
     isActive: true,
   },
   {
     title: "บิล (Orders)",
     url: "/dashboard/orders",
-    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    icon: <HugeiconsIcon icon={ReceiptTextIcon} strokeWidth={2} />,
     isActive: true,
   },
   {
     title: "Kitchen Display",
     url: "/dashboard/kitchen",
-    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    icon: <HugeiconsIcon icon={MenuRestaurantIcon} strokeWidth={2} />,
     isActive: true,
   },
   {
     title: "มัลติดิสเพลย์",
     url: "/dashboard/multidisplay",
-    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    icon: <HugeiconsIcon icon={LayoutGridIcon} strokeWidth={2} />,
     isActive: true,
   },
   {
     title: "จัดการ Station",
     url: "#",
-    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    icon: <HugeiconsIcon icon={Layers01Icon} strokeWidth={2} />,
     isActive: true,
     items: [
       { title: "รายการ Station", url: "/dashboard/stations" },
@@ -55,7 +68,7 @@ const NAV_MAIN = [
   {
     title: "จัดการโต๊ะ",
     url: "#",
-    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    icon: <HugeiconsIcon icon={RestaurantTableIcon} strokeWidth={2} />,
     isActive: true,
     items: [
       { title: "รายการโต๊ะ", url: "/dashboard/tables" },
@@ -65,7 +78,7 @@ const NAV_MAIN = [
   {
     title: "จัดการสินค้า",
     url: "#",
-    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    icon: <HugeiconsIcon icon={Package01Icon} strokeWidth={2} />,
     isActive: true,
     items: [
       { title: "รายการสินค้า", url: "/dashboard/products" },
@@ -76,7 +89,7 @@ const NAV_MAIN = [
   {
     title: "หมวดหมู่สินค้า",
     url: "#",
-    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    icon: <HugeiconsIcon icon={Folder01Icon} strokeWidth={2} />,
     isActive: true,
     items: [
       { title: "รายการหมวดหมู่", url: "/dashboard/categories" },
@@ -86,7 +99,7 @@ const NAV_MAIN = [
   {
     title: "user management",
     url: "#",
-    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    icon: <HugeiconsIcon icon={UserMultipleIcon} strokeWidth={2} />,
     isActive: true,
     items: [
       { title: "user list", url: "/dashboard/user-list" },
@@ -102,7 +115,7 @@ const NAV_MAIN = [
   {
     title: "สิทธิ์การเข้าถึง",
     url: "/dashboard/permissions",
-    icon: <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />,
+    icon: <HugeiconsIcon icon={SecurityIcon} strokeWidth={2} />,
     items: [
       { title: "กำหนดสิทธิ์หน้า", url: "/dashboard/permissions" },
     ],
