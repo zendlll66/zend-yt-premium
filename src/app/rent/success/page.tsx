@@ -1,8 +1,43 @@
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
+import Stripe from "stripe";
 import { Button } from "@/components/ui/button";
+import { setOrderStripePayment } from "@/features/order/order.repo";
 
-export default function RentSuccessPage() {
+/** อัปเดต order เป็น paid จาก Stripe session (fallback เมื่อ webhook ยังไม่ถูกเรียก เช่น เทสบน localhost) */
+async function confirmPaymentFromSession(sessionId: string, orderId: string) {
+  const secret = process.env.STRIPE_SECRET_KEY;
+  if (!secret) return;
+  const stripe = new Stripe(secret);
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status !== "paid") return;
+    const metaOrderId = session.metadata?.orderId;
+    if (metaOrderId !== orderId) return;
+    const id = parseInt(orderId, 10);
+    if (Number.isNaN(id)) return;
+    await setOrderStripePayment(
+      id,
+      (session.payment_intent as string) || session.id,
+      session.payment_status || "paid"
+    );
+  } catch {
+    // session invalid or already updated
+  }
+}
+
+export default async function RentSuccessPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ session_id?: string; order_id?: string }>;
+}) {
+  const params = await searchParams;
+  const sessionId = params.session_id;
+  const orderId = params.order_id;
+  if (sessionId && orderId) {
+    await confirmPaymentFromSession(sessionId, orderId);
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-4">
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20 text-green-600 dark:text-green-400">
