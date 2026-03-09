@@ -105,6 +105,9 @@ type Props = {
   tableNumber: string;
   initialOrder: OrderDetail | null;
   menu: MenuProduct[];
+  shopName: string;
+  shopLogo: string;
+  shopDescription?: string;
 };
 
 function formatMoney(n: number) {
@@ -125,7 +128,7 @@ function CartItemLine({
 }) {
   const unit = item.price + item.modifiers.reduce((s, m) => s + m.price, 0);
   return (
-    <li className="flex items-center gap-3 rounded-2xl border border-border/40 bg-muted/10 px-4 py-3 transition-colors hover:bg-muted/20">
+    <li className="flex items-center gap-3 rounded-xl border border-border/30 bg-muted/5 px-4 py-3">
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-foreground">{item.productName}</p>
         {item.modifiers.length > 0 && (
@@ -189,7 +192,33 @@ function getCategoriesFromMenu(menu: MenuProduct[]): MenuCategory[] {
   return [...all, ...rest];
 }
 
-export function OrderClient({ tableId, tableNumber, initialOrder, menu }: Props) {
+function ShopLogo({ url, shopName }: { url: string; shopName: string }) {
+  if (!url) {
+    return (
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-lg font-bold text-primary">
+        {shopName.charAt(0).toUpperCase() || "ร"}
+      </span>
+    );
+  }
+  const src = url.startsWith("http") ? url : `/api/r2-url?key=${encodeURIComponent(url)}`;
+  return (
+    <img
+      src={src}
+      alt=""
+      className="h-10 w-10 rounded-xl object-cover"
+    />
+  );
+}
+
+export function OrderClient({
+  tableId,
+  tableNumber,
+  initialOrder,
+  menu,
+  shopName,
+  shopLogo,
+  shopDescription,
+}: Props) {
   const router = useRouter();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -270,23 +299,26 @@ export function OrderClient({ tableId, tableNumber, initialOrder, menu }: Props)
       : 0;
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-muted/30 to-background">
-      <header className="sticky top-0 z-20 border-b border-border/50 bg-card/95 px-4 py-3.5 shadow-sm backdrop-blur supports-backdrop-filter:bg-card/80">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              โต๊ะ {tableNumber}
-            </p>
-            <h1 className="mt-0.5 truncate text-xl font-bold tracking-tight text-foreground">
-              สั่งอาหาร
-            </h1>
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-20 border-b border-border/40 bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/90">
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <ShopLogo url={shopLogo} shopName={shopName} />
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-semibold tracking-tight text-foreground">
+                {shopName}
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                โต๊ะ {tableNumber}
+              </p>
+            </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {order && order.items.length > 0 && (
               <button
                 type="button"
                 onClick={() => setBillOpen(true)}
-                className="flex items-center gap-1.5 rounded-xl border border-border/60 bg-muted/30 px-3.5 py-2.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60 active:scale-[0.98]"
+                className="flex items-center gap-1.5 rounded-lg border border-border/50 px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50"
               >
                 <Receipt className="h-4 w-4" />
                 ดูบิล
@@ -295,7 +327,7 @@ export function OrderClient({ tableId, tableNumber, initialOrder, menu }: Props)
             <button
               type="button"
               onClick={() => setCartOpen(true)}
-              className="relative flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg active:scale-[0.98]"
+              className="relative flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               <ShoppingCart className="h-4 w-4" />
               ตะกร้า
@@ -309,19 +341,24 @@ export function OrderClient({ tableId, tableNumber, initialOrder, menu }: Props)
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl space-y-5 px-4 pb-8 pt-2">
-        <section className="rounded-2xl border border-border/40 bg-card p-4 shadow-sm">
-          <div className="mb-4 overflow-x-auto pb-1 no-scrollbar">
+      <main className="mx-auto max-w-2xl px-4 pb-10 pt-6">
+        {shopDescription && (
+          <p className="mb-6 text-center text-sm text-muted-foreground">
+            {shopDescription}
+          </p>
+        )}
+        <section className="space-y-6">
+          <div className="overflow-x-auto pb-1 no-scrollbar">
             <div className="flex gap-2">
               {categories.map((cat) => (
                 <button
                   key={cat.id ?? "all"}
                   type="button"
                   onClick={() => setSelectedCategoryId(cat.id)}
-                  className={`shrink-0 rounded-full px-4 py-2.5 text-sm font-medium transition-all ${
+                  className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                     selectedCategoryId === cat.id
-                      ? "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/20"
-                      : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                   }`}
                 >
                   {cat.name}
@@ -329,14 +366,11 @@ export function OrderClient({ tableId, tableNumber, initialOrder, menu }: Props)
               ))}
             </div>
           </div>
-          <ul className="space-y-3">
+          <ul className="space-y-2">
             {filteredMenu.length === 0 ? (
-              <li className="flex flex-col items-center justify-center py-14 text-center">
-                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-muted/50">
-                  <FolderOpen className="h-7 w-7 text-muted-foreground" />
-                </div>
-                <p className="text-sm font-medium text-muted-foreground">ไม่มีรายการในหมวดนี้</p>
-                <p className="mt-1 text-xs text-muted-foreground/80">ลองเลือกหมวดอื่น</p>
+              <li className="flex flex-col items-center justify-center py-16 text-center">
+                <FolderOpen className="mb-3 h-8 w-8 text-muted-foreground/60" />
+                <p className="text-sm text-muted-foreground">ไม่มีรายการในหมวดนี้</p>
               </li>
             ) : (
               filteredMenu.map((product) => (
@@ -352,11 +386,11 @@ export function OrderClient({ tableId, tableNumber, initialOrder, menu }: Props)
 
         {error && (
           <div
-            className="flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            className="flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive"
             role="alert"
           >
-            <AlertTriangle className="h-5 w-5 shrink-0" />
-            <p className="font-medium">{error}</p>
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <p>{error}</p>
           </div>
         )}
       </main>
@@ -478,9 +512,9 @@ function ProductRow({
     : null;
 
   return (
-    <li className="overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm transition-shadow hover:shadow-md">
+    <li className="overflow-hidden rounded-xl border border-border/30 bg-card">
       <div className="flex gap-4 p-4">
-        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border/40 bg-muted/20">
+        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted/30">
           {imageSrc ? (
             <img
               src={imageSrc}
@@ -494,13 +528,13 @@ function ProductRow({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-foreground">{product.name}</p>
-          <p className="mt-0.5 text-base font-medium tabular-nums text-primary">
+          <p className="font-medium text-foreground">{product.name}</p>
+          <p className="mt-0.5 text-sm tabular-nums text-muted-foreground">
             {formatMoney(product.price)} ฿
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end justify-center gap-2">
-          <div className="flex items-center overflow-hidden rounded-xl border border-border/50 bg-muted/30 shadow-inner">
+          <div className="flex items-center overflow-hidden rounded-lg border border-border/40 bg-muted/20">
             <button
               type="button"
               aria-label="ลดจำนวน"
@@ -528,17 +562,17 @@ function ProductRow({
           <button
             type="button"
             onClick={handleAdd}
-            className="w-full rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98]"
+            className="w-full rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             เพิ่มลงตะกร้า
           </button>
         </div>
       </div>
       {product.modifierGroups.length > 0 && (
-        <div className="space-y-2 border-t border-border/40 bg-muted/10 px-4 py-3">
+        <div className="space-y-2 border-t border-border/30 bg-muted/5 px-4 py-3">
           {product.modifierGroups.map((g) => (
             <div key={g.id}>
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {g.name}
                 {g.required && " *"}
               </span>
@@ -553,10 +587,10 @@ function ProductRow({
                         [g.id]: { id: m.id, name: m.name, price: m.price },
                       }))
                     }
-                    className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                    className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
                       selected[g.id]?.id === m.id
-                        ? "border-primary bg-primary/15 text-primary ring-1 ring-primary/20"
-                        : "border-border/60 bg-background text-muted-foreground hover:border-border hover:bg-muted/50"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border/50 bg-background text-muted-foreground hover:bg-muted/40"
                     }`}
                   >
                     {m.name}

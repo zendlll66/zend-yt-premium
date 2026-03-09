@@ -17,7 +17,12 @@ export const SETTING_KEYS = {
   serviceChargePercent: "service_charge_percent",
   vatPercent: "vat_percent",
   openingHours: "opening_hours",
+  theme: "theme",
 } as const;
+
+/** ค่าที่ใช้ได้สำหรับ theme (ต้องตรงกับ [data-theme] ใน globals.css) */
+export const THEME_OPTIONS = ["default", "green", "amber", "blue", "rose"] as const;
+export type ThemeId = (typeof THEME_OPTIONS)[number];
 
 const DEFAULTS: Record<string, string> = {
   [SETTING_KEYS.shopName]: "",
@@ -33,6 +38,7 @@ const DEFAULTS: Record<string, string> = {
   [SETTING_KEYS.serviceChargePercent]: "0",
   [SETTING_KEYS.vatPercent]: "7",
   [SETTING_KEYS.openingHours]: "",
+  [SETTING_KEYS.theme]: "default",
 };
 
 export type ShopSettings = {
@@ -49,6 +55,7 @@ export type ShopSettings = {
   serviceChargePercent: string;
   vatPercent: string;
   openingHours: string;
+  theme: string;
 };
 
 export async function getShopSettings(): Promise<ShopSettings> {
@@ -68,6 +75,7 @@ export async function getShopSettings(): Promise<ShopSettings> {
     serviceChargePercent: map.get(SETTING_KEYS.serviceChargePercent) ?? DEFAULTS[SETTING_KEYS.serviceChargePercent],
     vatPercent: map.get(SETTING_KEYS.vatPercent) ?? DEFAULTS[SETTING_KEYS.vatPercent],
     openingHours: map.get(SETTING_KEYS.openingHours) ?? DEFAULTS[SETTING_KEYS.openingHours],
+    theme: map.get(SETTING_KEYS.theme) ?? DEFAULTS[SETTING_KEYS.theme],
   };
 }
 
@@ -86,6 +94,7 @@ export async function saveShopSettings(data: Partial<ShopSettings>): Promise<voi
   if (data.serviceChargePercent !== undefined) entries.push([SETTING_KEYS.serviceChargePercent, String(data.serviceChargePercent)]);
   if (data.vatPercent !== undefined) entries.push([SETTING_KEYS.vatPercent, String(data.vatPercent)]);
   if (data.openingHours !== undefined) entries.push([SETTING_KEYS.openingHours, String(data.openingHours)]);
+  if (data.theme !== undefined) entries.push([SETTING_KEYS.theme, String(data.theme)]);
 
   for (const [key, value] of entries) {
     await db

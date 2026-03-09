@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { getShopSettings } from "@/features/settings/settings.repo";
+import { THEME_OPTIONS } from "@/features/settings/settings.repo";
 import "./globals.css";
 
 const googleSans = localFont({
@@ -57,13 +59,23 @@ export const viewport = {
   maximumScale: 5,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let theme = "default";
+  try {
+    const settings = await getShopSettings();
+    theme = THEME_OPTIONS.includes(settings.theme as (typeof THEME_OPTIONS)[number])
+      ? settings.theme
+      : "default";
+  } catch {
+    theme = "default";
+  }
+
   return (
-    <html lang="en" className={googleSans.variable}>
+    <html lang="th" className={googleSans.variable} data-theme={theme}>
       <body
         className={`${googleSans.className} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageUpload } from "@/components/image-upload";
 import { saveSettingsAction, type SaveSettingsState } from "@/features/settings/settings.actions";
-import type { ShopSettings } from "@/features/settings/settings.repo";
+import { THEME_OPTIONS, type ShopSettings } from "@/features/settings/settings.repo";
 
 type Props = { initial: ShopSettings };
 
@@ -171,6 +171,56 @@ export function SettingsForm({ initial }: Props) {
               disabled={isPending}
             />
           </div>
+        </div>
+      </section>
+
+      {/* ธีม / สี */}
+      <section className="rounded-xl border bg-card p-6">
+        <h2 className="mb-4 font-semibold">ธีม / สีของเว็บ</h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          เลือกสีหลัก (ปุ่ม ลิงก์ การเน้น) สำหรับทั้งเว็บและหน้าสั่งอาหาร
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {THEME_OPTIONS.map((id) => (
+            <label
+              key={id}
+              className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-4 py-2.5 has-checked:border-primary has-checked:bg-primary/5 has-checked:ring-2 has-checked:ring-primary/20"
+            >
+              <input
+                type="radio"
+                name="theme"
+                value={id}
+                defaultChecked={initial.theme === id}
+                disabled={isPending}
+                className="sr-only"
+              />
+              <span
+                className="inline-block h-5 w-5 shrink-0 rounded-full border-2 border-current"
+                style={{
+                  backgroundColor:
+                    id === "default"
+                      ? "oklch(0.205 0 0)"
+                      : id === "green"
+                        ? "oklch(0.55 0.18 155)"
+                        : id === "amber"
+                          ? "oklch(0.75 0.15 75)"
+                          : id === "blue"
+                            ? "oklch(0.55 0.2 250)"
+                            : "oklch(0.7 0.2 350)",
+                }}
+                aria-hidden
+              />
+              <span className="text-sm font-medium">
+                {{
+                  default: "ค่าเริ่มต้น",
+                  green: "เขียว",
+                  amber: "ส้ม",
+                  blue: "น้ำเงิน",
+                  rose: "ชมพู",
+                }[id]}
+              </span>
+            </label>
+          ))}
         </div>
       </section>
 
