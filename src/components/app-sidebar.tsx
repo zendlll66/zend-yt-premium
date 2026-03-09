@@ -37,6 +37,12 @@ const NAV_MAIN = [
     isActive: true,
   },
   {
+    title: "มัลติดิสเพลย์",
+    url: "/dashboard/multidisplay",
+    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
     title: "จัดการ Station",
     url: "#",
     icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
