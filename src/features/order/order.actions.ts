@@ -6,6 +6,7 @@ import {
   findOrderById,
   updateOrderStatus,
   updateKitchenOrderStatus,
+  updateOrderItemStatus,
 } from "./order.repo";
 import type { OrderItemInput } from "./order.repo";
 
@@ -54,17 +55,34 @@ export async function updateOrderStatusAction(
   return order ? {} : { error: "ไม่พบบิล" };
 }
 
-/** อัปเดตสถานะรายการสั่งครัว (หน้าเชฟใช้) */
+/**
+ * อัปเดตสถานะรายการสั่งครัว
+ * - stationId ไม่ส่ง (อยู่ "ทั้งหมด"): เปลี่ยนทั้ง order + ทุกรายการ
+ * - stationId ส่งมา: เปลี่ยนเฉพาะรายการของ station นั้น
+ */
 export async function updateKitchenOrderStatusAction(
   kitchenOrderId: number,
-  status: "pending" | "preparing" | "ready" | "served"
+  status: "pending" | "preparing" | "ready" | "served",
+  stationId?: number | null
 ) {
-  const row = await updateKitchenOrderStatus(kitchenOrderId, status);
+  const row = await updateKitchenOrderStatus(kitchenOrderId, status, {
+    onlyForKitchenCategoryId: stationId ?? undefined,
+  });
   revalidatePath("/dashboard/kitchen");
   if (row) {
     revalidatePath(`/dashboard/orders/${row.orderId}`);
   }
   return row ? {} : { error: "ไม่พบรายการสั่ง" };
+}
+
+/** อัปเดตสถานะต่อรายการ (แต่ละ station จัดแยกได้) */
+export async function updateOrderItemStatusAction(
+  orderItemId: number,
+  status: "pending" | "preparing" | "ready"
+) {
+  const row = await updateOrderItemStatus(orderItemId, status);
+  revalidatePath("/dashboard/kitchen");
+  return row ? {} : { error: "ไม่พบรายการ" };
 }
 
 /** ลูกค้าส่งคำสั่งโต๊ะ: สร้างบิลใหม่หรือเพิ่มเข้าบิลเดิมของโต๊ะ */

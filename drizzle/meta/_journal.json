@@ -57,6 +57,13 @@
       "when": 1773060782072,
       "tag": "0007_natural_doctor_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1773061596127,
+      "tag": "0008_shiny_spectrum",
+      "breakpoints": true
     }
   ]
 }

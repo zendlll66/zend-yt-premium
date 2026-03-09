@@ -20,11 +20,16 @@ export default async function KitchenPage({ searchParams }: Props) {
     findAllKitchenCategories(),
   ]);
 
+  const currentStation = stationId != null
+    ? kitchenCategories.find((k) => k.id === stationId)
+    : null;
+
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Kitchen Display</h1>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground text-sm">Station:</span>
           <a
             href="/dashboard/kitchen"
             className={`rounded-lg px-3 py-1.5 text-sm font-medium ${!stationId ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
@@ -44,11 +49,16 @@ export default async function KitchenPage({ searchParams }: Props) {
       </div>
 
       <p className="text-muted-foreground text-sm">
-        บิลที่ status = รอจัดเตรียม หรือ กำลังจัดเตรียม
-        {stationId ? ` (Station ที่เลือก)` : ""}
+        {currentStation
+          ? `แสดงเฉพาะรายการของ Station: ${currentStation.name} · แต่ละรายการมีสถานะแยก หรือกดปุ่มเปลี่ยนทั้งออเดอร์`
+          : "รายการสั่งที่ รอจัดเตรียม / กำลังจัดเตรียม / พร้อมเสิร์ฟ (เลือก Station เพื่อกรอง)"}
       </p>
 
-      <KitchenOrderCards orders={orders} />
+      <KitchenOrderCards
+        orders={orders}
+        stationId={stationId ?? null}
+        stationName={currentStation?.name ?? null}
+      />
     </div>
   );
 }

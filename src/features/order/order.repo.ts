@@ -338,14 +338,67 @@ export async function updateOrderStatus(id: number, status: OrderStatus) {
   return row ?? null;
 }
 
+/**
+ * อัปเดตสถานะรายการสั่งครัว
+ * - ถ้า onlyForKitchenCategoryId ไม่ส่ง: เปลี่ยนทั้ง order + ทุกรายการ (ใช้เมื่ออยู่ Station "ทั้งหมด")
+ * - ถ้าส่ง onlyForKitchenCategoryId: เปลี่ยนเฉพาะรายการของ station นั้น ไม่แตะ order status และรายการ station อื่น
+ */
 export async function updateKitchenOrderStatus(
   kitchenOrderId: number,
-  status: "pending" | "preparing" | "ready" | "served"
+  status: "pending" | "preparing" | "ready" | "served",
+  options?: { onlyForKitchenCategoryId?: number }
 ) {
+  const itemStatus = status === "served" ? "ready" : status;
+
+  if (options?.onlyForKitchenCategoryId != null) {
+    const { products } = await import("@/db/schema/product.schema");
+    const itemIds = await db
+      .select({ id: orderItems.id })
+      .from(orderItems)
+      .innerJoin(products, eq(orderItems.productId, products.id))
+      .where(
+        and(
+          eq(orderItems.kitchenOrderId, kitchenOrderId),
+          eq(products.kitchenCategoryId, options.onlyForKitchenCategoryId)
+        )
+      );
+    const ids = itemIds.map((r) => r.id);
+    if (ids.length > 0) {
+      await db
+        .update(orderItems)
+        .set({ status: itemStatus })
+        .where(inArray(orderItems.id, ids));
+    }
+    const [row] = await db
+      .select()
+      .from(kitchenOrders)
+      .where(eq(kitchenOrders.id, kitchenOrderId))
+      .limit(1);
+    return row ?? null;
+  }
+
   const [row] = await db
     .update(kitchenOrders)
     .set({ status })
     .where(eq(kitchenOrders.id, kitchenOrderId))
+    .returning();
+  if (!row) return null;
+  await db
+    .update(orderItems)
+    .set({ status: itemStatus })
+    .where(eq(orderItems.kitchenOrderId, kitchenOrderId));
+  return row;
+}
+
+/** อัปเดตสถานะต่อรายการ (สำหรับแต่ละ station จัดแยก) */
+export async function updateOrderItemStatus(
+  orderItemId: number,
+  status: "pending" | "preparing" | "ready"
+) {
+  const [row] = await db
+    .update(orderItems)
+    .set({ status })
+    .where(eq(orderItems.id, orderItemId))
     .returning();
   return row ?? null;
 }
@@ -356,6 +409,8 @@ export type KitchenOrderItem = {
   quantity: number;
   modifiers: { modifierName: string; price: number }[];
   kitchenCategoryId: number | null;
+  /** สถานะต่อรายการ (แต่ละ station จัดแยกได้) */
+  status: string;
 };
 
 export type KitchenOrder = {
@@ -400,6 +455,7 @@ export async function findOrdersForKitchen(
         productName: orderItems.productName,
         quantity: orderItems.quantity,
         kitchenCategoryId: products.kitchenCategoryId,
+        status: orderItems.status,
       })
       .from(orderItems)
       .leftJoin(products, eq(orderItems.productId, products.id))
@@ -442,6 +498,7 @@ export async function findOrdersForKitchen(
         quantity: i.quantity,
         modifiers: modsByItem[i.id] ?? [],
         kitchenCategoryId: i.kitchenCategoryId ?? null,
+        status: i.status ?? "pending",
       })),
     });
   }

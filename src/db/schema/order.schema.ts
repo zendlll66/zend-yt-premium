@@ -39,6 +39,10 @@ export const kitchenOrders = sqliteTable("kitchen_orders", {
     .notNull(),
 });
 
+/** สถานะต่อรายการ (แต่ละ station จัดเตรียมแยกได้) */
+export const ORDER_ITEM_STATUSES = ["pending", "preparing", "ready"] as const;
+export type OrderItemStatus = (typeof ORDER_ITEM_STATUSES)[number];
+
 /** รายการสินค้าในรายการสั่งครัว (อ้างอิง kitchen_orders; เก็บ order_id ไว้ชั่วคราวสำหรับ migrate) */
 export const orderItems = sqliteTable("order_items", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -51,6 +55,8 @@ export const orderItems = sqliteTable("order_items", {
   price: real("price").notNull(),
   quantity: integer("quantity").notNull(),
   totalPrice: real("total_price").notNull(),
+  /** สถานะต่อรายการ (แต่ละ station เสร็จไม่พร้อมกันได้) */
+  status: text("status", { enum: ORDER_ITEM_STATUSES }).notNull().default("pending"),
 });
 
 export const orderItemModifiers = sqliteTable("order_item_modifiers", {
