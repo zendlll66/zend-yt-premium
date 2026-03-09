@@ -17,7 +17,8 @@
     "db:seed-modifiers": "tsx src/db/seed-modifiers.ts",
     "db:seed-orders": "tsx src/db/seed-orders.ts",
     "db:seed-kitchen-categories": "tsx src/db/seed-kitchen-categories.ts",
-    "db:seed-tables": "tsx src/db/seed-tables.ts"
+    "db:seed-tables": "tsx src/db/seed-tables.ts",
+    "db:migrate-kitchen-orders": "tsx src/db/migrate-kitchen-orders.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1004.0",

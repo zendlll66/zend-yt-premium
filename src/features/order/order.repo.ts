@@ -1,6 +1,11 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { orders, orderItems, orderItemModifiers } from "@/db/schema/order.schema";
+import {
+  orders,
+  orderItems,
+  orderItemModifiers,
+  kitchenOrders,
+} from "@/db/schema/order.schema";
 import { tables } from "@/db/schema/table.schema";
 import { generateOrderNumber } from "@/lib/order-number";
 
@@ -41,6 +46,14 @@ export type OrderItemWithModifiers = {
   modifiers: { modifierName: string; price: number }[];
 };
 
+export type KitchenOrderGroup = {
+  id: number;
+  status: string;
+  sequence: number;
+  createdAt: Date | null;
+  items: OrderItemWithModifiers[];
+};
+
 export type OrderDetail = {
   id: number;
   tableId: number | null;
@@ -51,9 +64,10 @@ export type OrderDetail = {
   createdBy: number | null;
   createdAt: Date | null;
   items: OrderItemWithModifiers[];
+  kitchenOrders: KitchenOrderGroup[];
 };
 
-/** สร้าง order number ที่ไม่ซ้ำ (ลองใหม่ถ้าซ้ำ) */
+/** สร้าง order number ที่ไม่ซ้ำ */
 async function reserveOrderNumber(): Promise<string> {
   const maxAttempts = 5;
   for (let i = 0; i < maxAttempts; i++) {
@@ -74,8 +88,7 @@ export async function createOrder(data: CreateOrderInput): Promise<OrderDetail |
   let orderTotal = 0;
   for (const item of data.items) {
     const modifierTotal = item.modifiers.reduce((s, m) => s + m.price, 0);
-    const lineTotal = (item.price + modifierTotal) * item.quantity;
-    orderTotal += lineTotal;
+    orderTotal += (item.price + modifierTotal) * item.quantity;
   }
 
   const orderId = await db.transaction(async (tx) => {
@@ -89,17 +102,21 @@ export async function createOrder(data: CreateOrderInput): Promise<OrderDetail |
         createdBy: data.createdBy ?? null,
       })
       .returning();
-
     if (!order) return null;
+
+    const [ko] = await tx
+      .insert(kitchenOrders)
+      .values({ orderId: order.id, status: "pending", sequence: 1 })
+      .returning();
+    if (!ko) return null;
 
     for (const item of data.items) {
       const modifierTotal = item.modifiers.reduce((s, m) => s + m.price, 0);
       const lineTotal = (item.price + modifierTotal) * item.quantity;
-
       const [oi] = await tx
         .insert(orderItems)
         .values({
-          orderId: order.id,
+          kitchenOrderId: ko.id,
           productId: item.productId,
           productName: item.productName,
           price: item.price,
@@ -107,9 +124,7 @@ export async function createOrder(data: CreateOrderInput): Promise<OrderDetail |
           totalPrice: lineTotal,
         })
         .returning();
-
       if (!oi) continue;
-
       for (const mod of item.modifiers) {
         await tx.insert(orderItemModifiers).values({
           orderItemId: oi.id,
@@ -118,7 +133,6 @@ export async function createOrder(data: CreateOrderInput): Promise<OrderDetail |
         });
       }
     }
-
     return order.id;
   });
 
@@ -150,6 +164,55 @@ export async function findOrders(limit = 50): Promise<OrderListItem[]> {
   return rows.map((r) => ({ ...r, tableNumber: r.tableNumber ?? null }));
 }
 
+/** ดึงรายการในบิล: จาก kitchen_order_id หรือจาก order_id (legacy) */
+async function getItemsForBill(billId: number) {
+  const koIds = await db
+    .select({ id: kitchenOrders.id })
+    .from(kitchenOrders)
+    .where(eq(kitchenOrders.orderId, billId));
+  const ids = koIds.map((r) => r.id);
+
+  const itemRows =
+    ids.length > 0
+      ? await db
+          .select()
+          .from(orderItems)
+          .where(
+            or(
+              eq(orderItems.orderId, billId),
+              inArray(orderItems.kitchenOrderId, ids)
+            )
+          )
+      : await db.select().from(orderItems).where(eq(orderItems.orderId, billId));
+
+  const itemIds = itemRows.map((i) => i.id);
+  const mods =
+    itemIds.length === 0
+      ? []
+      : await db
+          .select()
+          .from(orderItemModifiers)
+          .where(inArray(orderItemModifiers.orderItemId, itemIds));
+  const modsByItem = mods.reduce(
+    (acc, m) => {
+      if (!acc[m.orderItemId]) acc[m.orderItemId] = [];
+      acc[m.orderItemId].push({ modifierName: m.modifierName, price: m.price });
+      return acc;
+    },
+    {} as Record<number, { modifierName: string; price: number }[]>
+  );
+
+  return itemRows.map((i) => ({
+    id: i.id,
+    productId: i.productId,
+    productName: i.productName,
+    price: i.price,
+    quantity: i.quantity,
+    totalPrice: i.totalPrice,
+    modifiers: modsByItem[i.id] ?? [],
+  }));
+}
+
 export async function findOrderById(id: number): Promise<OrderDetail | null> {
   const [row] = await db
     .select({
@@ -163,35 +226,87 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
   if (!row) return null;
   const order = row.order;
 
-  const items = await db.select().from(orderItems).where(eq(orderItems.orderId, id));
+  const kos = await db
+    .select()
+    .from(kitchenOrders)
+    .where(eq(kitchenOrders.orderId, id))
+    .orderBy(kitchenOrders.sequence, kitchenOrders.createdAt);
 
-  const itemIds = items.map((i) => i.id);
-  const mods =
-    itemIds.length === 0
-      ? []
-      : await db
-          .select()
-          .from(orderItemModifiers)
-          .where(inArray(orderItemModifiers.orderItemId, itemIds));
+  const allItems = await getItemsForBill(id);
 
-  const modsByItem = mods.reduce(
-    (acc, m) => {
-      if (!acc[m.orderItemId]) acc[m.orderItemId] = [];
-      acc[m.orderItemId].push({ modifierName: m.modifierName, price: m.price });
-      return acc;
-    },
-    {} as Record<number, { modifierName: string; price: number }[]>
-  );
+  const kitchenOrderGroups: KitchenOrderGroup[] = [];
+  for (const ko of kos) {
+    const itemRows = await db
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.kitchenOrderId, ko.id));
+    const itemIds = itemRows.map((i) => i.id);
+    const mods =
+      itemIds.length === 0
+        ? []
+        : await db
+            .select()
+            .from(orderItemModifiers)
+            .where(inArray(orderItemModifiers.orderItemId, itemIds));
+    const modsByItem = mods.reduce(
+      (acc, m) => {
+        if (!acc[m.orderItemId]) acc[m.orderItemId] = [];
+        acc[m.orderItemId].push({ modifierName: m.modifierName, price: m.price });
+        return acc;
+      },
+      {} as Record<number, { modifierName: string; price: number }[]>
+    );
+    kitchenOrderGroups.push({
+      id: ko.id,
+      status: ko.status,
+      sequence: ko.sequence,
+      createdAt: ko.createdAt,
+      items: itemRows.map((i) => ({
+        id: i.id,
+        productId: i.productId,
+        productName: i.productName,
+        price: i.price,
+        quantity: i.quantity,
+        totalPrice: i.totalPrice,
+        modifiers: modsByItem[i.id] ?? [],
+      })),
+    });
+  }
 
-  const itemsWithMods: OrderItemWithModifiers[] = items.map((i) => ({
-    id: i.id,
-    productId: i.productId,
-    productName: i.productName,
-    price: i.price,
-    quantity: i.quantity,
-    totalPrice: i.totalPrice,
-    modifiers: modsByItem[i.id] ?? [],
-  }));
+  const legacyItems = await db
+    .select()
+    .from(orderItems)
+    .where(and(eq(orderItems.orderId, id), sql`${orderItems.kitchenOrderId} IS NULL`));
+  if (legacyItems.length > 0) {
+    const itemIds = legacyItems.map((i) => i.id);
+    const mods = await db
+      .select()
+      .from(orderItemModifiers)
+      .where(inArray(orderItemModifiers.orderItemId, itemIds));
+    const modsByItem = mods.reduce(
+      (acc, m) => {
+        if (!acc[m.orderItemId]) acc[m.orderItemId] = [];
+        acc[m.orderItemId].push({ modifierName: m.modifierName, price: m.price });
+        return acc;
+      },
+      {} as Record<number, { modifierName: string; price: number }[]>
+    );
+    kitchenOrderGroups.push({
+      id: 0,
+      status: order.status,
+      sequence: 1,
+      createdAt: order.createdAt,
+      items: legacyItems.map((i) => ({
+        id: i.id,
+        productId: i.productId,
+        productName: i.productName,
+        price: i.price,
+        quantity: i.quantity,
+        totalPrice: i.totalPrice,
+        modifiers: modsByItem[i.id] ?? [],
+      })),
+    });
+  }
 
   return {
     id: order.id,
@@ -202,7 +317,8 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
     totalPrice: order.totalPrice,
     createdBy: order.createdBy,
     createdAt: order.createdAt,
-    items: itemsWithMods,
+    items: allItems,
+    kitchenOrders: kitchenOrderGroups,
   };
 }
 
@@ -222,7 +338,18 @@ export async function updateOrderStatus(id: number, status: OrderStatus) {
   return row ?? null;
 }
 
-/** สำหรับ Kitchen Display: บิลที่ status = pending หรือ preparing (และ filter ตาม station ได้) */
+export async function updateKitchenOrderStatus(
+  kitchenOrderId: number,
+  status: "pending" | "preparing" | "ready" | "served"
+) {
+  const [row] = await db
+    .update(kitchenOrders)
+    .set({ status })
+    .where(eq(kitchenOrders.id, kitchenOrderId))
+    .returning();
+  return row ?? null;
+}
+
 export type KitchenOrderItem = {
   id: number;
   productName: string;
@@ -233,9 +360,11 @@ export type KitchenOrderItem = {
 
 export type KitchenOrder = {
   id: number;
+  orderId: number;
   orderNumber: string;
   tableNumber: string | null;
   status: string;
+  sequence: number;
   createdAt: Date | null;
   items: KitchenOrderItem[];
 };
@@ -245,22 +374,25 @@ export async function findOrdersForKitchen(
 ): Promise<KitchenOrder[]> {
   const { products } = await import("@/db/schema/product.schema");
 
-  const orderRows = await db
+  const koRows = await db
     .select({
-      id: orders.id,
+      id: kitchenOrders.id,
+      orderId: kitchenOrders.orderId,
+      status: kitchenOrders.status,
+      sequence: kitchenOrders.sequence,
+      createdAt: kitchenOrders.createdAt,
       orderNumber: orders.orderNumber,
       tableNumber: tables.tableNumber,
-      status: orders.status,
-      createdAt: orders.createdAt,
     })
-    .from(orders)
+    .from(kitchenOrders)
+    .innerJoin(orders, eq(kitchenOrders.orderId, orders.id))
     .leftJoin(tables, eq(orders.tableId, tables.id))
-    .where(inArray(orders.status, ["pending", "preparing"]))
-    .orderBy(orders.createdAt);
+    .where(inArray(kitchenOrders.status, ["pending", "preparing", "ready"]))
+    .orderBy(kitchenOrders.createdAt);
 
-  const ordersList: KitchenOrder[] = [];
+  const result: KitchenOrder[] = [];
 
-  for (const o of orderRows) {
+  for (const ko of koRows) {
     const items = await db
       .select({
         id: orderItems.id,
@@ -271,13 +403,11 @@ export async function findOrdersForKitchen(
       })
       .from(orderItems)
       .leftJoin(products, eq(orderItems.productId, products.id))
-      .where(eq(orderItems.orderId, o.id));
+      .where(eq(orderItems.kitchenOrderId, ko.id));
 
     let filteredItems = items;
     if (kitchenCategoryId != null) {
-      filteredItems = items.filter(
-        (i) => i.kitchenCategoryId === kitchenCategoryId
-      );
+      filteredItems = items.filter((i) => i.kitchenCategoryId === kitchenCategoryId);
     }
     if (filteredItems.length === 0) continue;
 
@@ -298,28 +428,28 @@ export async function findOrdersForKitchen(
       {} as Record<number, { modifierName: string; price: number }[]>
     );
 
-    const kitchenItems: KitchenOrderItem[] = filteredItems.map((i) => ({
-      id: i.id,
-      productName: i.productName,
-      quantity: i.quantity,
-      modifiers: modsByItem[i.id] ?? [],
-      kitchenCategoryId: i.kitchenCategoryId ?? null,
-    }));
-
-    ordersList.push({
-      id: o.id,
-      orderNumber: o.orderNumber,
-      tableNumber: o.tableNumber ?? null,
-      status: o.status,
-      createdAt: o.createdAt,
-      items: kitchenItems,
+    result.push({
+      id: ko.id,
+      orderId: ko.orderId,
+      orderNumber: ko.orderNumber,
+      tableNumber: ko.tableNumber ?? null,
+      status: ko.status,
+      sequence: ko.sequence,
+      createdAt: ko.createdAt,
+      items: filteredItems.map((i) => ({
+        id: i.id,
+        productName: i.productName,
+        quantity: i.quantity,
+        modifiers: modsByItem[i.id] ?? [],
+        kitchenCategoryId: i.kitchenCategoryId ?? null,
+      })),
     });
   }
 
-  return ordersList;
+  return result;
 }
 
-/** บิลที่ยังไม่เสิร์ฟ/ยังไม่จ่ายของโต๊ะนี้ (สำหรับลูกค้าสั่งเพิ่ม) */
+/** บิลที่ยังไม่จ่ายของโต๊ะนี้ (สำหรับลูกค้าสั่งเพิ่ม) */
 export async function getTableOrder(tableId: number): Promise<OrderDetail | null> {
   const [row] = await db
     .select({ id: orders.id })
@@ -327,7 +457,7 @@ export async function getTableOrder(tableId: number): Promise<OrderDetail | null
     .where(
       and(
         eq(orders.tableId, tableId),
-        inArray(orders.status, ["pending", "preparing", "ready"])
+        inArray(orders.status, ["pending", "preparing", "ready", "served"])
       )
     )
     .orderBy(desc(orders.createdAt))
@@ -336,11 +466,11 @@ export async function getTableOrder(tableId: number): Promise<OrderDetail | null
 
   const full = await findOrderById(row.id);
   if (!full) return null;
-  if (!["pending", "preparing", "ready"].includes(full.status)) return null;
+  if (!["pending", "preparing", "ready", "served"].includes(full.status)) return null;
   return full;
 }
 
-/** เพิ่มรายการเข้าไปในบิลที่มีอยู่ (อัปเดต total) */
+/** เพิ่มรายการเข้าไปในบิล = สร้างรายการสั่งครัวใหม่ (order) */
 export async function addItemsToOrder(
   orderId: number,
   newItems: OrderItemInput[]
@@ -348,22 +478,31 @@ export async function addItemsToOrder(
   const order = await findOrderById(orderId);
   if (!order) return null;
 
+  const nextSeq =
+    order.kitchenOrders.length > 0
+      ? Math.max(...order.kitchenOrders.map((ko) => ko.sequence)) + 1
+      : 1;
+
   let addedTotal = 0;
   for (const item of newItems) {
     const modifierTotal = item.modifiers.reduce((s, m) => s + m.price, 0);
-    const lineTotal = (item.price + modifierTotal) * item.quantity;
-    addedTotal += lineTotal;
+    addedTotal += (item.price + modifierTotal) * item.quantity;
   }
 
   await db.transaction(async (tx) => {
+    const [ko] = await tx
+      .insert(kitchenOrders)
+      .values({ orderId, status: "pending", sequence: nextSeq })
+      .returning();
+    if (!ko) return;
+
     for (const item of newItems) {
       const modifierTotal = item.modifiers.reduce((s, m) => s + m.price, 0);
       const lineTotal = (item.price + modifierTotal) * item.quantity;
-
       const [oi] = await tx
         .insert(orderItems)
         .values({
-          orderId,
+          kitchenOrderId: ko.id,
           productId: item.productId,
           productName: item.productName,
           price: item.price,
@@ -371,7 +510,6 @@ export async function addItemsToOrder(
           totalPrice: lineTotal,
         })
         .returning();
-
       if (!oi) continue;
       for (const mod of item.modifiers) {
         await tx.insert(orderItemModifiers).values({
@@ -384,9 +522,7 @@ export async function addItemsToOrder(
 
     await tx
       .update(orders)
-      .set({
-        totalPrice: order.totalPrice + addedTotal,
-      })
+      .set({ totalPrice: order.totalPrice + addedTotal })
       .where(eq(orders.id, orderId));
   });
 
@@ -396,7 +532,7 @@ export async function addItemsToOrder(
       const { updateTable } = await import("@/features/table/table.repo");
       await updateTable(result.tableId, { status: "occupied" });
     } catch {
-      // ไม่ให้การอัปเดตสถานะโต๊ะทำให้การเพิ่มรายการล้มเหลว
+      // ignore
     }
   }
   return result;

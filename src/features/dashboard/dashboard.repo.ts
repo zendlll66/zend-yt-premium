@@ -1,6 +1,6 @@
 import { desc, eq, sql, sum } from "drizzle-orm";
 import { db } from "@/db";
-import { orders, orderItems } from "@/db/schema/order.schema";
+import { orders, orderItems, kitchenOrders } from "@/db/schema/order.schema";
 import { products } from "@/db/schema/product.schema";
 
 export type DashboardStats = {
@@ -50,7 +50,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       value: sql<number>`coalesce(sum(${orderItems.quantity} * coalesce(${products.cost}, 0)), 0)`,
     })
     .from(orderItems)
-    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .leftJoin(kitchenOrders, eq(orderItems.kitchenOrderId, kitchenOrders.id))
+    .innerJoin(orders, sql`${orders.id} = coalesce(${kitchenOrders.orderId}, ${orderItems.orderId})`)
     .leftJoin(products, eq(orderItems.productId, products.id))
     .where(eq(orders.status, PAID_STATUS));
 
@@ -125,7 +126,8 @@ export async function getTopProducts(limit: number): Promise<TopProductItem[]> {
       totalPrice: orderItems.totalPrice,
     })
     .from(orderItems)
-    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .leftJoin(kitchenOrders, eq(orderItems.kitchenOrderId, kitchenOrders.id))
+    .innerJoin(orders, sql`${orders.id} = coalesce(${kitchenOrders.orderId}, ${orderItems.orderId})`)
     .where(eq(orders.status, PAID_STATUS));
 
   const byName: Record<string, { quantity: number; revenue: number }> = {};

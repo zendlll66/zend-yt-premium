@@ -50,6 +50,13 @@
       "when": 1772998988736,
       "tag": "0006_loving_stark_industries",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1773060782072,
+      "tag": "0007_natural_doctor_spectrum",
+      "breakpoints": true
     }
   ]
 }

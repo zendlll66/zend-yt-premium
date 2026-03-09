@@ -1,7 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createOrder, findOrderById, updateOrderStatus } from "./order.repo";
+import {
+  createOrder,
+  findOrderById,
+  updateOrderStatus,
+  updateKitchenOrderStatus,
+} from "./order.repo";
 import type { OrderItemInput } from "./order.repo";
 
 export type CreateOrderState = { orderId?: number; orderNumber?: string; error?: string };
@@ -45,7 +50,21 @@ export async function updateOrderStatusAction(
   const order = await updateOrderStatus(orderId, status);
   revalidatePath("/dashboard/orders");
   revalidatePath(`/dashboard/orders/${orderId}`);
+  revalidatePath("/dashboard/kitchen");
   return order ? {} : { error: "ไม่พบบิล" };
+}
+
+/** อัปเดตสถานะรายการสั่งครัว (หน้าเชฟใช้) */
+export async function updateKitchenOrderStatusAction(
+  kitchenOrderId: number,
+  status: "pending" | "preparing" | "ready" | "served"
+) {
+  const row = await updateKitchenOrderStatus(kitchenOrderId, status);
+  revalidatePath("/dashboard/kitchen");
+  if (row) {
+    revalidatePath(`/dashboard/orders/${row.orderId}`);
+  }
+  return row ? {} : { error: "ไม่พบรายการสั่ง" };
 }
 
 /** ลูกค้าส่งคำสั่งโต๊ะ: สร้างบิลใหม่หรือเพิ่มเข้าบิลเดิมของโต๊ะ */

@@ -13,10 +13,11 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "ยกเลิก",
 };
 
+/** บิล: เปลี่ยนได้เฉพาะ ชำระแล้ว / ยกเลิก (สถานะรายการสั่งครัวจัดการที่หน้า Kitchen) */
 const NEXT_STATUS: Record<string, string[] | null> = {
-  pending: ["preparing", "cancelled"],
-  preparing: ["ready", "cancelled"],
-  ready: ["served", "cancelled"],
+  pending: ["paid", "cancelled"],
+  preparing: ["paid", "cancelled"],
+  ready: ["paid", "cancelled"],
   served: ["paid", "cancelled"],
   paid: null,
   cancelled: null,
@@ -57,7 +58,7 @@ export function OrderStatusActions({
           onClick={() => handleStatus(s as Status)}
           className={s === "cancelled" ? "text-destructive hover:bg-destructive/10 hover:text-destructive" : ""}
         >
-          {s === "cancelled" ? "ยกเลิกบิล" : `→ ${STATUS_LABELS[s]}`}
+          {s === "cancelled" ? "ยกเลิกบิล" : s === "paid" ? "ชำระแล้ว" : `→ ${STATUS_LABELS[s]}`}
         </Button>
       ))}
     </div>
