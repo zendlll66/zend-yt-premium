@@ -37,6 +37,16 @@ const NAV_MAIN = [
     isActive: true,
   },
   {
+    title: "จัดการ Station",
+    url: "#",
+    icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
+    isActive: true,
+    items: [
+      { title: "รายการ Station", url: "/dashboard/stations" },
+      { title: "เพิ่ม Station", url: "/dashboard/stations/add" },
+    ],
+  },
+  {
     title: "จัดการโต๊ะ",
     url: "#",
     icon: <HugeiconsIcon icon={ComputerTerminalIcon} strokeWidth={2} />,
