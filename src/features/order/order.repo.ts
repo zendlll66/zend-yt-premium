@@ -9,6 +9,14 @@ import {
 import { tables } from "@/db/schema/table.schema";
 import { generateOrderNumber } from "@/lib/order-number";
 
+const KITCHEN_STATUS_ORDER: Record<string, number> = {
+  pending: 0,
+  preparing: 1,
+  ready: 2,
+  served: 3,
+};
+const STATUS_BY_LEVEL = ["pending", "preparing", "ready", "served"] as const;
+
 export type OrderItemInput = {
   productId: number | null;
   productName: string;
@@ -161,7 +169,37 @@ export async function findOrders(limit = 50): Promise<OrderListItem[]> {
     .leftJoin(tables, eq(orders.tableId, tables.id))
     .orderBy(desc(orders.createdAt))
     .limit(limit);
-  return rows.map((r) => ({ ...r, tableNumber: r.tableNumber ?? null }));
+
+  const openBillIds = rows
+    .filter((r) => ["pending", "preparing", "ready", "served"].includes(r.status))
+    .map((r) => r.id);
+  let effectiveStatusByBillId: Record<number, string> = {};
+  if (openBillIds.length > 0) {
+    const kos = await db
+      .select({ orderId: kitchenOrders.orderId, status: kitchenOrders.status })
+      .from(kitchenOrders)
+      .where(inArray(kitchenOrders.orderId, openBillIds));
+    for (const billId of openBillIds) {
+      const statuses = kos.filter((k) => k.orderId === billId).map((k) => k.status);
+      if (statuses.length === 0) continue;
+      const minLevel = Math.min(
+        ...statuses.map((s) => KITCHEN_STATUS_ORDER[s] ?? 0)
+      );
+      effectiveStatusByBillId[billId] = STATUS_BY_LEVEL[minLevel] ?? "pending";
+    }
+  }
+
+  return rows.map((r) => {
+    const effective =
+      r.status === "paid" || r.status === "cancelled"
+        ? r.status
+        : effectiveStatusByBillId[r.id] ?? r.status;
+    return {
+      ...r,
+      tableNumber: r.tableNumber ?? null,
+      status: effective,
+    };
+  });
 }
 
 /** ดึงรายการในบิล: จาก kitchen_order_id หรือจาก order_id (legacy) */
@@ -338,6 +376,28 @@ export async function updateOrderStatus(id: number, status: OrderStatus) {
   return row ?? null;
 }
 
+/** ซิงค์สถานะบิลจากสถานะของทุกรายการสั่งครัว (ให้รายการบิลแสดงตรงกับ Kitchen) */
+async function syncBillStatusFromKitchenOrders(billId: number): Promise<void> {
+  const [bill] = await db
+    .select({ status: orders.status })
+    .from(orders)
+    .where(eq(orders.id, billId))
+    .limit(1);
+  if (!bill || bill.status === "paid" || bill.status === "cancelled") return;
+
+  const kos = await db
+    .select({ status: kitchenOrders.status })
+    .from(kitchenOrders)
+    .where(eq(kitchenOrders.orderId, billId));
+  if (kos.length === 0) return;
+
+  const minLevel = Math.min(
+    ...kos.map((ko) => KITCHEN_STATUS_ORDER[ko.status] ?? 0)
+  );
+  const newStatus = STATUS_BY_LEVEL[minLevel] ?? "pending";
+  await db.update(orders).set({ status: newStatus }).where(eq(orders.id, billId));
+}
+
 /**
  * อัปเดตสถานะรายการสั่งครัว
  * - ถ้า onlyForKitchenCategoryId ไม่ส่ง: เปลี่ยนทั้ง order + ทุกรายการ (ใช้เมื่ออยู่ Station "ทั้งหมด")
@@ -387,6 +447,8 @@ export async function updateKitchenOrderStatus(
     .update(orderItems)
     .set({ status: itemStatus })
     .where(eq(orderItems.kitchenOrderId, kitchenOrderId));
+
+  await syncBillStatusFromKitchenOrders(row.orderId);
   return row;
 }
 
