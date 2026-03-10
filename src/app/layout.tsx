@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { getShopSettings } from "@/features/settings/settings.repo";
-import { THEME_OPTIONS } from "@/features/settings/settings.repo";
+import { getShopSettings, THEME_OPTIONS } from "@/features/settings/settings.repo";
+import { getCustomerSession } from "@/lib/auth-customer-server";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import "./globals.css";
 
 const googleSans = localFont({
@@ -65,11 +67,29 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   let theme = "default";
+  const [shop, customer] = await Promise.all([
+    (async () => {
+      try {
+        return await getShopSettings();
+      } catch {
+        return null;
+      }
+    })(),
+    (async () => {
+      try {
+        return await getCustomerSession();
+      } catch {
+        return null;
+      }
+    })(),
+  ]);
+
   try {
-    const settings = await getShopSettings();
-    theme = THEME_OPTIONS.includes(settings.theme as (typeof THEME_OPTIONS)[number])
-      ? settings.theme
-      : "default";
+    if (shop && THEME_OPTIONS.includes(shop.theme as (typeof THEME_OPTIONS)[number])) {
+      theme = shop.theme;
+    } else {
+      theme = "default";
+    }
   } catch {
     theme = "default";
   }
@@ -79,7 +99,11 @@ export default async function RootLayout({
       <body
         className={`${googleSans.className} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider>
+          {shop && <Navbar shop={shop} customer={customer} />}
+          <main className="min-h-screen">{children}</main>
+          {shop && <Footer shop={shop} customer={customer} />}
+        </TooltipProvider>
       </body>
     </html>
   );
