@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { findOrderById } from "@/features/order/order.repo";
+import { findOrderById, validateOrderStock } from "@/features/order/order.repo";
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -25,6 +25,8 @@ export async function POST(req: NextRequest) {
     if (order.status !== "pending") {
       return NextResponse.json({ error: "คำสั่งนี้ชำระแล้วหรือยกเลิกแล้ว" }, { status: 400 });
     }
+    const stockCheck = await validateOrderStock(orderId);
+    if (!stockCheck.ok) return NextResponse.json({ error: stockCheck.error }, { status: 400 });
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
     const amountSatang = Math.round(Number(order.totalPrice) * 100); // THB -> satang

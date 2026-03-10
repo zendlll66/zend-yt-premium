@@ -119,28 +119,37 @@ export function RentClient({
     quantity: number,
     mods: { modifierName: string; price: number }[]
   ) {
-    setCart((prev) => [
-      ...prev,
-      {
-        productId: product.id,
-        productName: product.name,
-        price: product.price,
-        quantity,
-        modifiers: mods,
-      },
-    ]);
+    setCart((prev) => {
+      const inCart = prev.filter((i) => i.productId === product.id).reduce((s, i) => s + i.quantity, 0);
+      const available = Math.max(0, product.stock - inCart);
+      const qty = Math.min(quantity, available);
+      if (qty < 1) return prev;
+      return [
+        ...prev,
+        {
+          productId: product.id,
+          productName: product.name,
+          price: product.price,
+          quantity: qty,
+          modifiers: mods,
+        },
+      ];
+    });
   }
 
   function updateQty(index: number, delta: number) {
     setCart((prev) => {
       const next = [...prev];
       const item = next[index];
+      const product = menu.find((p) => p.id === item.productId);
       const newQty = item.quantity + delta;
       if (newQty < 1) {
         next.splice(index, 1);
         return next;
       }
-      next[index] = { ...item, quantity: newQty };
+      const totalSame = next.filter((i) => i.productId === item.productId).reduce((s, i) => s + i.quantity, 0);
+      const maxQty = product ? Math.max(0, product.stock - totalSame + item.quantity) : newQty;
+      next[index] = { ...item, quantity: Math.min(newQty, maxQty) };
       return next;
     });
   }
@@ -300,14 +309,19 @@ export function RentClient({
           </div>
         ) : (
           <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredMenu.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                days={days}
-                onAdd={(qty, mods) => addToCart(product, qty, mods)}
-              />
-            ))}
+            {filteredMenu.map((product) => {
+              const inCart = cart.filter((i) => i.productId === product.id).reduce((s, i) => s + i.quantity, 0);
+              const availableStock = Math.max(0, product.stock - inCart);
+              return (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  days={days}
+                  availableStock={availableStock}
+                  onAdd={(qty, mods) => addToCart(product, qty, mods)}
+                />
+              );
+            })}
           </ul>
         )}
 
@@ -525,24 +539,28 @@ export function RentClient({
 function ProductCard({
   product,
   days,
+  availableStock,
   onAdd,
 }: {
   product: MenuProduct;
   days: number;
+  availableStock: number;
   onAdd: (quantity: number, modifiers: { modifierName: string; price: number }[]) => void;
 }) {
   const [qty, setQty] = useState(1);
   const [selected, setSelected] = useState<Record<number, { id: number; name: string; price: number }>>({});
+  const safeQty = Math.min(Math.max(1, qty), availableStock);
   function handleAdd() {
     const requiredMissing = product.modifierGroups.some((g) => g.required && !selected[g.id]);
     if (requiredMissing) {
       alert("กรุณาเลือกตัวเลือกที่บังคับ");
       return;
     }
+    if (availableStock < 1) return;
     const mods = product.modifierGroups
       .filter((g) => selected[g.id])
       .map((g) => ({ modifierName: selected[g.id].name, price: selected[g.id].price }));
-    onAdd(qty, mods);
+    onAdd(Math.min(safeQty, availableStock), mods);
   }
 
   const imageSrc = product.imageUrl
@@ -571,6 +589,9 @@ function ProductCard({
         <h3 className="text-base font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
           {product.name}
         </h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          เหลือ {availableStock} ชิ้น
+        </p>
         <div className="mt-2 flex items-baseline gap-1.5">
           <span className="text-sm text-neutral-500 dark:text-neutral-400">
             {formatMoney(product.price)} ฿
@@ -631,12 +652,13 @@ function ProductCard({
               −
             </button>
             <span className="flex h-9 min-w-9 items-center justify-center border-x border-neutral-200/80 bg-neutral-50/80 px-2 text-sm font-medium text-neutral-800 dark:border-neutral-700 dark:bg-neutral-800/50 dark:text-neutral-200">
-              {qty}
+              {Math.min(qty, availableStock)}
             </span>
             <button
               type="button"
-              onClick={() => setQty((n) => n + 1)}
-              className="flex h-9 w-9 items-center justify-center text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+              onClick={() => setQty((n) => Math.min(availableStock, n + 1))}
+              disabled={availableStock < 1}
+              className="flex h-9 w-9 items-center justify-center text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:opacity-50 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
             >
               +
             </button>
@@ -644,7 +666,8 @@ function ProductCard({
           <button
             type="button"
             onClick={handleAdd}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
+            disabled={availableStock < 1}
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} />
             เพิ่มลงตะกร้า

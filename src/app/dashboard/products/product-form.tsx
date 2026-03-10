@@ -19,6 +19,7 @@ type ProductRow = {
   barcode: string | null;
   imageUrl: string | null;
   description: string | null;
+  stock?: number;
   isActive: boolean;
 };
 
@@ -119,6 +120,21 @@ export function ProductForm({ categories, product, action }: Props) {
             min={0}
             step={0.01}
             defaultValue={product?.cost ?? ""}
+            disabled={isPending}
+          />
+        </div>
+        <div>
+          <label htmlFor="stock" className="mb-1.5 block text-sm font-medium">
+            จำนวนคงคลัง *
+          </label>
+          <Input
+            id="stock"
+            name="stock"
+            type="number"
+            min={0}
+            step={1}
+            defaultValue={product?.stock ?? 0}
+            required
             disabled={isPending}
           />
         </div>

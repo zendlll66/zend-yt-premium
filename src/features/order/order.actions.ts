@@ -5,6 +5,7 @@ import {
   createRentalOrder,
   findOrderById,
   updateOrderStatus,
+  checkStockForItems,
 } from "./order.repo";
 import type { OrderItemInput } from "./order.repo";
 import type { RentalOrderStatus } from "@/db/schema/order.schema";
@@ -37,6 +38,9 @@ export async function createRentalOrderAction(input: {
     if (!Number.isInteger(item.quantity) || item.quantity < 1) return { error: "จำนวนไม่ถูกต้อง" };
     if (!Array.isArray(item.modifiers)) item.modifiers = [];
   }
+
+  const stockCheck = await checkStockForItems(input.items);
+  if (!stockCheck.ok) return { error: stockCheck.error };
 
   const order = await createRentalOrder({
     customerName: input.customerName.trim(),

@@ -187,6 +187,8 @@ export type MenuProduct = {
   imageUrl: string | null;
   categoryId: number | null;
   categoryName: string | null;
+  /** จำนวนคงคลัง - ใช้จำกัดจำนวนที่ยืมได้ */
+  stock: number;
   modifierGroups: {
     id: number;
     name: string;
@@ -206,6 +208,7 @@ export async function getMenuForOrder(): Promise<MenuProduct[]> {
       imageUrl: products.imageUrl,
       categoryId: products.categoryId,
       categoryName: categories.name,
+      stock: products.stock,
     })
     .from(products)
     .leftJoin(categories, eq(products.categoryId, categories.id))
@@ -261,6 +264,7 @@ export async function getMenuForOrder(): Promise<MenuProduct[]> {
       imageUrl: p.imageUrl ?? null,
       categoryId: p.categoryId ?? null,
       categoryName: p.categoryName ?? null,
+      stock: p.stock,
       modifierGroups,
     };
   });

@@ -41,6 +41,7 @@ export default async function ProductsPage() {
                 <th className="px-4 py-3 font-medium">หมวดหมู่</th>
                 <th className="px-4 py-3 font-medium">ราคา/วัน</th>
                 <th className="px-4 py-3 font-medium">มัดจำ</th>
+                <th className="px-4 py-3 font-medium">คงคลัง</th>
                 <th className="px-4 py-3 font-medium">สถานะ</th>
                 <th className="px-4 py-3 font-medium">สร้างเมื่อ</th>
                 <th className="px-4 py-3 text-right font-medium">จัดการ</th>
@@ -49,7 +50,7 @@ export default async function ProductsPage() {
             <tbody>
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
                     ยังไม่มีสินค้า
                   </td>
                 </tr>
@@ -75,6 +76,7 @@ export default async function ProductsPage() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {p.deposit != null && p.deposit > 0 ? `${formatMoney(p.deposit)} ฿` : "-"}
                     </td>
+                    <td className="px-4 py-3">{p.stock}</td>
                     <td className="px-4 py-3">
                       <span
                         className={

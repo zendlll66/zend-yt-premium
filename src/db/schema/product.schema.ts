@@ -15,6 +15,8 @@ export const products = sqliteTable("products", {
   barcode: text("barcode"),
   imageUrl: text("image_url"),
   description: text("description"),
+  /** จำนวนคงคลัง - ลดเมื่อชำระแล้ว เพิ่มกลับเมื่อคืนหรือยกเลิก */
+  stock: integer("stock").notNull().default(0),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
     .$defaultFn(() => new Date())

@@ -85,6 +85,13 @@
       "when": 1773071000000,
       "tag": "0011_customers_and_addresses",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1773072000000,
+      "tag": "0012_product_stock",
+      "breakpoints": true
     }
   ]
 }

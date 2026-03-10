@@ -271,7 +271,78 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
   };
 }
 
+/** ตรวจสอบว่า stock เพียงพอสำหรับรายการที่ต้องการ (ก่อนสร้างคำสั่ง) */
+export async function checkStockForItems(
+  items: { productId: number | null; quantity: number }[]
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const byProduct = new Map<number, number>();
+  for (const item of items) {
+    if (item.productId == null) continue;
+    byProduct.set(item.productId, (byProduct.get(item.productId) ?? 0) + item.quantity);
+  }
+  if (byProduct.size === 0) return { ok: true };
+  const productIds = [...byProduct.keys()];
+  const rows = await db.select({ id: products.id, name: products.name, stock: products.stock }).from(products).where(inArray(products.id, productIds));
+  for (const p of rows) {
+    const need = byProduct.get(p.id) ?? 0;
+    if (p.stock < need) return { ok: false, error: `สินค้า "${p.name}" เหลือเพียง ${p.stock} ชิ้น (ต้องการ ${need})` };
+  }
+  return { ok: true };
+}
+
+/** ตรวจสอบว่า stock เพียงพอสำหรับคำสั่ง (ไม่หัก) */
+export async function validateOrderStock(orderId: number): Promise<{ ok: true } | { ok: false; error: string }> {
+  const items = await db
+    .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId));
+  for (const item of items) {
+    if (item.productId == null) continue;
+    const [p] = await db.select({ stock: products.stock, name: products.name }).from(products).where(eq(products.id, item.productId)).limit(1);
+    if (!p) return { ok: false, error: `ไม่พบสินค้าในระบบ` };
+    if (p.stock < item.quantity) return { ok: false, error: `สินค้า "${p.name}" เหลือเพียง ${p.stock} ชิ้น (ต้องการ ${item.quantity})` };
+  }
+  return { ok: true };
+}
+
+/** หัก stock ตามรายการในคำสั่ง (ใช้เมื่อสถานะเป็น paid) */
+export async function decreaseStockForOrder(orderId: number): Promise<{ ok: true } | { ok: false; error: string }> {
+  const items = await db
+    .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId));
+  const productQtys = items.filter((i) => i.productId != null) as { productId: number; quantity: number }[];
+  if (productQtys.length === 0) return { ok: true };
+
+  return await db.transaction(async (tx) => {
+    for (const { productId, quantity } of productQtys) {
+      const [p] = await tx.select({ stock: products.stock, name: products.name }).from(products).where(eq(products.id, productId)).limit(1);
+      if (!p) return { ok: false, error: `ไม่พบสินค้าในระบบ` };
+      if (p.stock < quantity) return { ok: false, error: `สินค้า "${p.name}" เหลือเพียง ${p.stock} ชิ้น (ต้องการ ${quantity})` };
+      await tx.update(products).set({ stock: p.stock - quantity }).where(eq(products.id, productId));
+    }
+    return { ok: true };
+  });
+}
+
+/** คืน stock ตามรายการในคำสั่ง (ใช้เมื่อคืนแล้วหรือยกเลิกหลังจากชำระแล้ว) */
+export async function increaseStockForOrder(orderId: number): Promise<void> {
+  const items = await db
+    .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId));
+  for (const item of items) {
+    if (item.productId == null) continue;
+    const [p] = await db.select({ stock: products.stock }).from(products).where(eq(products.id, item.productId)).limit(1);
+    if (p) await db.update(products).set({ stock: p.stock + item.quantity }).where(eq(products.id, item.productId));
+  }
+}
+
 export async function updateOrderStatus(id: number, status: RentalOrderStatus) {
+  const [current] = await db.select({ status: orders.status }).from(orders).where(eq(orders.id, id)).limit(1);
+  if (current && (status === "completed" || (status === "cancelled" && current.status === "paid"))) {
+    await increaseStockForOrder(id);
+  }
   const [row] = await db
     .update(orders)
     .set({ status })
@@ -285,6 +356,8 @@ export async function setOrderStripePayment(
   stripePaymentIntentId: string,
   stripePaymentStatus: string
 ) {
+  const stockResult = await decreaseStockForOrder(id);
+  if (!stockResult.ok) throw new Error(stockResult.error);
   const [row] = await db
     .update(orders)
     .set({

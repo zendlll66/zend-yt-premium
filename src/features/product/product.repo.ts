@@ -15,6 +15,7 @@ export type ProductListItem = {
   barcode: string | null;
   imageUrl: string | null;
   description: string | null;
+  stock: number;
   isActive: boolean;
   createdAt: Date | null;
 };
@@ -33,6 +34,7 @@ export async function findAllProducts(): Promise<ProductListItem[]> {
       barcode: products.barcode,
       imageUrl: products.imageUrl,
       description: products.description,
+      stock: products.stock,
       isActive: products.isActive,
       createdAt: products.createdAt,
     })
@@ -62,6 +64,7 @@ export async function createProduct(data: {
   barcode?: string | null;
   imageUrl?: string | null;
   description?: string | null;
+  stock?: number;
   isActive?: boolean;
 }) {
   const [row] = await db
@@ -76,6 +79,7 @@ export async function createProduct(data: {
       barcode: data.barcode ?? null,
       imageUrl: data.imageUrl ?? null,
       description: data.description ?? null,
+      stock: data.stock ?? 0,
       isActive: data.isActive ?? true,
     })
     .returning();
@@ -94,6 +98,7 @@ export async function updateProduct(
     barcode?: string | null;
     imageUrl?: string | null;
     description?: string | null;
+    stock?: number;
     isActive?: boolean;
   }
 ) {

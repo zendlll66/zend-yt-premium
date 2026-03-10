@@ -50,6 +50,7 @@ export default async function EditProductPage({
           barcode: product.barcode,
           imageUrl: product.imageUrl,
           description: product.description,
+          stock: product.stock,
           isActive: product.isActive,
         }}
         action={updateProductAction}
