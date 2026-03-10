@@ -7,13 +7,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
   Calendar,
+  ChevronDown,
   CreditCard,
   Package,
   ShoppingCart,
-  User,
   X,
   Plus,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { createRentalOrderAction } from "@/features/order/order.actions";
 import type { MenuProduct } from "@/features/modifier/modifier.repo";
 import type { AddressItem } from "@/features/customer-address/customer-address.repo";
@@ -54,18 +61,6 @@ function getCategories(menu: MenuProduct[]): { id: number | null; name: string }
     .filter(([id]) => id !== null)
     .sort((a, b) => (a[1] || "").localeCompare(b[1] || ""));
   return [{ id: null, name: "ทั้งหมด" }, ...rest.map(([id, name]) => ({ id, name }))];
-}
-
-function ShopLogo({ url, shopName }: { url: string; shopName: string }) {
-  if (!url) {
-    return (
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-base font-semibold text-primary">
-        {shopName.charAt(0).toUpperCase() || "ร"}
-      </span>
-    );
-  }
-  const src = url.startsWith("http") ? url : `/api/r2-url?key=${encodeURIComponent(url)}`;
-  return <img src={src} alt="" className="h-9 w-9 rounded-xl object-cover" />;
 }
 
 export function RentClient({
@@ -219,34 +214,53 @@ export function RentClient({
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
+  const selectedCategoryName =
+    categories.find((c) => c.id === selectedCategoryId)?.name ?? "ทั้งหมด";
+
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-      {/* ─── Header: desktop-first, clean ─── */}
-      <header className="sticky top-0 z-30 border-b border-neutral-200/80 bg-white/80 backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/80">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <ShopLogo url={shopLogo} shopName={shopName} />
-            <div>
-              <h1 className="text-lg font-semibold tracking-tight">{shopName}</h1>
-              <p className="text-xs text-muted-foreground">เช่าอุปกรณ์</p>
-            </div>
-          </Link>
+      {/* ─── Toolbar: หมวดหมู่ (dropdown) + วันที่ + ตะกร้า ─── */}
+      <div className="sticky top-16 z-20 border-b border-neutral-200/80 bg-white/80 backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/80">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+          {/* หมวดหมู่ — dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="min-w-[140px] justify-between gap-2 border-neutral-200 bg-white font-normal dark:border-neutral-700 dark:bg-neutral-900"
+              >
+                <span className="truncate">{selectedCategoryName}</span>
+                <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[180px]">
+              {categories.map((cat) => (
+                <DropdownMenuItem
+                  key={cat.id ?? "all"}
+                  onClick={() => setSelectedCategoryId(cat.id)}
+                >
+                  {cat.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          {/* Date range — prominent on desktop */}
-          <div className="hidden items-center gap-3 rounded-2xl border border-neutral-200/80 bg-neutral-50/80 px-4 py-2.5 dark:border-neutral-800 dark:bg-neutral-900/50 md:flex">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+          {/* วันที่เช่า */}
+          <div className="flex flex-1 flex-wrap items-center gap-2 sm:gap-3">
+            <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
             <input
               type="date"
               value={rentalStart}
               onChange={(e) => setRentalStart(e.target.value)}
-              className="rounded-lg border-0 bg-transparent text-sm font-medium outline-none"
+              className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 sm:min-w-[132px]"
             />
-            <span className="text-muted-foreground">→</span>
+            <span className="text-muted-foreground">ถึง</span>
             <input
               type="date"
               value={rentalEnd}
               onChange={(e) => setRentalEnd(e.target.value)}
-              className="rounded-lg border-0 bg-transparent text-sm font-medium outline-none"
+              className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 sm:min-w-[132px]"
             />
             {rentalStart && rentalEnd && days > 0 && (
               <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
@@ -255,84 +269,28 @@ export function RentClient({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            {customer ? (
-              <Link
-                href="/account"
-                className="hidden items-center gap-2 rounded-full border border-neutral-200 px-4 py-2 text-sm font-medium hover:bg-neutral-100 dark:border-neutral-800 dark:hover:bg-neutral-800 sm:inline-flex"
-              >
-                <User className="h-4 w-4" />
-                บัญชี
-              </Link>
-            ) : (
-              <Link
-                href="/customer-login?from=/rent"
-                className="hidden items-center gap-2 rounded-full border border-neutral-200 px-4 py-2 text-sm font-medium hover:bg-neutral-100 dark:border-neutral-800 dark:hover:bg-neutral-800 sm:inline-flex"
-              >
-                <User className="h-4 w-4" />
-                เข้าสู่ระบบ
-              </Link>
+          {/* ตะกร้า */}
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setCartOpen(true)}
+            className="relative shrink-0 gap-2 rounded-xl bg-neutral-900 px-4 py-2 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            ตะกร้า
+            {cartCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/20 px-1.5 text-xs font-bold dark:bg-neutral-800 dark:text-white">
+                {cartCount}
+              </span>
             )}
-            <button
-              type="button"
-              onClick={() => setCartOpen(true)}
-              className="relative flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
-            >
-              <ShoppingCart className="h-4 w-4" />
-              <span className="hidden sm:inline">ตะกร้า</span>
-              {cartCount > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/20 px-1.5 text-xs font-bold dark:bg-neutral-800 dark:text-white">
-                  {cartCount}
-                </span>
-              )}
-            </button>
-          </div>
+          </Button>
         </div>
-
-        {/* Date bar — mobile */}
-        <div className="flex items-center gap-2 border-t border-neutral-200/60 bg-neutral-50/50 px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900/30 md:hidden">
-          <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <input
-            type="date"
-            value={rentalStart}
-            onChange={(e) => setRentalStart(e.target.value)}
-            className="flex-1 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-          />
-          <span className="text-muted-foreground">ถึง</span>
-          <input
-            type="date"
-            value={rentalEnd}
-            onChange={(e) => setRentalEnd(e.target.value)}
-            className="flex-1 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-          />
-          {rentalStart && rentalEnd && days > 0 && (
-            <span className="text-xs text-muted-foreground">({days} วัน)</span>
-          )}
-        </div>
-      </header>
+      </div>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {shopDescription && (
           <p className="mb-8 text-center text-sm text-muted-foreground">{shopDescription}</p>
         )}
-
-        {/* Category pills — minimal, Apple-style */}
-        <div className="mb-10 flex flex-wrap justify-center gap-2">
-          {categories.map((cat) => (
-            <button
-              key={cat.id ?? "all"}
-              type="button"
-              onClick={() => setSelectedCategoryId(cat.id)}
-              className={`rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
-                selectedCategoryId === cat.id
-                  ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                  : "bg-white text-neutral-600 shadow-sm ring-1 ring-neutral-200/80 hover:bg-neutral-50 hover:text-neutral-900 dark:bg-neutral-900 dark:text-neutral-400 dark:ring-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-white"
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
 
         {/* Product grid — cards */}
         {filteredMenu.length === 0 ? (
@@ -593,42 +551,50 @@ function ProductCard({
   const unitPrice = product.price * days;
 
   return (
-    <li className="group flex flex-col overflow-hidden rounded-3xl border border-neutral-200/80 bg-white shadow-sm transition hover:shadow-lg dark:border-neutral-800 dark:bg-neutral-900">
-      {/* Card image — aspect square, clean */}
-      <div className="relative aspect-square overflow-hidden bg-neutral-100 dark:bg-neutral-800">
+    <li className="group flex flex-col overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-sm shadow-neutral-200/50 transition-all duration-200 hover:shadow-md hover:shadow-neutral-300/40 dark:border-neutral-800/80 dark:bg-neutral-900/50 dark:shadow-neutral-950/50 dark:hover:shadow-neutral-900/60">
+      {/* รูปสินค้า */}
+      <div className="relative aspect-square overflow-hidden bg-neutral-50 dark:bg-neutral-800/80">
         {imageSrc ? (
           <img
             src={imageSrc}
             alt=""
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-neutral-300 dark:text-neutral-600">
-            <Package className="h-16 w-16" />
+          <div className="flex h-full w-full items-center justify-center text-neutral-200 dark:text-neutral-600">
+            <Package className="h-14 w-14" strokeWidth={1} />
           </div>
         )}
       </div>
 
       <div className="flex flex-1 flex-col p-5">
-        <h3 className="font-semibold tracking-tight">{product.name}</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {formatMoney(product.price)} ฿/วัน
+        <h3 className="text-base font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
+          {product.name}
+        </h3>
+        <div className="mt-2 flex items-baseline gap-1.5">
+          <span className="text-sm text-neutral-500 dark:text-neutral-400">
+            {formatMoney(product.price)} ฿
+          </span>
+          <span className="text-xs text-neutral-400 dark:text-neutral-500">/ วัน</span>
           {days > 1 && (
-            <span className="ml-1 text-muted-foreground">
-              · {days} วัน = <span className="font-medium text-foreground">{formatMoney(unitPrice)} ฿</span>
-            </span>
+            <>
+              <span className="text-neutral-300 dark:text-neutral-600">·</span>
+              <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                {days} วัน {formatMoney(unitPrice)} ฿
+              </span>
+            </>
           )}
-        </p>
+        </div>
 
         {product.modifierGroups.length > 0 && (
-          <div className="mt-4 space-y-2">
+          <div className="mt-4 space-y-3 border-t border-neutral-100 pt-4 dark:border-neutral-800">
             {product.modifierGroups.map((g) => (
               <div key={g.id}>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                   {g.name}
                   {g.required && " *"}
                 </span>
-                <div className="mt-1.5 flex flex-wrap gap-2">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {g.modifiers.map((m) => (
                     <button
                       key={m.id}
@@ -639,14 +605,14 @@ function ProductCard({
                           [g.id]: { id: m.id, name: m.name, price: m.price },
                         }))
                       }
-                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                         selected[g.id]?.id === m.id
-                          ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                          : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-white"
+                          ? "bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900"
+                          : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-200"
                       }`}
                     >
                       {m.name}
-                      {m.price > 0 ? ` +${formatMoney(m.price)}฿` : ""}
+                      {m.price > 0 ? ` +${formatMoney(m.price)}` : ""}
                     </button>
                   ))}
                 </div>
@@ -655,22 +621,22 @@ function ProductCard({
           </div>
         )}
 
-        <div className="mt-4 flex items-center gap-3">
-          <div className="flex items-center rounded-xl border border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800">
+        <div className="mt-5 flex items-center gap-3">
+          <div className="flex items-center overflow-hidden rounded-lg border border-neutral-200/80 dark:border-neutral-700">
             <button
               type="button"
               onClick={() => setQty((n) => Math.max(1, n - 1))}
-              className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+              className="flex h-9 w-9 items-center justify-center text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
             >
               −
             </button>
-            <span className="flex h-10 min-w-10 items-center justify-center border-x border-neutral-200 px-2 text-sm font-medium dark:border-neutral-700">
+            <span className="flex h-9 min-w-9 items-center justify-center border-x border-neutral-200/80 bg-neutral-50/80 px-2 text-sm font-medium text-neutral-800 dark:border-neutral-700 dark:bg-neutral-800/50 dark:text-neutral-200">
               {qty}
             </span>
             <button
               type="button"
               onClick={() => setQty((n) => n + 1)}
-              className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+              className="flex h-9 w-9 items-center justify-center text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
             >
               +
             </button>
@@ -678,9 +644,9 @@ function ProductCard({
           <button
             type="button"
             onClick={handleAdd}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 font-medium text-white transition hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
             เพิ่มลงตะกร้า
           </button>
         </div>

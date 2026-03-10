@@ -11,11 +11,28 @@ type NavbarProps = {
 
 const Navbar = ({ shop, customer }: NavbarProps) => {
   const shopName = shop.shopName || "Zend Rental";
+  const logoUrl = shop.shopLogo?.trim();
+  const logoSrc = logoUrl
+    ? logoUrl.startsWith("http")
+      ? logoUrl
+      : `/api/r2-url?key=${encodeURIComponent(logoUrl)}`
+    : null;
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-neutral-950/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight text-white">
+        <Link href="/" className="flex items-center gap-3 font-semibold tracking-tight text-white">
+          {logoSrc ? (
+            <img
+              src={logoSrc}
+              alt=""
+              className="h-9 w-9 rounded-xl object-cover ring-1 ring-white/10"
+            />
+          ) : (
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-lg font-bold text-white">
+              {shopName.charAt(0).toUpperCase() || "Z"}
+            </span>
+          )}
           <span className="text-xl">{shopName}</span>
         </Link>
         <div className="flex items-center gap-2">

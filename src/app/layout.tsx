@@ -101,7 +101,7 @@ export default async function RootLayout({
       >
         <TooltipProvider>
           {shop && <Navbar shop={shop} customer={customer} />}
-          <main className="min-h-screen">{children}</main>
+          <main className="min-h-screen mt-16">{children}</main>
           {shop && <Footer shop={shop} customer={customer} />}
         </TooltipProvider>
       </body>

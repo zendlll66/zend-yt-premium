@@ -154,6 +154,42 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
   return findOrderById(orderId);
 }
 
+export async function findOrdersByCustomerEmail(
+  customerEmail: string,
+  limit = 20
+): Promise<OrderListItem[]> {
+  const rows = await db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      status: orders.status,
+      totalPrice: orders.totalPrice,
+      depositAmount: orders.depositAmount,
+      rentalStart: orders.rentalStart,
+      rentalEnd: orders.rentalEnd,
+      customerName: orders.customerName,
+      customerEmail: orders.customerEmail,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .where(eq(orders.customerEmail, customerEmail))
+    .orderBy(desc(orders.createdAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id: r.id,
+    orderNumber: r.orderNumber,
+    status: r.status,
+    totalPrice: r.totalPrice,
+    depositAmount: r.depositAmount,
+    rentalStart: r.rentalStart,
+    rentalEnd: r.rentalEnd,
+    customerName: r.customerName,
+    customerEmail: r.customerEmail,
+    createdAt: r.createdAt,
+  }));
+}
+
 export async function findOrders(limit = 50): Promise<OrderListItem[]> {
   const rows = await db
     .select({

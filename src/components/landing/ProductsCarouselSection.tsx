@@ -1,0 +1,109 @@
+"use client";
+
+import Link from "next/link";
+import { Package, ArrowRight } from "lucide-react";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { Button } from "@/components/ui/button";
+import type { MenuProduct } from "@/features/modifier/modifier.repo";
+
+function formatMoney(amount: number) {
+  return new Intl.NumberFormat("th-TH", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function ProductCard({ product }: { product: MenuProduct }) {
+  const imageSrc = product.imageUrl
+    ? `/api/r2-url?key=${encodeURIComponent(product.imageUrl)}`
+    : null;
+
+  return (
+    <Link
+      href="/rent"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition hover:shadow-md"
+    >
+      <div className="relative aspect-square overflow-hidden bg-muted">
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            alt=""
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+            <Package className="h-14 w-14" />
+          </div>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <h3 className="font-semibold tracking-tight line-clamp-2">{product.name}</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {formatMoney(product.price)} ฿/วัน
+        </p>
+        <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary">
+          ดูรายการ
+          <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+type ProductsCarouselSectionProps = {
+  products: MenuProduct[];
+};
+
+export function ProductsCarouselSection({ products }: ProductsCarouselSectionProps) {
+  if (products.length === 0) return null;
+
+  return (
+    <section className="border-t border-border bg-muted/20 py-16 md:py-24">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="mb-10 text-center">
+          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            สินค้าเช่าขายดี
+          </h2>
+          <p className="mt-2 text-muted-foreground">
+            เลือกอุปกรณ์ที่ต้องการแล้วไปจองที่หน้ารายการเช่า
+          </p>
+        </div>
+
+        <Carousel
+          opts={{ align: "start", loop: true }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-2 md:-ml-4">
+            {products.slice(0, 12).map((product) => (
+              <CarouselItem
+                key={product.id}
+                className="basis-full pl-2 sm:basis-1/2 md:basis-1/3 md:pl-4 lg:basis-1/4"
+              >
+                <div className="p-1">
+                  <ProductCard product={product} />
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="left-0 border-border bg-background/80 hover:bg-background" />
+          <CarouselNext className="right-0 border-border bg-background/80 hover:bg-background" />
+        </Carousel>
+
+        <div className="mt-10 text-center">
+          <Button asChild size="lg" className="rounded-full px-8">
+            <Link href="/rent">
+              ดูรายการเช่าทั้งหมด
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
