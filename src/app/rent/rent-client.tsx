@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -25,30 +25,14 @@ import { Button } from "@/components/ui/button";
 import { createRentalOrderAction } from "@/features/order/order.actions";
 import type { MenuProduct } from "@/features/modifier/modifier.repo";
 import type { AddressItem } from "@/features/customer-address/customer-address.repo";
+import {
+  CART_STORAGE_KEY,
+  type CartItem,
+  type DeliveryOption,
+  getDaysForItem,
+} from "@/lib/cart-storage";
 
-const CART_STORAGE_KEY = "zend-rental-cart";
-
-export type DeliveryOption = "pickup" | "delivery";
-
-type CartItem = {
-  productId: number | null;
-  productName: string;
-  price: number;
-  quantity: number;
-  modifiers: { modifierName: string; price: number }[];
-  /** วันรับ (YYYY-MM-DD) */
-  rentalStart: string;
-  /** วันคืน (YYYY-MM-DD) */
-  rentalEnd: string;
-  /** รับที่ร้าน หรือ ส่ง */
-  deliveryOption: DeliveryOption;
-};
-
-function getDaysForItem(start: string, end: string): number {
-  if (!start || !end) return 1;
-  const ms = new Date(end).getTime() - new Date(start).getTime();
-  return Math.max(1, Math.ceil(ms / (24 * 60 * 60 * 1000)));
-}
+export type { DeliveryOption };
 
 function formatDateShort(s: string) {
   if (!s) return "—";
@@ -98,6 +82,7 @@ export function RentClient({
   addresses = [],
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartHydrated, setCartHydrated] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
@@ -143,6 +128,16 @@ export function RentClient({
       // ignore
     }
   }, [cartHydrated, cart]);
+
+  // เปิด modal ชำระเงินเมื่อเข้ามาที่ /rent?checkout=1 และมีรายการในตะกร้า
+  useEffect(() => {
+    if (!cartHydrated || cart.length === 0) return;
+    if (searchParams.get("checkout") === "1") {
+      setCheckoutOpen(true);
+      setCartOpen(false);
+      router.replace("/rent", { scroll: false });
+    }
+  }, [cartHydrated, cart.length, searchParams, router]);
 
   const defaultAddress = addresses.find((a) => a.isDefault) ?? addresses[0];
   const categories = getCategories(menu);

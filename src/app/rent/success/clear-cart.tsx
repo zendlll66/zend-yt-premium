@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const CART_STORAGE_KEY = "zend-rental-cart";
+import { CART_STORAGE_KEY } from "@/lib/cart-storage";
 
 /** เคลียร์ตะกร้าใน localStorage เมื่อชำระเงินสำเร็จแล้ว (โหลดหน้านี้) */
 export function ClearCartOnSuccess() {
