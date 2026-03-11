@@ -84,6 +84,7 @@ export default async function OrderDetailPage({
           <thead>
             <tr className="border-b bg-muted/50">
               <th className="px-4 py-3 font-medium">สินค้า</th>
+              <th className="px-4 py-3 font-medium">วันรับ–วันคืน / วิธีรับ</th>
               <th className="px-4 py-3 font-medium text-right">ราคา/จำนวน</th>
               <th className="px-4 py-3 font-medium text-right">รวม</th>
             </tr>
@@ -102,6 +103,20 @@ export default async function OrderDetailPage({
                         </li>
                       ))}
                     </ul>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {item.rentalStart && item.rentalEnd ? (
+                    <>
+                      {formatDate(item.rentalStart)} – {formatDate(item.rentalEnd)}
+                      {item.deliveryOption && (
+                        <span className="ml-2">
+                          · {item.deliveryOption === "pickup" ? "รับที่ร้าน" : "ส่ง"}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    "—"
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">

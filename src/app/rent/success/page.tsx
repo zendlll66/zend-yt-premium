@@ -3,6 +3,7 @@ import { CheckCircle } from "lucide-react";
 import Stripe from "stripe";
 import { Button } from "@/components/ui/button";
 import { setOrderStripePayment } from "@/features/order/order.repo";
+import { ClearCartOnSuccess } from "./clear-cart";
 
 /** อัปเดต order เป็น paid จาก Stripe session (fallback เมื่อ webhook ยังไม่ถูกเรียก เช่น เทสบน localhost) */
 async function confirmPaymentFromSession(sessionId: string, orderId: string) {
@@ -40,6 +41,7 @@ export default async function RentSuccessPage({
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-4">
+      <ClearCartOnSuccess />
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20 text-green-600 dark:text-green-400">
         <CheckCircle className="h-10 w-10" />
       </div>

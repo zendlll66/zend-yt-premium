@@ -5,7 +5,7 @@ import {
   orderItems,
   orderItemModifiers,
 } from "@/db/schema/order.schema";
-import type { RentalOrderStatus } from "@/db/schema/order.schema";
+import type { RentalOrderStatus, DeliveryOption } from "@/db/schema/order.schema";
 import { products } from "@/db/schema/product.schema";
 import { generateOrderNumber } from "@/lib/order-number";
 
@@ -15,14 +15,18 @@ export type OrderItemInput = {
   price: number;
   quantity: number;
   modifiers: { modifierName: string; price: number }[];
+  /** วันรับของรายการนี้ */
+  rentalStart: Date;
+  /** วันคืนของรายการนี้ */
+  rentalEnd: Date;
+  /** รับที่ร้าน หรือ ส่ง */
+  deliveryOption: DeliveryOption;
 };
 
 export type CreateRentalOrderInput = {
   customerName: string;
   customerEmail: string;
   customerPhone?: string | null;
-  rentalStart: Date;
-  rentalEnd: Date;
   createdBy?: number | null;
   items: OrderItemInput[];
 };
@@ -48,6 +52,9 @@ export type OrderItemWithModifiers = {
   quantity: number;
   totalPrice: number;
   modifiers: { modifierName: string; price: number }[];
+  rentalStart: Date | null;
+  rentalEnd: Date | null;
+  deliveryOption: string | null;
 };
 
 export type OrderDetail = {
@@ -89,13 +96,23 @@ function getRentalDays(start: Date, end: Date): number {
 
 export async function createRentalOrder(data: CreateRentalOrderInput): Promise<OrderDetail | null> {
   const orderNum = await reserveOrderNumber();
-  const days = getRentalDays(data.rentalStart, data.rentalEnd);
 
   let orderTotal = 0;
+  let orderRentalStart: Date | null = null;
+  let orderRentalEnd: Date | null = null;
   for (const item of data.items) {
+    const days = getRentalDays(item.rentalStart, item.rentalEnd);
     const modifierTotal = item.modifiers.reduce((s, m) => s + m.price, 0);
     orderTotal += (item.price + modifierTotal) * item.quantity * days;
+    const start = new Date(item.rentalStart);
+    const end = new Date(item.rentalEnd);
+    if (orderRentalStart == null || start < orderRentalStart) orderRentalStart = start;
+    if (orderRentalEnd == null || end > orderRentalEnd) orderRentalEnd = end;
   }
+  const fallbackStart = data.items[0] ? new Date(data.items[0].rentalStart) : new Date();
+  const fallbackEnd = data.items[0] ? new Date(data.items[0].rentalEnd) : new Date();
+  const orderStart = orderRentalStart ?? fallbackStart;
+  const orderEnd = orderRentalEnd ?? fallbackEnd;
 
   const productIds = [...new Set(data.items.map((i) => i.productId).filter((id): id is number => id != null))];
   const productRows =
@@ -114,8 +131,8 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
         status: "pending",
         totalPrice: orderTotal,
         depositAmount,
-        rentalStart: data.rentalStart,
-        rentalEnd: data.rentalEnd,
+        rentalStart: orderStart,
+        rentalEnd: orderEnd,
         customerName: data.customerName,
         customerEmail: data.customerEmail,
         customerPhone: data.customerPhone ?? null,
@@ -125,6 +142,7 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
     if (!order) return null;
 
     for (const item of data.items) {
+      const days = getRentalDays(item.rentalStart, item.rentalEnd);
       const modifierTotal = item.modifiers.reduce((s, m) => s + m.price, 0);
       const lineTotal = (item.price + modifierTotal) * item.quantity * days;
       const [oi] = await tx
@@ -136,6 +154,9 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
           price: item.price,
           quantity: item.quantity,
           totalPrice: lineTotal,
+          rentalStart: item.rentalStart,
+          rentalEnd: item.rentalEnd,
+          deliveryOption: item.deliveryOption,
         })
         .returning({ id: orderItems.id });
       if (!oi) continue;
@@ -267,6 +288,9 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
       quantity: i.quantity,
       totalPrice: i.totalPrice,
       modifiers: modsByItem[i.id] ?? [],
+      rentalStart: i.rentalStart ?? null,
+      rentalEnd: i.rentalEnd ?? null,
+      deliveryOption: i.deliveryOption ?? null,
     })),
   };
 }

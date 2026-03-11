@@ -92,6 +92,13 @@
       "when": 1773072000000,
       "tag": "0012_product_stock",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1773073000000,
+      "tag": "0013_order_item_dates_delivery",
+      "breakpoints": true
     }
   ]
 }
