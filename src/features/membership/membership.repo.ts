@@ -156,6 +156,21 @@ export async function createCustomerMembership(data: {
   return row;
 }
 
+/** ประวัติการสมัครสมาชิกของลูกค้า (เรียงจากใหม่ไปเก่า) */
+export async function findCustomerMembershipsByCustomerId(
+  customerId: number,
+  limit = 50
+): Promise<(CustomerMembershipRow & { plan: MembershipPlanRow })[]> {
+  const rows = await db
+    .select()
+    .from(customerMemberships)
+    .innerJoin(membershipPlans, eq(customerMemberships.planId, membershipPlans.id))
+    .where(eq(customerMemberships.customerId, customerId))
+    .orderBy(desc(customerMemberships.createdAt))
+    .limit(limit);
+  return rows.map((r) => ({ ...r.customer_memberships, plan: r.membership_plans }));
+}
+
 /** รายการสมัครสมาชิกทั้งหมด (สำหรับหลังบ้าน) */
 export async function findAllCustomerMemberships(limit = 100): Promise<
   (CustomerMembershipRow & {

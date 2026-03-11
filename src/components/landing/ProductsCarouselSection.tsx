@@ -16,6 +16,8 @@ import type { MenuProduct } from "@/features/modifier/modifier.repo";
 
 const AUTO_SCROLL_MS = 4000;
 
+type ProductWithOptionalDiscount = MenuProduct & { discountPercent?: number };
+
 function formatMoney(amount: number) {
   return new Intl.NumberFormat("th-TH", {
     minimumFractionDigits: 0,
@@ -23,10 +25,15 @@ function formatMoney(amount: number) {
   }).format(amount);
 }
 
-function ProductCard({ product }: { product: MenuProduct }) {
+function ProductCard({ product }: { product: ProductWithOptionalDiscount }) {
   const imageSrc = product.imageUrl
     ? `/api/r2-url?key=${encodeURIComponent(product.imageUrl)}`
     : null;
+  const discountPercent = product.discountPercent ?? 0;
+  const hasPromo = discountPercent > 0;
+  const discountedPrice = hasPromo
+    ? Math.round(product.price * (1 - discountPercent / 100))
+    : product.price;
 
   return (
     <Link
@@ -45,8 +52,26 @@ function ProductCard({ product }: { product: MenuProduct }) {
             <Package className="h-14 w-14" />
           </div>
         )}
-        <span className="absolute bottom-2 right-2 rounded-full bg-violet-600 px-2.5 py-0.5 text-xs font-medium text-white">
-          {formatMoney(product.price)} ฿/วัน
+        <span className="absolute bottom-2 right-2 flex flex-col items-end gap-0.5">
+          {hasPromo && (
+            <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-medium text-white">
+              ลด {discountPercent}%
+            </span>
+          )}
+          {hasPromo ? (
+            <>
+              <span className="text-muted-foreground line-through text-xs tabular-nums">
+                {formatMoney(product.price)} ฿
+              </span>
+              <span className="rounded-full bg-violet-600 px-2.5 py-0.5 text-xs font-medium text-white tabular-nums">
+                {formatMoney(discountedPrice)} ฿/วัน
+              </span>
+            </>
+          ) : (
+            <span className="rounded-full bg-violet-600 px-2.5 py-0.5 text-xs font-medium text-white">
+              {formatMoney(product.price)} ฿/วัน
+            </span>
+          )}
         </span>
       </div>
       <div className="flex flex-1 flex-col p-4">
@@ -61,7 +86,7 @@ function ProductCard({ product }: { product: MenuProduct }) {
 }
 
 type ProductsCarouselSectionProps = {
-  products: MenuProduct[];
+  products: ProductWithOptionalDiscount[];
 };
 
 export function ProductsCarouselSection({ products }: ProductsCarouselSectionProps) {

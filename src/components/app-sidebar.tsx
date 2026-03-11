@@ -47,6 +47,7 @@ const NAV_MAIN = [
       { title: "รายการสินค้า", url: "/dashboard/products" },
       { title: "เพิ่มสินค้า", url: "/dashboard/products/add" },
       { title: "ตัวเลือก (Modifiers)", url: "/dashboard/modifiers" },
+      { title: "จัดโปร", url: "/dashboard/promotions" },
     ],
   },
   {

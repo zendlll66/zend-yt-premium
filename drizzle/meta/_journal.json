@@ -113,6 +113,20 @@
       "when": 1773075000000,
       "tag": "0015_membership_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1773076000000,
+      "tag": "0016_promotions",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1773077000000,
+      "tag": "0017_customer_cart",
+      "breakpoints": true
     }
   ]
 }

@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  CartItem as CartItemType,
-  CART_STORAGE_KEY,
-  getDaysForItem,
+  type CartItem,
   getLineTotalWithMembership,
   getCartTotalWithMembership,
   type MembershipBenefit,
 } from "@/lib/cart-storage";
 import type { MenuProduct } from "@/features/modifier/modifier.repo";
+import { updateCartItemAction, removeCartItemAction } from "@/features/cart/cart.actions";
 import { ShoppingBag, MapPin, Store, CreditCard, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -35,89 +35,38 @@ type Props = {
   shopName: string;
   /** สิทธิ์สมาชิก (วันเช่าฟรี + ส่วนลด) — ถ้ามีจะแสดงราคาขีดและฟรี/ราคาหลังลด */
   membership?: MembershipBenefit | null;
+  /** productId → ส่วนลด % จากโปรโมชัน */
+  productDiscountMap?: Record<number, number>;
+  /** ตะกร้าจาก DB (โหลดจาก server) */
+  initialCart: CartItem[];
 };
 
-export function CartClient({ menu, shopName, membership = null }: Props) {
-  const [cart, setCart] = useState<CartItemType[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+export function CartClient({ menu, shopName, membership = null, productDiscountMap = {}, initialCart }: Props) {
+  const router = useRouter();
+  const [cart, setCart] = useState<CartItem[]>(initialCart);
 
   useEffect(() => {
-    if (hydrated) return;
-    const ids = new Set(menu.map((p) => p.id));
-    try {
-      const raw = localStorage.getItem(CART_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as CartItemType[];
-        if (Array.isArray(parsed)) {
-          const valid = parsed.filter(
-            (i) =>
-              i &&
-              typeof i.rentalStart === "string" &&
-              typeof i.rentalEnd === "string" &&
-              i.deliveryOption &&
-              (i.productId == null || ids.has(i.productId))
-          );
-          setCart(valid);
-        }
-      }
-    } catch {
-      // ignore
-    }
-    setHydrated(true);
-  }, [hydrated, menu]);
+    setCart(initialCart);
+  }, [initialCart]);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-    } catch {
-      // ignore
-    }
-  }, [hydrated, cart]);
-
-  function updateQty(index: number, delta: number) {
-    setCart((prev) => {
-      const next = [...prev];
-      const item = next[index];
-      const product = menu.find((p) => p.id === item.productId);
-      const newQty = item.quantity + delta;
-      if (newQty < 1) {
-        next.splice(index, 1);
-        return next;
-      }
-      const totalSame = next
-        .filter((i) => i.productId === item.productId)
-        .reduce((s, i) => s + i.quantity, 0);
-      const maxQty = product
-        ? Math.max(0, product.stock - totalSame + item.quantity)
-        : newQty;
-      next[index] = { ...item, quantity: Math.min(newQty, maxQty) };
-      return next;
-    });
+  async function updateQty(index: number, delta: number) {
+    const result = await updateCartItemAction(index, delta);
+    if (result.cart) setCart(result.cart);
+    router.refresh();
   }
 
-  function removeFromCart(index: number) {
-    setCart((prev) => prev.filter((_, i) => i !== index));
+  async function removeFromCart(index: number) {
+    const result = await removeCartItemAction(index);
+    if (result.cart) setCart(result.cart);
+    router.refresh();
   }
 
   const { original: cartTotalOriginal, afterDiscount: cartTotalAfter } =
-    getCartTotalWithMembership(cart, membership);
-  const cartTotal = membership ? cartTotalAfter : cartTotalOriginal;
-  const showMembershipPrice = membership && cartTotalAfter < cartTotalOriginal;
+    getCartTotalWithMembership(cart, membership, productDiscountMap);
+  const cartTotal = cartTotalAfter;
+  const showDiscountTotal = cartTotalAfter < cartTotalOriginal;
 
   const count = cart.reduce((s, i) => s + i.quantity, 0);
-
-  if (!hydrated) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-12">
-        <div className="flex animate-pulse flex-col gap-4">
-          <div className="h-8 w-48 rounded bg-muted" />
-          <div className="h-32 rounded-xl bg-muted" />
-          <div className="h-32 rounded-xl bg-muted" />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
@@ -154,8 +103,9 @@ export function CartClient({ menu, shopName, membership = null }: Props) {
               const imageSrc = product?.imageUrl
                 ? `/api/r2-url?key=${encodeURIComponent(product.imageUrl)}`
                 : null;
-              const line = getLineTotalWithMembership(item, membership);
-              const showLineDiscount = membership && line.original !== line.afterDiscount;
+              const promo = productDiscountMap[item.productId ?? 0] ?? 0;
+              const line = getLineTotalWithMembership(item, membership, promo);
+              const showLineDiscount = line.original !== line.afterDiscount;
               return (
                 <li
                   key={i}
@@ -254,7 +204,7 @@ export function CartClient({ menu, shopName, membership = null }: Props) {
           <div className="mt-8 rounded-xl border border-border bg-card p-6">
             <div className="mb-6 flex items-center justify-between">
               <span className="text-muted-foreground">รวมทั้งสิ้น</span>
-              {showMembershipPrice ? (
+              {showDiscountTotal ? (
                 <span className="flex flex-col items-end gap-0">
                   <span className="text-muted-foreground line-through text-sm tabular-nums">{formatMoney(cartTotalOriginal)} ฿</span>
                   <span className="text-2xl font-bold tabular-nums">{formatMoney(cartTotal)} ฿</span>

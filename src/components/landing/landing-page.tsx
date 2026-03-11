@@ -3,26 +3,31 @@
 import { HeroSection } from "./HeroSection";
 import { CategoryCarousel } from "./CategoryCarousel";
 import { ProductsCarouselSection } from "./ProductsCarouselSection";
+import { OnSaleSection } from "./OnSaleSection";
 import { FeaturesSection } from "./FeaturesSection";
 import { HowItWorksSection } from "./HowItWorksSection";
 import { FinalCtaSection } from "./FinalCtaSection";
 import { MembershipBentoPricing } from "@/components/bento-pricing";
 import type { MenuProduct } from "@/features/modifier/modifier.repo";
+import type { MenuProductWithDiscount } from "@/features/promotion/promotion.repo";
 import type { MembershipPlanForBento } from "@/components/bento-pricing";
 
 type LandingPageProps = {
-  products?: MenuProduct[];
+  products?: (MenuProduct & { discountPercent?: number })[];
+  onSaleProducts?: MenuProductWithDiscount[];
   membershipPlans?: MembershipPlanForBento[];
 };
 
-export function LandingPage({ products = [], membershipPlans = [] }: LandingPageProps) {
+export function LandingPage({ products = [], onSaleProducts = [], membershipPlans = [] }: LandingPageProps) {
   return (
     <div className="bg-background text-foreground">
       <HeroSection featuredProducts={products.slice(0, 6)} productCount={products.length} />
-      {/* <CategoryCarousel /> */}
-      <ProductsCarouselSection products={products} />
-      <FeaturesSection />
       <HowItWorksSection />
+      {/* <CategoryCarousel /> */}
+      <OnSaleSection products={onSaleProducts} />
+
+      <FeaturesSection />
+   
 
       {/* โปรสมาชิก — ใช้ Bento Pricing */}
       {membershipPlans.length > 0 && (
@@ -46,6 +51,7 @@ export function LandingPage({ products = [], membershipPlans = [] }: LandingPage
           </div>
         </section>
       )}
+      <ProductsCarouselSection products={products} />
 
       <FinalCtaSection />
     </div>

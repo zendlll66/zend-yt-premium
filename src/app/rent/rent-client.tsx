@@ -26,7 +26,6 @@ import { createRentalOrderAction } from "@/features/order/order.actions";
 import type { MenuProduct } from "@/features/modifier/modifier.repo";
 import type { AddressItem } from "@/features/customer-address/customer-address.repo";
 import {
-  CART_STORAGE_KEY,
   type CartItem,
   type DeliveryOption,
   getDaysForItem,
@@ -34,6 +33,11 @@ import {
   getCartTotalWithMembership,
   type MembershipBenefit,
 } from "@/lib/cart-storage";
+import {
+  addToCartAction,
+  updateCartItemAction,
+  removeCartItemAction,
+} from "@/features/cart/cart.actions";
 
 export type { DeliveryOption };
 
@@ -57,6 +61,10 @@ type Props = {
   addresses?: AddressItem[];
   /** สิทธิ์สมาชิก (วันเช่าฟรี + ส่วนลด) — ถ้ามีจะแสดงราคาขีดและฟรี/ราคาหลังลด */
   membership?: MembershipBenefit | null;
+  /** productId → ส่วนลด % จากโปรโมชัน (สำหรับแสดงราคาลดและคำนวณตะกร้า) */
+  productDiscountMap?: Record<number, number>;
+  /** ตะกร้าจาก DB (เมื่อล็อกอินแล้ว) */
+  initialCart?: CartItem[];
 };
 
 function formatMoney(n: number) {
@@ -89,64 +97,33 @@ export function RentClient({
   customer,
   addresses = [],
   membership = null,
+  productDiscountMap = {},
+  initialCart = [],
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [cartHydrated, setCartHydrated] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>(initialCart);
+  const [cartHydrated, setCartHydrated] = useState(true);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [bookingProduct, setBookingProduct] = useState<MenuProduct | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [customerName, setCustomerName] = useState(customer?.name ?? "");
-  const [customerEmail, setCustomerEmail] = useState(customer?.email ?? "");
-  const [customerPhone, setCustomerPhone] = useState(customer?.phone ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (cartHydrated) return;
-    const ids = new Set(menu.map((p) => p.id));
-    try {
-      const raw = localStorage.getItem(CART_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as CartItem[];
-        if (Array.isArray(parsed)) {
-          const valid = parsed.filter(
-            (i) =>
-              i &&
-              typeof i.rentalStart === "string" &&
-              typeof i.rentalEnd === "string" &&
-              i.deliveryOption &&
-              (i.productId == null || ids.has(i.productId))
-          );
-          setCart(valid);
-        }
-      }
-    } catch {
-      // ignore
-    }
-    setCartHydrated(true);
-  }, [cartHydrated, menu]);
+    setCart(initialCart);
+  }, [initialCart]);
 
+  // เปิด modal ชำระเงินเมื่อเข้ามาที่ /rent?checkout=1 และมีรายการในตะกร้า (ต้องล็อกอิน)
   useEffect(() => {
-    if (!cartHydrated) return;
-    try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-    } catch {
-      // ignore
-    }
-  }, [cartHydrated, cart]);
-
-  // เปิด modal ชำระเงินเมื่อเข้ามาที่ /rent?checkout=1 และมีรายการในตะกร้า
-  useEffect(() => {
-    if (!cartHydrated || cart.length === 0) return;
+    if (!customer || cart.length === 0) return;
     if (searchParams.get("checkout") === "1") {
       setCheckoutOpen(true);
       setCartOpen(false);
       router.replace("/rent", { scroll: false });
     }
-  }, [cartHydrated, cart.length, searchParams, router]);
+  }, [customer, cart.length, searchParams, router]);
 
   const defaultAddress = addresses.find((a) => a.isDefault) ?? addresses[0];
   const categories = getCategories(menu);
@@ -158,11 +135,11 @@ export function RentClient({
   const canAddToCart = true; // ไม่ใช้แล้ว (เลือกใน modal)
 
   const { original: cartTotalOriginal, afterDiscount: cartTotalAfter } =
-    getCartTotalWithMembership(cart, membership);
-  const cartTotal = membership ? cartTotalAfter : cartTotalOriginal;
-  const showMembershipPrice = membership && cartTotalAfter < cartTotalOriginal;
+    getCartTotalWithMembership(cart, membership, productDiscountMap);
+  const cartTotal = cartTotalAfter;
+  const showDiscountTotal = cartTotalAfter < cartTotalOriginal;
 
-  function addToCart(
+  async function addToCart(
     product: MenuProduct,
     quantity: number,
     mods: { modifierName: string; price: number }[],
@@ -174,51 +151,57 @@ export function RentClient({
       setError("กรุณาเลือกวันรับและวันคืนให้ถูกต้อง");
       return;
     }
+    if (!customer) {
+      router.push("/customer-login?from=" + encodeURIComponent("/rent"));
+      return;
+    }
     setError(null);
-    setCart((prev) => {
-      const inCart = prev.filter((i) => i.productId === product.id).reduce((s, i) => s + i.quantity, 0);
-      const available = Math.max(0, product.stock - inCart);
-      const qty = Math.min(quantity, available);
-      if (qty < 1) return prev;
-      return [
-        ...prev,
-        {
-          productId: product.id,
-          productName: product.name,
-          price: product.price,
-          quantity: qty,
-          modifiers: mods,
-          rentalStart,
-          rentalEnd,
-          deliveryOption,
-        },
-      ];
+    const inCart = cart.filter((i) => i.productId === product.id).reduce((s, i) => s + i.quantity, 0);
+    const available = Math.max(0, product.stock - inCart);
+    const qty = Math.min(quantity, available);
+    if (qty < 1) return;
+    const result = await addToCartAction({
+      productId: product.id,
+      productName: product.name,
+      price: product.price,
+      quantity: qty,
+      modifiers: mods,
+      rentalStart,
+      rentalEnd,
+      deliveryOption,
     });
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    if (result.cart) setCart(result.cart);
+    router.refresh();
   }
 
-  function updateQty(index: number, delta: number) {
-    setCart((prev) => {
-      const next = [...prev];
-      const item = next[index];
-      const product = menu.find((p) => p.id === item.productId);
-      const newQty = item.quantity + delta;
-      if (newQty < 1) {
-        next.splice(index, 1);
-        return next;
-      }
-      const totalSame = next.filter((i) => i.productId === item.productId).reduce((s, i) => s + i.quantity, 0);
-      const maxQty = product ? Math.max(0, product.stock - totalSame + item.quantity) : newQty;
-      next[index] = { ...item, quantity: Math.min(newQty, maxQty) };
-      return next;
-    });
+  async function updateQty(index: number, delta: number) {
+    if (!customer) return;
+    const result = await updateCartItemAction(index, delta);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    if (result.cart) setCart(result.cart);
+    router.refresh();
   }
 
-  function removeFromCart(index: number) {
-    setCart((prev) => prev.filter((_, i) => i !== index));
+  async function removeFromCart(index: number) {
+    if (!customer) return;
+    const result = await removeCartItemAction(index);
+    if (result.cart) setCart(result.cart);
+    router.refresh();
   }
 
   async function handleCheckout() {
     setError(null);
+    if (!customer) {
+      router.push("/customer-login?from=" + encodeURIComponent("/rent?checkout=1"));
+      return;
+    }
     if (cart.length === 0) {
       setError("กรุณาเพิ่มรายการในตะกร้า");
       return;
@@ -234,14 +217,6 @@ export function RentClient({
       setError("รายการในตะกร้ามีวันรับ/วันคืนไม่ครบ กรุณาลบแล้วเพิ่มใหม่");
       return;
     }
-    if (!customerName.trim()) {
-      setError("กรุณากรอกชื่อ");
-      return;
-    }
-    if (!customerEmail.trim()) {
-      setError("กรุณากรอกอีเมล");
-      return;
-    }
 
     setSubmitting(true);
     const items = cart.map((item) => ({
@@ -255,9 +230,9 @@ export function RentClient({
       deliveryOption: item.deliveryOption,
     }));
     const result = await createRentalOrderAction({
-      customerName: customerName.trim(),
-      customerEmail: customerEmail.trim(),
-      customerPhone: customerPhone.trim() || null,
+      customerName: customer.name.trim(),
+      customerEmail: customer.email.trim(),
+      customerPhone: customer.phone?.trim() || null,
       items,
     });
 
@@ -299,7 +274,7 @@ export function RentClient({
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       {/* ─── Toolbar: หมวดหมู่ (dropdown) + วันที่ + ตะกร้า ─── */}
-      <div className="sticky top-16 z-20 border-b border-neutral-200/80 bg-white/80 backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/80">
+      <div className="sticky top-13 z-20 border-b border-neutral-200/80 bg-white/80 backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/80">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
           {/* หมวดหมู่ — dropdown */}
           <DropdownMenu>
@@ -368,6 +343,7 @@ export function RentClient({
                   key={product.id}
                   product={product}
                   availableStock={availableStock}
+                  discountPercent={productDiscountMap[product.id] ?? 0}
                   onClick={() => setBookingProduct(product)}
                 />
               );
@@ -399,6 +375,7 @@ export function RentClient({
               setBookingProduct(null);
             }}
             formatMoney={formatMoney}
+            discountPercent={productDiscountMap[bookingProduct.id] ?? 0}
           />
         )}
       </AnimatePresence>
@@ -444,8 +421,9 @@ export function RentClient({
                 ) : (
                   <ul className="space-y-4">
                     {cart.map((item, i) => {
-                      const line = getLineTotalWithMembership(item, membership);
-                      const showLineDiscount = membership && line.original !== line.afterDiscount;
+                      const promo = productDiscountMap[item.productId ?? 0] ?? 0;
+                      const line = getLineTotalWithMembership(item, membership, promo);
+                      const showLineDiscount = line.original !== line.afterDiscount;
                       return (
                         <li
                           key={i}
@@ -522,7 +500,7 @@ export function RentClient({
               <div className="shrink-0 border-t border-neutral-200 p-6 dark:border-neutral-800">
                 <div className="mb-4 flex items-center justify-between rounded-2xl bg-neutral-100 px-4 py-3 dark:bg-neutral-800">
                   <span className="text-sm text-muted-foreground">รวม</span>
-                  {showMembershipPrice ? (
+                  {showDiscountTotal ? (
                     <span className="flex flex-col items-end gap-0">
                       <span className="text-muted-foreground line-through text-sm tabular-nums">{formatMoney(cartTotalOriginal)} ฿</span>
                       <span className="text-xl font-bold tabular-nums">{formatMoney(cartTotal)} ฿</span>
@@ -534,6 +512,10 @@ export function RentClient({
                 <button
                   type="button"
                   onClick={() => {
+                    if (!customer) {
+                      router.push("/customer-login?from=" + encodeURIComponent("/rent?checkout=1"));
+                      return;
+                    }
                     setCartOpen(false);
                     setCheckoutOpen(true);
                   }}
@@ -549,9 +531,9 @@ export function RentClient({
         )}
       </AnimatePresence>
 
-      {/* Checkout modal */}
+      {/* Checkout modal — แสดงเฉพาะเมื่อล็อกอินแล้ว ไม่มีฟอร์มกรอกข้อมูล */}
       <AnimatePresence>
-        {checkoutOpen && (
+        {checkoutOpen && customer && (
           <>
             <div
               className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
@@ -569,7 +551,7 @@ export function RentClient({
               exit={{ opacity: 0, scale: 0.96 }}
               className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-neutral-200 bg-white p-8 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900"
             >
-              <h3 className="mb-6 text-xl font-semibold">ข้อมูลผู้เช่า</h3>
+              <h3 className="mb-6 text-xl font-semibold">ดำเนินการชำระเงิน</h3>
               {error && (
                 <div
                   className="mb-4 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200"
@@ -579,47 +561,26 @@ export function RentClient({
                   <p>{error}</p>
                 </div>
               )}
+              <p className="mb-4 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm dark:border-neutral-700 dark:bg-neutral-800/50">
+                <span className="font-medium">{customer.name}</span>
+                <br />
+                <span className="text-muted-foreground">{customer.email}</span>
+                {customer.phone && (
+                  <>
+                    <br />
+                    <span className="text-muted-foreground">{customer.phone}</span>
+                  </>
+                )}
+              </p>
               {defaultAddress && (
                 <p className="mb-4 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-muted-foreground dark:border-neutral-700 dark:bg-neutral-800/50">
-                  ที่อยู่จัดส่งหลัก: {defaultAddress.recipientName} · {defaultAddress.addressLine1}{" "}
+                  ที่อยู่จัดส่ง: {defaultAddress.recipientName} · {defaultAddress.addressLine1}{" "}
                   {defaultAddress.district} {defaultAddress.province} {defaultAddress.postalCode}
                   <Link href="/account/addresses" className="ml-2 font-medium text-primary hover:underline">
                     แก้ไข
                   </Link>
                 </p>
               )}
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">ชื่อ *</label>
-                  <input
-                    type="text"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent focus:border-primary focus:ring-primary/20 dark:border-neutral-700 dark:bg-neutral-800"
-                    placeholder="ชื่อ-นามสกุล"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">อีเมล *</label>
-                  <input
-                    type="email"
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
-                    className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent focus:border-primary focus:ring-primary/20 dark:border-neutral-700 dark:bg-neutral-800"
-                    placeholder="email@example.com"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">เบอร์โทร</label>
-                  <input
-                    type="tel"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none ring-2 ring-transparent focus:border-primary focus:ring-primary/20 dark:border-neutral-700 dark:bg-neutral-800"
-                    placeholder="08x-xxx-xxxx"
-                  />
-                </div>
-              </div>
               <div className="mt-8 flex gap-3">
                 <button
                   type="button"
@@ -657,6 +618,7 @@ function BookingModal({
   onClose,
   onAdd,
   formatMoney,
+  discountPercent = 0,
 }: {
   product: MenuProduct;
   cart: CartItem[];
@@ -670,6 +632,7 @@ function BookingModal({
     modifiers: { modifierName: string; price: number }[]
   ) => void;
   formatMoney: (n: number) => string;
+  discountPercent?: number;
 }) {
   const [rentalStart, setRentalStart] = useState("");
   const [rentalEnd, setRentalEnd] = useState("");
@@ -741,7 +704,18 @@ function BookingModal({
               <div className="min-w-0 flex-1">
                 <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">{product.name}</h3>
                 <p className="mt-0.5 text-sm text-muted-foreground">
-                  {formatMoney(product.price)} ฿/วัน · เหลือ {availableStock} ชิ้น
+                  {discountPercent > 0 ? (
+                    <>
+                      <span className="line-through">{formatMoney(product.price)}</span>
+                      {" "}
+                      <span className="font-medium text-amber-600 dark:text-amber-400">
+                        {formatMoney(Math.round(product.price * (1 - discountPercent / 100)))} ฿/วัน
+                      </span>
+                    </>
+                  ) : (
+                    <>{formatMoney(product.price)} ฿/วัน</>
+                  )}
+                  {" · "}เหลือ {availableStock} ชิ้น
                 </p>
               </div>
             </div>
@@ -865,11 +839,16 @@ function BookingModal({
                   +
                 </button>
               </div>
-              {days > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  รวม {formatMoney((product.price + product.modifierGroups.filter((g) => selected[g.id]).reduce((s, g) => s + (selected[g.id]?.price ?? 0), 0)) * Math.min(qty, availableStock) * days)} ฿
-                </span>
-              )}
+              {days > 0 && (() => {
+                const baseUnit = product.price + product.modifierGroups.filter((g) => selected[g.id]).reduce((s, g) => s + (selected[g.id]?.price ?? 0), 0);
+                const unitAfterPromo = baseUnit * (1 - discountPercent / 100);
+                const total = Math.round(unitAfterPromo * Math.min(qty, availableStock) * days);
+                return (
+                  <span className="text-sm text-muted-foreground">
+                    รวม {formatMoney(total)} ฿
+                  </span>
+                );
+              })()}
             </div>
           </div>
 
@@ -894,15 +873,23 @@ function BookingModal({
 function ProductCard({
   product,
   availableStock,
+  discountPercent = 0,
   onClick,
 }: {
   product: MenuProduct;
   availableStock: number;
+  discountPercent?: number;
   onClick: () => void;
 }) {
   const imageSrc = product.imageUrl
     ? `/api/r2-url?key=${encodeURIComponent(product.imageUrl)}`
     : null;
+  const hasPromo = discountPercent > 0;
+  const discountedPrice = hasPromo
+    ? Math.round(product.price * (1 - discountPercent / 100))
+    : product.price;
+  const formatNum = (n: number) =>
+    new Intl.NumberFormat("th-TH", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 
   return (
     <li>
@@ -932,7 +919,15 @@ function ProductCard({
             เหลือ {availableStock} ชิ้น
           </p>
           <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-            {new Intl.NumberFormat("th-TH", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(product.price)} ฿/วัน
+            {hasPromo ? (
+              <>
+                <span className="line-through">{formatNum(product.price)}</span>
+                {" "}
+                <span className="font-medium text-amber-600 dark:text-amber-400">{formatNum(discountedPrice)} ฿/วัน</span>
+              </>
+            ) : (
+              <>{formatNum(product.price)} ฿/วัน</>
+            )}
           </p>
           <p className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary">
             <Plus className="h-4 w-4" />

@@ -1,17 +1,19 @@
 import Link from "next/link";
-import { ShoppingBag, User } from "lucide-react";
+import { User, Crown, ShoppingBag } from "lucide-react";
 import type { ShopSettings } from "@/features/settings/settings.repo";
 import type { CustomerSessionUser } from "@/lib/auth-customer-server";
 
 type NavbarProps = {
   shop: ShopSettings;
   customer: CustomerSessionUser | null;
+  hasMembership?: boolean;
+  cartCount?: number;
 };
 
 const navLink =
   "rounded-lg px-3 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10 hover:text-white";
 
-const Navbar = ({ shop, customer }: NavbarProps) => {
+const Navbar = ({ shop, customer, hasMembership = false, cartCount = 0 }: NavbarProps) => {
   const shopName = shop.shopName || "Zend Rental";
   const logoUrl = shop.shopLogo?.trim();
   const logoSrc = logoUrl
@@ -45,18 +47,34 @@ const Navbar = ({ shop, customer }: NavbarProps) => {
           <Link href="/rent" className={navLink}>
             รายการเช่า
           </Link>
-          <Link href="/cart" className={`${navLink} flex items-center gap-1.5`}>
+          <Link href="/cart" className={`${navLink} relative flex items-center gap-1.5`}>
             <ShoppingBag className="h-4 w-4" />
+            {cartCount > 0 && (
+              <span
+                className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-violet-500 px-1 text-[10px] font-bold text-white"
+                aria-label={`ตะกร้ามี ${cartCount} รายการ`}
+              >
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            )}
             <span className="hidden sm:inline">ตะกร้า</span>
           </Link>
           <span className="mx-1 h-4 w-px bg-white/20" aria-hidden />
           {customer ? (
             <Link
-              href="/account/orders"
-              className={`${navLink} flex items-center gap-1.5`}
+              href="/account/profile"
+              className={
+                hasMembership
+                  ? "flex items-center gap-1.5 rounded-lg border border-violet-400/50 bg-violet-500/20 px-3 py-2 text-sm font-medium text-white transition hover:bg-violet-500/30"
+                  : `${navLink} flex items-center gap-1.5`
+              }
             >
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">บัญชี</span>
+              {hasMembership ? (
+                <Crown className="h-4 w-4 text-violet-300" />
+              ) : (
+                <User className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">{hasMembership ? "สมาชิก" : "บัญชี"}</span>
             </Link>
           ) : (
             <>

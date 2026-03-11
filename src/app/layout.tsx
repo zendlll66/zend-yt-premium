@@ -4,6 +4,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getShopSettings, THEME_OPTIONS } from "@/features/settings/settings.repo";
 import { getCustomerSession } from "@/lib/auth-customer-server";
+import { findActiveMembershipByCustomerId } from "@/features/membership/membership.repo";
+import { getCartCountByCustomerId } from "@/features/cart/cart.repo";
 import { LayoutShell } from "@/components/layout/LayoutShell";
 import "./globals.css";
 
@@ -83,6 +85,13 @@ export default async function RootLayout({
     })(),
   ]);
 
+  const [hasMembership, cartCount] = await Promise.all([
+    customer != null
+      ? findActiveMembershipByCustomerId(customer.id).then((m) => !!m)
+      : false,
+    customer != null ? getCartCountByCustomerId(customer.id) : 0,
+  ]);
+
   try {
     if (shop && THEME_OPTIONS.includes(shop.theme as (typeof THEME_OPTIONS)[number])) {
       theme = shop.theme;
@@ -99,7 +108,7 @@ export default async function RootLayout({
         className={`${googleSans.className} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <TooltipProvider>
-          <LayoutShell shop={shop} customer={customer}>
+          <LayoutShell shop={shop} customer={customer} hasMembership={hasMembership} cartCount={cartCount}>
             {children}
           </LayoutShell>
         </TooltipProvider>

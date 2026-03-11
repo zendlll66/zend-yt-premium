@@ -1,4 +1,6 @@
 export const CART_STORAGE_KEY = "zend-rental-cart";
+/** ส่ง event นี้เมื่อตะกร้าเปลี่ยน (ให้ Navbar อัปเดตจำนวน) */
+export const CART_UPDATED_EVENT = "zend-cart-update";
 
 export type DeliveryOption = "pickup" | "delivery";
 
@@ -27,15 +29,23 @@ export type MembershipBenefit = {
   discountPercent: number;
 };
 
-/** คำนวณยอดต่อรายการพร้อมสิทธิ์สมาชิก: ราคาเดิม, ราคาหลังหักวันฟรี+ส่วนลด, เป็นฟรีหรือไม่ */
+/** คำนวณยอดต่อรายการ: ราคาเดิม, ราคาหลังโปร+สมาชิก, เป็นฟรีหรือไม่ (promotionPercent = ส่วนลดโปรโมชันต่อสินค้า %) */
 export function getLineTotalWithMembership(
   item: CartItem,
-  membership: MembershipBenefit | null
+  membership: MembershipBenefit | null,
+  promotionPercent = 0
 ): { original: number; afterDiscount: number; isFree: boolean } {
   const days = getDaysForItem(item.rentalStart, item.rentalEnd);
-  const unitPrice = item.price + item.modifiers.reduce((s, m) => s + m.price, 0);
-  const original = unitPrice * item.quantity * days;
-  if (!membership) return { original, afterDiscount: original, isFree: false };
+  const baseUnit = item.price + item.modifiers.reduce((s, m) => s + m.price, 0);
+  const unitPrice = baseUnit * (1 - promotionPercent / 100);
+  const original = baseUnit * item.quantity * days;
+  const afterPromo = unitPrice * item.quantity * days;
+  if (!membership)
+    return {
+      original,
+      afterDiscount: Math.round(afterPromo * 100) / 100,
+      isFree: false,
+    };
   const chargeableDays = Math.max(0, days - membership.freeRentalDays);
   const afterFree = unitPrice * item.quantity * chargeableDays;
   const afterDiscount =
@@ -43,15 +53,17 @@ export function getLineTotalWithMembership(
   return { original, afterDiscount, isFree: afterDiscount === 0 };
 }
 
-/** คำนวณยอดรวมตะกร้าพร้อมสิทธิ์สมาชิก */
+/** คำนวณยอดรวมตะกร้าพร้อมโปรโมชัน+สิทธิ์สมาชิก (productDiscountMap = productId → ส่วนลด % จากโปร) */
 export function getCartTotalWithMembership(
   cart: CartItem[],
-  membership: MembershipBenefit | null
+  membership: MembershipBenefit | null,
+  productDiscountMap: Record<number, number> = {}
 ): { original: number; afterDiscount: number } {
   let original = 0;
   let afterDiscount = 0;
   for (const item of cart) {
-    const line = getLineTotalWithMembership(item, membership);
+    const promo = productDiscountMap[item.productId ?? 0] ?? 0;
+    const line = getLineTotalWithMembership(item, membership, promo);
     original += line.original;
     afterDiscount += line.afterDiscount;
   }

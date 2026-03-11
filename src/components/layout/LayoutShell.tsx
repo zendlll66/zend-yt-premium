@@ -9,10 +9,12 @@ import type { CustomerSessionUser } from "@/lib/auth-customer-server";
 type LayoutShellProps = {
   shop: ShopSettings | null;
   customer: CustomerSessionUser | null;
+  hasMembership?: boolean;
+  cartCount?: number;
   children: React.ReactNode;
 };
 
-export function LayoutShell({ shop, customer, children }: LayoutShellProps) {
+export function LayoutShell({ shop, customer, hasMembership = false, cartCount = 0, children }: LayoutShellProps) {
   const pathname = usePathname();
   const isDashboard = pathname?.startsWith("/dashboard") ?? false;
 
@@ -22,7 +24,7 @@ export function LayoutShell({ shop, customer, children }: LayoutShellProps) {
 
   return (
     <>
-      {shop && <Navbar shop={shop} customer={customer} />}
+      {shop && <Navbar shop={shop} customer={customer} hasMembership={hasMembership} cartCount={cartCount} />}
       <main className="min-h-screen mt-14">{children}</main>
       {shop && <Footer shop={shop} customer={customer} />}
     </>
