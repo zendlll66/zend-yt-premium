@@ -20,6 +20,7 @@ export default async function RentPage() {
       shopName={shop.shopName || "ร้านเช่า"}
       shopLogo={shop.shopLogo}
       shopDescription={shop.shopDescription}
+      deliveryEnabled={shop.deliveryEnabled === "1"}
       customer={customer ? { name: customer.name, email: customer.email, phone: customer.phone } : null}
       addresses={addresses}
     />

@@ -4,8 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getShopSettings, THEME_OPTIONS } from "@/features/settings/settings.repo";
 import { getCustomerSession } from "@/lib/auth-customer-server";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import { LayoutShell } from "@/components/layout/LayoutShell";
 import "./globals.css";
 
 const googleSans = localFont({
@@ -100,9 +99,9 @@ export default async function RootLayout({
         className={`${googleSans.className} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <TooltipProvider>
-          {shop && <Navbar shop={shop} customer={customer} />}
-          <main className="min-h-screen mt-14">{children}</main>
-          {shop && <Footer shop={shop} customer={customer} />}
+          <LayoutShell shop={shop} customer={customer}>
+            {children}
+          </LayoutShell>
         </TooltipProvider>
       </body>
     </html>

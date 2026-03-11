@@ -18,6 +18,8 @@ export const SETTING_KEYS = {
   vatPercent: "vat_percent",
   openingHours: "opening_hours",
   theme: "theme",
+  /** เปิดบริการส่ง (1 = เปิด ให้เลือกรับที่ร้านหรือส่งได้, 0 = รับที่ร้านอย่างเดียว) */
+  deliveryEnabled: "delivery_enabled",
 } as const;
 
 /** ค่าที่ใช้ได้สำหรับ theme (ต้องตรงกับ [data-theme] ใน globals.css) */
@@ -39,6 +41,7 @@ const DEFAULTS: Record<string, string> = {
   [SETTING_KEYS.vatPercent]: "7",
   [SETTING_KEYS.openingHours]: "",
   [SETTING_KEYS.theme]: "default",
+  [SETTING_KEYS.deliveryEnabled]: "1",
 };
 
 export type ShopSettings = {
@@ -56,6 +59,8 @@ export type ShopSettings = {
   vatPercent: string;
   openingHours: string;
   theme: string;
+  /** "1" = เปิดบริการส่ง, "0" = รับที่ร้านอย่างเดียว */
+  deliveryEnabled: string;
 };
 
 export async function getShopSettings(): Promise<ShopSettings> {
@@ -76,6 +81,7 @@ export async function getShopSettings(): Promise<ShopSettings> {
     vatPercent: map.get(SETTING_KEYS.vatPercent) ?? DEFAULTS[SETTING_KEYS.vatPercent],
     openingHours: map.get(SETTING_KEYS.openingHours) ?? DEFAULTS[SETTING_KEYS.openingHours],
     theme: map.get(SETTING_KEYS.theme) ?? DEFAULTS[SETTING_KEYS.theme],
+    deliveryEnabled: map.get(SETTING_KEYS.deliveryEnabled) ?? DEFAULTS[SETTING_KEYS.deliveryEnabled],
   };
 }
 
@@ -95,6 +101,7 @@ export async function saveShopSettings(data: Partial<ShopSettings>): Promise<voi
   if (data.vatPercent !== undefined) entries.push([SETTING_KEYS.vatPercent, String(data.vatPercent)]);
   if (data.openingHours !== undefined) entries.push([SETTING_KEYS.openingHours, String(data.openingHours)]);
   if (data.theme !== undefined) entries.push([SETTING_KEYS.theme, String(data.theme)]);
+  if (data.deliveryEnabled !== undefined) entries.push([SETTING_KEYS.deliveryEnabled, String(data.deliveryEnabled)]);
 
   for (const [key, value] of entries) {
     await db

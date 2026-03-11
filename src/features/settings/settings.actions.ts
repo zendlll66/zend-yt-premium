@@ -25,6 +25,7 @@ export async function saveSettingsAction(
     vatPercent: (formData.get("vatPercent") as string)?.trim() ?? "7",
     openingHours: (formData.get("openingHours") as string)?.trim() ?? "",
     theme: (formData.get("theme") as string)?.trim() || "default",
+    deliveryEnabled: formData.get("deliveryEnabled") === "on" ? "1" : "0",
   };
 
   await saveShopSettings(data);

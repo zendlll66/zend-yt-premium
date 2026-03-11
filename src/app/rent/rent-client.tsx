@@ -48,6 +48,8 @@ type Props = {
   shopName: string;
   shopLogo: string;
   shopDescription?: string | null;
+  /** เปิดบริการส่ง — ถ้า false ลูกค้าเลือกรับที่ร้านอย่างเดียว */
+  deliveryEnabled?: boolean;
   customer?: { name: string; email: string; phone: string | null } | null;
   addresses?: AddressItem[];
 };
@@ -78,6 +80,7 @@ export function RentClient({
   shopName,
   shopLogo,
   shopDescription,
+  deliveryEnabled = true,
   customer,
   addresses = [],
 }: Props) {
@@ -391,6 +394,7 @@ export function RentClient({
           <BookingModal
             product={bookingProduct}
             cart={cart}
+            allowDelivery={deliveryEnabled}
             onClose={() => setBookingProduct(null)}
             onAdd={(rentalStart, rentalEnd, deliveryOption, qty, mods) => {
               addToCart(bookingProduct, qty, mods, rentalStart, rentalEnd, deliveryOption);
@@ -636,12 +640,14 @@ export function RentClient({
 function BookingModal({
   product,
   cart,
+  allowDelivery = true,
   onClose,
   onAdd,
   formatMoney,
 }: {
   product: MenuProduct;
   cart: CartItem[];
+  allowDelivery?: boolean;
   onClose: () => void;
   onAdd: (
     rentalStart: string,
@@ -754,7 +760,7 @@ function BookingModal({
               </div>
             </div>
 
-            {/* วิธีรับ */}
+            {/* วิธีรับ — ถ้าปิดบริการส่ง แสดงเฉพาะรับที่ร้าน */}
             <div className="mt-4">
               <p className="mb-2 text-sm font-medium">วิธีรับสินค้า</p>
               <div className="flex gap-2">
@@ -770,18 +776,20 @@ function BookingModal({
                   <Store className="h-4 w-4" />
                   รับที่ร้าน
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setDeliveryOption("delivery")}
-                  className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
-                    deliveryOption === "delivery"
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-neutral-200 bg-white text-muted-foreground hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:hover:border-neutral-600"
-                  }`}
-                >
-                  <MapPin className="h-4 w-4" />
-                  ส่ง
-                </button>
+                {allowDelivery && (
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryOption("delivery")}
+                    className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
+                      deliveryOption === "delivery"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-neutral-200 bg-white text-muted-foreground hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:hover:border-neutral-600"
+                    }`}
+                  >
+                    <MapPin className="h-4 w-4" />
+                    ส่ง
+                  </button>
+                )}
               </div>
             </div>
 

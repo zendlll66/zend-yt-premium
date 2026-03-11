@@ -94,6 +94,25 @@ export function SettingsForm({ initial }: Props) {
         </div>
       </section>
 
+      {/* บริการจัดส่ง */}
+      <section className="rounded-xl border bg-card p-6">
+        <h2 className="mb-4 font-semibold">บริการจัดส่ง</h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          เปิดใช้บริการส่ง — ลูกค้าจะเลือกรับที่ร้านหรือจัดส่งได้ ถ้าปิด จะมีเฉพาะรับที่ร้านอย่างเดียว
+        </p>
+        <label className="flex cursor-pointer items-center gap-3">
+          <input
+            type="checkbox"
+            name="deliveryEnabled"
+            value="on"
+            defaultChecked={initial.deliveryEnabled === "1"}
+            disabled={isPending}
+            className="h-4 w-4 rounded border-input"
+          />
+          <span className="text-sm font-medium">เปิดบริการส่ง (ให้ลูกค้าเลือกรับที่ร้านหรือส่ง)</span>
+        </label>
+      </section>
+
       {/* ใบเสร็จ / พิมพ์ */}
       <section className="rounded-xl border bg-card p-6">
         <h2 className="mb-4 font-semibold">ใบเสร็จ / การพิมพ์</h2>

@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { MenuProduct } from "@/features/modifier/modifier.repo";
 
-const AUTO_SCROLL_MS = 2000;
+const AUTO_SCROLL_MS = 4000;
 
 function formatMoney(amount: number) {
   return new Intl.NumberFormat("th-TH", {
