@@ -81,6 +81,12 @@ const NAV_MAIN = [
     ],
   },
   {
+    title: "จอแสดงผล",
+    url: "/dashboard/multi-display",
+    icon: <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
     title: "ตั้งค่าร้าน",
     url: "/dashboard/settings",
     icon: <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />,

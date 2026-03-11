@@ -17,8 +17,9 @@ type LayoutShellProps = {
 export function LayoutShell({ shop, customer, hasMembership = false, cartCount = 0, children }: LayoutShellProps) {
   const pathname = usePathname();
   const isDashboard = pathname?.startsWith("/dashboard") ?? false;
+  const isDisplay = pathname?.startsWith("/display") ?? false;
 
-  if (isDashboard) {
+  if (isDashboard || isDisplay) {
     return <>{children}</>;
   }
 
