@@ -14,11 +14,9 @@ async function seedOrders() {
     customerName: "สมชาย ใจดี",
     customerEmail: "somchai@example.com",
     customerPhone: "081-234-5678",
-    rentalStart: start,
-    rentalEnd: end,
     items: [
-      { productId: null, productName: "Canon EOS R5", price: 1500, quantity: 1, modifiers: [] },
-      { productId: null, productName: "เลนส์ 24-70mm f/2.8", price: 500, quantity: 1, modifiers: [] },
+      { productId: null, productName: "Canon EOS R5", price: 1500, quantity: 1, modifiers: [], rentalStart: start, rentalEnd: end, deliveryOption: "pickup" },
+      { productId: null, productName: "เลนส์ 24-70mm f/2.8", price: 500, quantity: 1, modifiers: [], rentalStart: start, rentalEnd: end, deliveryOption: "pickup" },
     ],
   });
 
@@ -30,10 +28,8 @@ async function seedOrders() {
   const order2 = await createRentalOrder({
     customerName: "สมหญิง รักสวย",
     customerEmail: "somying@example.com",
-    rentalStart: start,
-    rentalEnd: end,
     items: [
-      { productId: null, productName: "Toyota Camry", price: 2500, quantity: 1, modifiers: [] },
+      { productId: null, productName: "Toyota Camry", price: 2500, quantity: 1, modifiers: [], rentalStart: start, rentalEnd: end, deliveryOption: "pickup" },
     ],
   });
 

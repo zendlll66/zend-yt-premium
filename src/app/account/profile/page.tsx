@@ -47,7 +47,7 @@ export default async function ProfilePage() {
                   billingType: activeMembership.plan.billingType,
                   freeRentalDays: activeMembership.plan.freeRentalDays,
                   discountPercent: activeMembership.plan.discountPercent,
-                  expiresAt: toSerializedDate(activeMembership.plan.expiresAt),
+                  expiresAt: toSerializedDate(activeMembership.expiresAt),
                 },
               }
             : null
