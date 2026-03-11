@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export function FinalCtaSection() {
   return (
-    <section className="border-t border-border bg-neutral-950 py-20 text-white md:py-28">
+    <section id="contact" className="border-t border-border bg-neutral-950 py-20 text-white md:py-28">
       <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
