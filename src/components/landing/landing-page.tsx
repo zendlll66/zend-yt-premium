@@ -16,7 +16,7 @@ export function LandingPage({ products = [] }: LandingPageProps) {
   return (
     <div className="bg-background text-foreground">
       <HeroSection />
-      <CategoryCarousel />
+      {/* <CategoryCarousel /> */}
       <ProductsCarouselSection products={products} />
       <FeaturesSection />
       <HowItWorksSection />

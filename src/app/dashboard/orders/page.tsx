@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { findOrders } from "@/features/order/order.repo";
+import { findOrdersWithFulfillment } from "@/features/order/order.repo";
 import { Button } from "@/components/ui/button";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -25,8 +25,20 @@ function formatMoney(n: number) {
   }).format(n);
 }
 
+function formatFulfillment(fulfillment: { pending: number; shipped: number; delivered: number }) {
+  const { pending, shipped, delivered } = fulfillment;
+  const total = pending + shipped + delivered;
+  if (total === 0) return "—";
+  if (delivered === total) return "ครบแล้ว";
+  const parts: string[] = [];
+  if (pending > 0) parts.push(`รอ ${pending}`);
+  if (shipped > 0) parts.push(`ส่ง ${shipped}`);
+  if (delivered > 0) parts.push(`ถึง ${delivered}`);
+  return parts.join(" · ");
+}
+
 export default async function OrdersPage() {
-  const orders = await findOrders();
+  const orders = await findOrdersWithFulfillment();
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -43,6 +55,7 @@ export default async function OrdersPage() {
                 <th className="px-4 py-3 font-medium">ลูกค้า</th>
                 <th className="px-4 py-3 font-medium">วันที่เช่า</th>
                 <th className="px-4 py-3 font-medium">สถานะ</th>
+                <th className="px-4 py-3 font-medium">สถานะขนส่ง</th>
                 <th className="px-4 py-3 font-medium">ยอดรวม</th>
                 <th className="px-4 py-3 text-right font-medium">จัดการ</th>
               </tr>
@@ -50,7 +63,7 @@ export default async function OrdersPage() {
             <tbody>
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                     ยังไม่มีคำสั่งเช่า
                   </td>
                 </tr>
@@ -78,11 +91,19 @@ export default async function OrdersPage() {
                         {STATUS_LABELS[o.status] ?? o.status}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      <span className="text-xs">{formatFulfillment(o.fulfillment)}</span>
+                    </td>
                     <td className="px-4 py-3">{formatMoney(o.totalPrice)} ฿</td>
                     <td className="px-4 py-3 text-right">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/dashboard/orders/${o.id}`}>ดูรายละเอียด</Link>
-                      </Button>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/dashboard/orders/${o.id}`}>รายละเอียด</Link>
+                        </Button>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/dashboard/orders/${o.id}/tracking`}>ติดตามการส่ง</Link>
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))

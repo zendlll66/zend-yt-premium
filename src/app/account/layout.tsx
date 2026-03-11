@@ -33,6 +33,12 @@ export default async function AccountLayout({
         </div>
         <nav className="mx-auto flex max-w-2xl gap-1 px-4 pb-2">
           <Link
+            href="/account/orders"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            ประวัติการเช่า
+          </Link>
+          <Link
             href="/account/profile"
             className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >

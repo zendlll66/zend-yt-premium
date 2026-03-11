@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { findOrderById } from "@/features/order/order.repo";
 import { Button } from "@/components/ui/button";
 import { OrderStatusActions } from "./order-status-actions";
+import { OrderItemFulfillmentSelect } from "./order-item-fulfillment";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "รอชำระเงิน",
@@ -54,7 +55,12 @@ export default async function OrderDetailPage({
             สร้างเมื่อ {formatDate(order.createdAt)}
           </p>
         </div>
-        <OrderStatusActions orderId={order.id} currentStatus={order.status} />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/dashboard/orders/${order.id}/tracking`}>ติดตามการส่ง</Link>
+          </Button>
+          <OrderStatusActions orderId={order.id} currentStatus={order.status} />
+        </div>
       </div>
 
       <div className="rounded-xl border bg-card p-4">
@@ -85,6 +91,7 @@ export default async function OrderDetailPage({
             <tr className="border-b bg-muted/50">
               <th className="px-4 py-3 font-medium">สินค้า</th>
               <th className="px-4 py-3 font-medium">วันรับ–วันคืน / วิธีรับ</th>
+              <th className="px-4 py-3 font-medium">สถานะการส่ง</th>
               <th className="px-4 py-3 font-medium text-right">ราคา/จำนวน</th>
               <th className="px-4 py-3 font-medium text-right">รวม</th>
             </tr>
@@ -117,6 +124,18 @@ export default async function OrderDetailPage({
                     </>
                   ) : (
                     "—"
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <OrderItemFulfillmentSelect
+                    orderItemId={item.id}
+                    orderId={order.id}
+                    currentStatus={item.fulfillmentStatus}
+                  />
+                  {item.fulfillmentUpdatedAt && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      อัปเดต {formatDate(item.fulfillmentUpdatedAt)}
+                    </p>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">

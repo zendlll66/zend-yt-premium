@@ -34,6 +34,10 @@ export const orders = sqliteTable("orders", {
 export const DELIVERY_OPTIONS = ["pickup", "delivery"] as const;
 export type DeliveryOption = (typeof DELIVERY_OPTIONS)[number];
 
+/** สถานะการจัดส่งต่อรายการ (ใช้ใน order_items) */
+export const FULFILLMENT_STATUSES = ["pending", "shipped", "delivered"] as const;
+export type FulfillmentStatus = (typeof FULFILLMENT_STATUSES)[number];
+
 /** รายการในคำสั่งเช่า */
 export const orderItems = sqliteTable("order_items", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -52,6 +56,10 @@ export const orderItems = sqliteTable("order_items", {
   rentalEnd: integer("rental_end", { mode: "timestamp" }),
   /** รับที่ร้าน (pickup) หรือ ส่ง (delivery) */
   deliveryOption: text("delivery_option", { enum: DELIVERY_OPTIONS }),
+  /** สถานะการจัดส่ง/ส่งของ: รอจัดส่ง, ส่งแล้ว, ส่งถึงแล้ว */
+  fulfillmentStatus: text("fulfillment_status", { enum: FULFILLMENT_STATUSES }),
+  /** เวลาที่อัปเดตสถานะจัดส่งล่าสุด */
+  fulfillmentUpdatedAt: integer("fulfillment_updated_at", { mode: "timestamp" }),
 });
 
 /** ตัวเลือกเพิ่ม (ประกัน เพิ่มวัน ฯลฯ) - เก็บชื่อ+ราคาต่อรายการ */

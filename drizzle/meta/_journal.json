@@ -99,6 +99,13 @@
       "when": 1773073000000,
       "tag": "0013_order_item_dates_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1773074000000,
+      "tag": "0014_order_item_fulfillment",
+      "breakpoints": true
     }
   ]
 }

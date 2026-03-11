@@ -5,7 +5,7 @@ import {
   orderItems,
   orderItemModifiers,
 } from "@/db/schema/order.schema";
-import type { RentalOrderStatus, DeliveryOption } from "@/db/schema/order.schema";
+import type { RentalOrderStatus, DeliveryOption, FulfillmentStatus } from "@/db/schema/order.schema";
 import { products } from "@/db/schema/product.schema";
 import { generateOrderNumber } from "@/lib/order-number";
 
@@ -44,6 +44,12 @@ export type OrderListItem = {
   createdAt: Date | null;
 };
 
+export type FulfillmentSummary = {
+  pending: number;
+  shipped: number;
+  delivered: number;
+};
+
 export type OrderItemWithModifiers = {
   id: number;
   productId: number | null;
@@ -55,6 +61,8 @@ export type OrderItemWithModifiers = {
   rentalStart: Date | null;
   rentalEnd: Date | null;
   deliveryOption: string | null;
+  fulfillmentStatus: string | null;
+  fulfillmentUpdatedAt: Date | null;
 };
 
 export type OrderDetail = {
@@ -211,6 +219,59 @@ export async function findOrdersByCustomerEmail(
   }));
 }
 
+export type OrderItemForDisplay = {
+  id: number;
+  productName: string;
+  quantity: number;
+  fulfillmentStatus: string | null;
+  rentalStart: Date | null;
+  rentalEnd: Date | null;
+};
+
+export type OrderListItemWithItems = OrderListItem & {
+  items: OrderItemForDisplay[];
+};
+
+export async function findOrdersByCustomerEmailWithItems(
+  customerEmail: string,
+  limit = 20
+): Promise<OrderListItemWithItems[]> {
+  const ordersList = await findOrdersByCustomerEmail(customerEmail, limit);
+  if (ordersList.length === 0) return [];
+
+  const orderIds = ordersList.map((o) => o.id);
+  const itemRows = await db
+    .select({
+      id: orderItems.id,
+      orderId: orderItems.orderId,
+      productName: orderItems.productName,
+      quantity: orderItems.quantity,
+      fulfillmentStatus: orderItems.fulfillmentStatus,
+      rentalStart: orderItems.rentalStart,
+      rentalEnd: orderItems.rentalEnd,
+    })
+    .from(orderItems)
+    .where(inArray(orderItems.orderId, orderIds));
+
+  const itemsByOrder: Record<number, OrderItemForDisplay[]> = {};
+  for (const id of orderIds) itemsByOrder[id] = [];
+  for (const row of itemRows) {
+    itemsByOrder[row.orderId].push({
+      id: row.id,
+      productName: row.productName,
+      quantity: row.quantity,
+      fulfillmentStatus: row.fulfillmentStatus ?? null,
+      rentalStart: row.rentalStart ?? null,
+      rentalEnd: row.rentalEnd ?? null,
+    });
+  }
+
+  return ordersList.map((o) => ({
+    ...o,
+    items: itemsByOrder[o.id] ?? [],
+  }));
+}
+
 export async function findOrders(limit = 50): Promise<OrderListItem[]> {
   const rows = await db
     .select({
@@ -240,6 +301,40 @@ export async function findOrders(limit = 50): Promise<OrderListItem[]> {
     customerName: r.customerName,
     customerEmail: r.customerEmail,
     createdAt: r.createdAt,
+  }));
+}
+
+export type OrderListItemWithFulfillment = OrderListItem & {
+  fulfillment: FulfillmentSummary;
+};
+
+export async function findOrdersWithFulfillment(limit = 50): Promise<OrderListItemWithFulfillment[]> {
+  const ordersList = await findOrders(limit);
+  if (ordersList.length === 0) return [];
+
+  const orderIds = ordersList.map((o) => o.id);
+  const itemRows = await db
+    .select({
+      orderId: orderItems.orderId,
+      fulfillmentStatus: orderItems.fulfillmentStatus,
+    })
+    .from(orderItems)
+    .where(inArray(orderItems.orderId, orderIds));
+
+  const byOrder: Record<number, FulfillmentSummary> = {};
+  for (const id of orderIds) {
+    byOrder[id] = { pending: 0, shipped: 0, delivered: 0 };
+  }
+  for (const row of itemRows) {
+    const status = row.fulfillmentStatus ?? "pending";
+    if (status === "pending") byOrder[row.orderId].pending += 1;
+    else if (status === "shipped") byOrder[row.orderId].shipped += 1;
+    else if (status === "delivered") byOrder[row.orderId].delivered += 1;
+  }
+
+  return ordersList.map((o) => ({
+    ...o,
+    fulfillment: byOrder[o.id] ?? { pending: 0, shipped: 0, delivered: 0 },
   }));
 }
 
@@ -291,8 +386,25 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
       rentalStart: i.rentalStart ?? null,
       rentalEnd: i.rentalEnd ?? null,
       deliveryOption: i.deliveryOption ?? null,
+      fulfillmentStatus: i.fulfillmentStatus ?? null,
+      fulfillmentUpdatedAt: i.fulfillmentUpdatedAt ?? null,
     })),
   };
+}
+
+export async function updateOrderItemFulfillment(
+  orderItemId: number,
+  status: FulfillmentStatus
+): Promise<boolean> {
+  const [row] = await db
+    .update(orderItems)
+    .set({
+      fulfillmentStatus: status,
+      fulfillmentUpdatedAt: new Date(),
+    })
+    .where(eq(orderItems.id, orderItemId))
+    .returning({ id: orderItems.id });
+  return row != null;
 }
 
 /** ตรวจสอบว่า stock เพียงพอสำหรับรายการที่ต้องการ (ก่อนสร้างคำสั่ง) */

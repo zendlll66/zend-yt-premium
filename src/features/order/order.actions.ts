@@ -6,9 +6,10 @@ import {
   findOrderById,
   updateOrderStatus,
   checkStockForItems,
+  updateOrderItemFulfillment,
 } from "./order.repo";
 import type { OrderItemInput } from "./order.repo";
-import type { RentalOrderStatus } from "@/db/schema/order.schema";
+import type { RentalOrderStatus, FulfillmentStatus } from "@/db/schema/order.schema";
 
 export type CreateRentalOrderState = { orderId?: number; orderNumber?: string; error?: string };
 
@@ -67,4 +68,15 @@ export async function updateOrderStatusAction(orderId: number, status: RentalOrd
   revalidatePath("/dashboard/orders");
   revalidatePath(`/dashboard/orders/${orderId}`);
   return order ? {} : { error: "ไม่พบคำสั่ง" };
+}
+
+export async function updateOrderItemFulfillmentAction(
+  orderItemId: number,
+  orderId: number,
+  status: FulfillmentStatus
+) {
+  const ok = await updateOrderItemFulfillment(orderItemId, status);
+  revalidatePath("/dashboard/orders");
+  revalidatePath(`/dashboard/orders/${orderId}`);
+  return ok ? {} : { error: "อัปเดตไม่สำเร็จ" };
 }
