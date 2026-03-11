@@ -2,6 +2,7 @@ import { getMenuForOrder } from "@/features/modifier/modifier.repo";
 import { getShopSettings } from "@/features/settings/settings.repo";
 import { getCustomerSession } from "@/lib/auth-customer-server";
 import { findAddressesByCustomerId } from "@/features/customer-address/customer-address.repo";
+import { findActiveMembershipByCustomerId } from "@/features/membership/membership.repo";
 import { RentClient } from "./rent-client";
 
 export default async function RentPage() {
@@ -10,9 +11,17 @@ export default async function RentPage() {
     getShopSettings(),
     getCustomerSession(),
   ]);
-  const addresses = customer
-    ? await findAddressesByCustomerId(customer.id)
-    : [];
+  const [addresses, activeMembership] = await Promise.all([
+    customer ? findAddressesByCustomerId(customer.id) : [],
+    customer ? findActiveMembershipByCustomerId(customer.id) : null,
+  ]);
+  const membership =
+    activeMembership?.plan != null
+      ? {
+          freeRentalDays: activeMembership.plan.freeRentalDays,
+          discountPercent: activeMembership.plan.discountPercent,
+        }
+      : null;
 
   return (
     <RentClient
@@ -23,6 +32,7 @@ export default async function RentPage() {
       deliveryEnabled={shop.deliveryEnabled === "1"}
       customer={customer ? { name: customer.name, email: customer.email, phone: customer.phone } : null}
       addresses={addresses}
+      membership={membership}
     />
   );
 }

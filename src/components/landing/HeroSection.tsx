@@ -62,6 +62,14 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
             >
               <Link href="/register">สมัครสมาชิก</Link>
             </Button>
+            <Button
+              size="lg"
+              variant="ghost"
+              className="rounded-full px-8 text-base text-white/80 hover:bg-white/10 hover:text-white"
+              asChild
+            >
+              <Link href="/#membership">ดูโปรสมาชิก</Link>
+            </Button>
           </div>
         </motion.div>
 

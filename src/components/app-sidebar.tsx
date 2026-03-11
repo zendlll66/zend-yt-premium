@@ -70,6 +70,16 @@ const NAV_MAIN = [
     ],
   },
   {
+    title: "แผนสมาชิก",
+    url: "#",
+    icon: <HugeiconsIcon icon={UserMultipleIcon} strokeWidth={2} />,
+    isActive: true,
+    items: [
+      { title: "แผนรายเดือน/รายปี", url: "/dashboard/membership-plans" },
+      { title: "รายการสมัครสมาชิก", url: "/dashboard/memberships" },
+    ],
+  },
+  {
     title: "ตั้งค่าร้าน",
     url: "/dashboard/settings",
     icon: <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />,

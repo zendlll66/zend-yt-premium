@@ -73,6 +73,11 @@ const Footer = ({ shop, customer }: FooterProps) => {
               บัญชี
             </h3>
             <ul className="space-y-2.5 text-sm">
+              <li>
+                <Link href="/membership" className="hover:text-white">
+                  สมัครสมาชิก
+                </Link>
+              </li>
               {customer ? (
                 <li>
                   <Link href="/account/orders" className="hover:text-white">

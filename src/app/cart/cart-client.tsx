@@ -6,6 +6,9 @@ import {
   CartItem as CartItemType,
   CART_STORAGE_KEY,
   getDaysForItem,
+  getLineTotalWithMembership,
+  getCartTotalWithMembership,
+  type MembershipBenefit,
 } from "@/lib/cart-storage";
 import type { MenuProduct } from "@/features/modifier/modifier.repo";
 import { ShoppingBag, MapPin, Store, CreditCard, Trash2 } from "lucide-react";
@@ -30,9 +33,11 @@ function formatMoney(n: number) {
 type Props = {
   menu: MenuProduct[];
   shopName: string;
+  /** สิทธิ์สมาชิก (วันเช่าฟรี + ส่วนลด) — ถ้ามีจะแสดงราคาขีดและฟรี/ราคาหลังลด */
+  membership?: MembershipBenefit | null;
 };
 
-export function CartClient({ menu, shopName }: Props) {
+export function CartClient({ menu, shopName, membership = null }: Props) {
   const [cart, setCart] = useState<CartItemType[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
@@ -95,18 +100,10 @@ export function CartClient({ menu, shopName }: Props) {
     setCart((prev) => prev.filter((_, i) => i !== index));
   }
 
-  const cartTotal =
-    cart.length > 0
-      ? cart.reduce((sum, item) => {
-          const days = getDaysForItem(item.rentalStart, item.rentalEnd);
-          return (
-            sum +
-            (item.price + item.modifiers.reduce((s, m) => s + m.price, 0)) *
-              item.quantity *
-              days
-          );
-        }, 0)
-      : 0;
+  const { original: cartTotalOriginal, afterDiscount: cartTotalAfter } =
+    getCartTotalWithMembership(cart, membership);
+  const cartTotal = membership ? cartTotalAfter : cartTotalOriginal;
+  const showMembershipPrice = membership && cartTotalAfter < cartTotalOriginal;
 
   const count = cart.reduce((s, i) => s + i.quantity, 0);
 
@@ -157,12 +154,8 @@ export function CartClient({ menu, shopName }: Props) {
               const imageSrc = product?.imageUrl
                 ? `/api/r2-url?key=${encodeURIComponent(product.imageUrl)}`
                 : null;
-              const itemDays = getDaysForItem(item.rentalStart, item.rentalEnd);
-              const lineTotal =
-                (item.price +
-                  item.modifiers.reduce((s, m) => s + m.price, 0)) *
-                item.quantity *
-                itemDays;
+              const line = getLineTotalWithMembership(item, membership);
+              const showLineDiscount = membership && line.original !== line.afterDiscount;
               return (
                 <li
                   key={i}
@@ -229,9 +222,20 @@ export function CartClient({ menu, shopName }: Props) {
                           +
                         </button>
                       </div>
-                      <span className="w-20 text-right text-sm font-semibold tabular-nums">
-                        {formatMoney(lineTotal)} ฿
-                      </span>
+                      <div className="w-24 text-right text-sm">
+                        {showLineDiscount ? (
+                          <>
+                            <span className="block text-muted-foreground line-through tabular-nums">{formatMoney(line.original)} ฿</span>
+                            {line.isFree ? (
+                              <span className="font-semibold text-green-600">ฟรี</span>
+                            ) : (
+                              <span className="font-semibold tabular-nums">{formatMoney(line.afterDiscount)} ฿</span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="font-semibold tabular-nums">{formatMoney(line.original)} ฿</span>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={() => removeFromCart(i)}
@@ -250,9 +254,16 @@ export function CartClient({ menu, shopName }: Props) {
           <div className="mt-8 rounded-xl border border-border bg-card p-6">
             <div className="mb-6 flex items-center justify-between">
               <span className="text-muted-foreground">รวมทั้งสิ้น</span>
-              <span className="text-2xl font-bold tabular-nums">
-                {formatMoney(cartTotal)} ฿
-              </span>
+              {showMembershipPrice ? (
+                <span className="flex flex-col items-end gap-0">
+                  <span className="text-muted-foreground line-through text-sm tabular-nums">{formatMoney(cartTotalOriginal)} ฿</span>
+                  <span className="text-2xl font-bold tabular-nums">{formatMoney(cartTotal)} ฿</span>
+                </span>
+              ) : (
+                <span className="text-2xl font-bold tabular-nums">
+                  {formatMoney(cartTotal)} ฿
+                </span>
+              )}
             </div>
             <Button
               className="w-full gap-2 py-6 text-base"

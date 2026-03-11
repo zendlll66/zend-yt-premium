@@ -8,6 +8,7 @@ import {
 import type { RentalOrderStatus, DeliveryOption, FulfillmentStatus } from "@/db/schema/order.schema";
 import { products } from "@/db/schema/product.schema";
 import { generateOrderNumber } from "@/lib/order-number";
+import { findActiveMembershipByEmail } from "@/features/membership/membership.repo";
 
 export type OrderItemInput = {
   productId: number | null;
@@ -104,18 +105,25 @@ function getRentalDays(start: Date, end: Date): number {
 
 export async function createRentalOrder(data: CreateRentalOrderInput): Promise<OrderDetail | null> {
   const orderNum = await reserveOrderNumber();
+  const membership = await findActiveMembershipByEmail(data.customerEmail);
+  const freeRentalDays = membership?.plan.freeRentalDays ?? 0;
+  const discountPercent = membership?.plan.discountPercent ?? 0;
 
   let orderTotal = 0;
   let orderRentalStart: Date | null = null;
   let orderRentalEnd: Date | null = null;
   for (const item of data.items) {
     const days = getRentalDays(item.rentalStart, item.rentalEnd);
+    const chargeableDays = Math.max(0, days - freeRentalDays);
     const modifierTotal = item.modifiers.reduce((s, m) => s + m.price, 0);
-    orderTotal += (item.price + modifierTotal) * item.quantity * days;
+    orderTotal += (item.price + modifierTotal) * item.quantity * chargeableDays;
     const start = new Date(item.rentalStart);
     const end = new Date(item.rentalEnd);
     if (orderRentalStart == null || start < orderRentalStart) orderRentalStart = start;
     if (orderRentalEnd == null || end > orderRentalEnd) orderRentalEnd = end;
+  }
+  if (discountPercent > 0 && orderTotal > 0) {
+    orderTotal = Math.round(orderTotal * (1 - discountPercent / 100) * 100) / 100;
   }
   const fallbackStart = data.items[0] ? new Date(data.items[0].rentalStart) : new Date();
   const fallbackEnd = data.items[0] ? new Date(data.items[0].rentalEnd) : new Date();
@@ -151,8 +159,12 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
 
     for (const item of data.items) {
       const days = getRentalDays(item.rentalStart, item.rentalEnd);
+      const chargeableDays = Math.max(0, days - freeRentalDays);
       const modifierTotal = item.modifiers.reduce((s, m) => s + m.price, 0);
-      const lineTotal = (item.price + modifierTotal) * item.quantity * days;
+      let lineTotal = (item.price + modifierTotal) * item.quantity * chargeableDays;
+      if (discountPercent > 0 && lineTotal > 0) {
+        lineTotal = Math.round(lineTotal * (1 - discountPercent / 100) * 100) / 100;
+      }
       const [oi] = await tx
         .insert(orderItems)
         .values({
