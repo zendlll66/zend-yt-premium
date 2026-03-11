@@ -27,7 +27,7 @@ function ProductCard({ product }: { product: MenuProduct }) {
   return (
     <Link
       href="/rent"
-      className="group flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition hover:shadow-md"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition hover:border-violet-300/50 hover:shadow-lg hover:shadow-violet-500/5 dark:hover:border-violet-500/30"
     >
       <div className="relative aspect-square overflow-hidden bg-muted">
         {imageSrc ? (
@@ -41,13 +41,13 @@ function ProductCard({ product }: { product: MenuProduct }) {
             <Package className="h-14 w-14" />
           </div>
         )}
+        <span className="absolute bottom-2 right-2 rounded-full bg-violet-600 px-2.5 py-0.5 text-xs font-medium text-white">
+          {formatMoney(product.price)} ฿/วัน
+        </span>
       </div>
       <div className="flex flex-1 flex-col p-4">
         <h3 className="font-semibold tracking-tight line-clamp-2">{product.name}</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {formatMoney(product.price)} ฿/วัน
-        </p>
-        <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary">
+        <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-violet-600 dark:text-violet-400">
           ดูรายการ
           <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
         </span>
@@ -64,14 +64,17 @@ export function ProductsCarouselSection({ products }: ProductsCarouselSectionPro
   if (products.length === 0) return null;
 
   return (
-    <section className="border-t border-border bg-muted/20 py-16 md:py-24">
+    <section id="products" className="border-t border-border bg-muted/20 py-20 md:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="mb-10 text-center">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            สินค้าเช่าขายดี
+        <div className="mb-12 text-center">
+          <p className="text-xs font-medium uppercase tracking-widest text-violet-600 dark:text-violet-400">
+            สินค้า
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+            รายการเช่าขายดี
           </h2>
-          <p className="mt-2 text-muted-foreground">
-            เลือกอุปกรณ์ที่ต้องการแล้วไปจองที่หน้ารายการเช่า
+          <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
+            เลือกอุปกรณ์ที่ต้องการ กำหนดวันรับ–วันคืน แล้วจองได้ทันที
           </p>
         </div>
 
@@ -95,8 +98,8 @@ export function ProductsCarouselSection({ products }: ProductsCarouselSectionPro
           <CarouselNext className="right-0 border-border bg-background/80 hover:bg-background" />
         </Carousel>
 
-        <div className="mt-10 text-center">
-          <Button asChild size="lg" className="rounded-full px-8">
+        <div className="mt-12 text-center">
+          <Button asChild size="lg" className="rounded-full bg-violet-600 px-8 hover:bg-violet-700" variant="default">
             <Link href="/rent">
               ดูรายการเช่าทั้งหมด
               <ArrowRight className="ml-2 h-4 w-4" />

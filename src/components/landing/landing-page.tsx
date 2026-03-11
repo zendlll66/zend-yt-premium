@@ -15,7 +15,7 @@ type LandingPageProps = {
 export function LandingPage({ products = [] }: LandingPageProps) {
   return (
     <div className="bg-background text-foreground">
-      <HeroSection />
+      <HeroSection featuredProducts={products.slice(0, 6)} productCount={products.length} />
       {/* <CategoryCarousel /> */}
       <ProductsCarouselSection products={products} />
       <FeaturesSection />

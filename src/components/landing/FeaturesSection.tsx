@@ -29,14 +29,17 @@ export function FeaturesSection() {
           viewport={{ once: true }}
           className="mb-14 text-center"
         >
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            ทำไมต้อง Zend Rental
+          <p className="text-xs font-medium uppercase tracking-widest text-violet-600 dark:text-violet-400">
+            จุดเด่น
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+            ทำไมต้องใช้บริการเรา
           </h2>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
             กระบวนการเช่าง่าย ปลอดภัย โปร่งใส
           </p>
         </motion.div>
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f, i) => (
             <motion.div
               key={f.title}
@@ -44,13 +47,14 @@ export function FeaturesSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="group rounded-3xl border border-border/60 bg-card p-8 shadow-sm transition hover:shadow-md"
+              className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-8 shadow-sm transition hover:border-violet-200 hover:shadow-lg hover:shadow-violet-500/5 dark:hover:border-violet-800"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition group-hover:bg-primary/20">
+              <div className="absolute right-0 top-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-violet-500/5 transition group-hover:bg-violet-500/10" />
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 transition group-hover:bg-violet-500/20 dark:text-violet-400">
                 <f.icon className="h-6 w-6" />
               </div>
-              <h3 className="mt-4 text-xl font-semibold tracking-tight">{f.title}</h3>
-              <p className="mt-2 text-muted-foreground">{f.description}</p>
+              <h3 className="relative mt-5 text-xl font-semibold tracking-tight">{f.title}</h3>
+              <p className="relative mt-2 text-muted-foreground">{f.description}</p>
             </motion.div>
           ))}
         </div>
