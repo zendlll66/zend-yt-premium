@@ -16,16 +16,22 @@ export const PAGE_PERMISSIONS: PagePermission[] = [
   { path: "/dashboard/modifiers", label: "ตัวเลือกสินค้า", roles: ["super_admin", "admin"] },
   { path: "/dashboard/categories/add", label: "เพิ่มหมวดหมู่", roles: ["super_admin", "admin"] },
   { path: "/dashboard/categories", label: "หมวดหมู่สินค้า", roles: ["super_admin", "admin"] },
+  { path: "/dashboard/promotions/add", label: "เพิ่มโปรโมชัน", roles: ["super_admin", "admin"] },
+  { path: "/dashboard/promotions", label: "จัดโปรโมชัน", roles: ["super_admin", "admin"] },
   { path: "/dashboard/products/add", label: "เพิ่มสินค้า", roles: ["super_admin", "admin"] },
   { path: "/dashboard/products", label: "จัดการสินค้า", roles: ["super_admin", "admin"] },
   { path: "/dashboard/user-list/add", label: "เพิ่มผู้ใช้", roles: ["super_admin", "admin"] },
   { path: "/dashboard/user-list", label: "รายการผู้ใช้", roles: ["super_admin", "admin"] },
+  { path: "/dashboard/customers", label: "รายการลูกค้า", roles: ["super_admin", "admin", "cashier"] },
   { path: "/dashboard/membership-plans", label: "แผนสมาชิก", roles: ["super_admin", "admin"] },
   { path: "/dashboard/memberships", label: "รายการสมัครสมาชิก", roles: ["super_admin", "admin"] },
+  { path: "/dashboard/permissions/[id]/edit", label: "แก้ไขสิทธิ์หน้า", roles: ["super_admin"] },
   { path: "/dashboard/permissions", label: "สิทธิ์การเข้าถึงหน้า", roles: ["super_admin"] },
+  { path: "/dashboard/roles", label: "จัดการบทบาท", roles: ["super_admin"] },
   { path: "/dashboard/settings", label: "ตั้งค่าร้าน", roles: ["super_admin", "admin"] },
   { path: "/dashboard/multi-display", label: "จอแสดงผล (Multi-display)", roles: ["super_admin", "admin", "cashier", "chef"] },
   { path: "/dashboard", label: "แดชบอร์ด", roles: ["super_admin", "admin", "cashier", "chef"] },
+  { path: "/dashboard/orders/add", label: "เพิ่มคำสั่งเช่า", roles: ["super_admin", "admin", "cashier", "chef"] },
 ];
 
 export type PermissionRule = { path: string; roles: string[] };

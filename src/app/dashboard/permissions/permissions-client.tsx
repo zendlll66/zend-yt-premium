@@ -9,13 +9,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { PageWithRoles } from "@/features/page-permission/page-permission.repo";
 
-const ROLES: Role[] = ["super_admin", "admin", "cashier", "chef"];
+type RoleOption = { slug: string; name: string };
+
+function getRoleLabel(slug: string, roles?: RoleOption[]): string {
+  if (roles?.length) {
+    const r = roles.find((x) => x.slug === slug);
+    return r?.name ?? slug;
+  }
+  return ROLE_LABELS[slug as Role] ?? slug;
+}
 
 export function PermissionsClient({
   pages,
+  roles = [],
   isSuperAdmin,
 }: {
   pages: PageWithRoles[];
+  roles?: RoleOption[];
   isSuperAdmin: boolean;
 }) {
   const [createState, createFormAction, createPending] = useActionState(
@@ -58,7 +68,7 @@ export function PermissionsClient({
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">Role</label>
-            <RoleSelector disabled={createPending} />
+            <RoleSelector roles={roles} disabled={createPending} />
           </div>
           <Button type="submit" disabled={createPending}>
             {createPending ? "กำลังเพิ่ม…" : "เพิ่มหน้า"}
@@ -106,7 +116,7 @@ export function PermissionsClient({
                             key={r}
                             className="inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
                           >
-                            {ROLE_LABELS[r as Role] ?? r}
+                            {getRoleLabel(r, roles)}
                           </span>
                         ))}
                       </div>

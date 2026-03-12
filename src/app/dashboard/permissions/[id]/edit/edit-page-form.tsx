@@ -14,7 +14,9 @@ type Page = {
   roles: string[];
 };
 
-export function EditPageForm({ page }: { page: Page }) {
+type RoleOption = { slug: string; name: string };
+
+export function EditPageForm({ page, roles = [] }: { page: Page; roles?: RoleOption[] }) {
   const [state, formAction, isPending] = useActionState(updatePageAction, {} as { error?: string });
 
   return (
@@ -50,7 +52,7 @@ export function EditPageForm({ page }: { page: Page }) {
         <label className="mb-1.5 block text-sm font-medium">
           Role
         </label>
-        <RoleSelector name="roles" value={page.roles} disabled={isPending} />
+        <RoleSelector name="roles" value={page.roles} roles={roles} disabled={isPending} />
       </div>
       {state?.error && (
         <p className="text-sm text-destructive" role="alert">

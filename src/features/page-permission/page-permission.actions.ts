@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSessionUser } from "@/lib/auth-server";
 import { SUPER_ADMIN_ROLE } from "@/features/admin/constants";
+import { findAllRoles } from "@/features/role/role.repo";
 import {
   createPage,
   updatePage,
@@ -47,8 +48,13 @@ export async function createPageAction(
     return { error: "path นี้มีอยู่แล้ว" };
   }
 
-  const validRoles = ["super_admin", "admin", "cashier", "chef"];
-  const invalid = roles.filter((r) => !validRoles.includes(r));
+  let validSlugs: string[];
+  try {
+    validSlugs = (await findAllRoles()).map((r) => r.slug);
+  } catch {
+    validSlugs = ["super_admin", "admin", "cashier", "chef"];
+  }
+  const invalid = roles.filter((r) => !validSlugs.includes(r));
   if (invalid.length > 0) {
     return { error: "บทบาทไม่ถูกต้อง: " + invalid.join(", ") };
   }
@@ -80,8 +86,13 @@ export async function updatePageAction(
   if (!page) {
     return { error: "ไม่พบหน้า" };
   }
-  const validRoles = ["super_admin", "admin", "cashier", "chef"];
-  const invalid = roles.filter((r) => !validRoles.includes(r));
+  let validSlugs: string[];
+  try {
+    validSlugs = (await findAllRoles()).map((r) => r.slug);
+  } catch {
+    validSlugs = ["super_admin", "admin", "cashier", "chef"];
+  }
+  const invalid = roles.filter((r) => !validSlugs.includes(r));
   if (invalid.length > 0) {
     return { error: "บทบาทไม่ถูกต้อง: " + invalid.join(", ") };
   }

@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { pages, pageRoles } from "@/db/schema/page-permission.schema";
 
@@ -38,6 +39,17 @@ export async function getPermissionsForGuard(): Promise<{ path: string; roles: s
     .sort((a, b) => b.path.length - a.path.length);
 }
 
+/** รายการ label หน้าที่ role นี้เข้าได้ (สำหรับแสดงใน Role Management) */
+export async function findPageLabelsByRoleSlug(roleSlug: string): Promise<string[]> {
+  const rows = await db
+    .select({ label: pages.label })
+    .from(pageRoles)
+    .innerJoin(pages, eq(pageRoles.pageId, pages.id))
+    .where(eq(pageRoles.role, roleSlug))
+    .orderBy(asc(pages.path));
+  return rows.map((r) => r.label);
+}
+
 export async function findPageById(id: number) {
   const [page] = await db.select().from(pages).where(eq(pages.id, id)).limit(1);
   if (!page) return null;
@@ -63,9 +75,8 @@ export async function createPage(data: { path: string; label: string; roles: str
     .returning();
   if (!page) return null;
   if (data.roles.length > 0) {
-    type Role = "admin" | "cashier" | "chef" | "super_admin";
     await db.insert(pageRoles).values(
-      data.roles.map((role) => ({ pageId: page.id, role: role as Role }))
+      data.roles.map((role) => ({ pageId: page.id, role }))
     );
   }
   return page.id;
@@ -83,11 +94,10 @@ export async function updatePage(
     await db.update(pages).set(payload).where(eq(pages.id, id));
   }
   if (data.roles != null) {
-    type Role = "admin" | "cashier" | "chef" | "super_admin";
     await db.delete(pageRoles).where(eq(pageRoles.pageId, id));
     if (data.roles.length > 0) {
       await db.insert(pageRoles).values(
-        data.roles.map((role) => ({ pageId: id, role: role as Role }))
+        data.roles.map((role) => ({ pageId: id, role }))
       );
     }
   }

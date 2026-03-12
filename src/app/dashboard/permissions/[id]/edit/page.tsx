@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { findPageById } from "@/features/page-permission/page-permission.repo";
+import { findAllRoles } from "@/features/role/role.repo";
 import { getSessionUser } from "@/lib/auth-server";
 import { SUPER_ADMIN_ROLE } from "@/features/admin/constants";
 import { redirect } from "next/navigation";
@@ -17,8 +18,12 @@ export default async function EditPermissionPage({ params }: Props) {
   const { id } = await params;
   const pageId = parseInt(id, 10);
   if (!Number.isFinite(pageId)) notFound();
-  const page = await findPageById(pageId);
+  const [page, roles] = await Promise.all([
+    findPageById(pageId),
+    findAllRoles(),
+  ]);
   if (!page) notFound();
+  const roleOptions = roles.map((r) => ({ slug: r.slug, name: r.name }));
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -26,7 +31,7 @@ export default async function EditPermissionPage({ params }: Props) {
         <Link href="/dashboard/permissions">← กลับรายการสิทธิ์</Link>
       </Button>
       <h1 className="text-xl font-semibold">แก้ไขสิทธิ์หน้า</h1>
-      <EditPageForm page={page} />
+      <EditPageForm page={page} roles={roleOptions} />
     </div>
   );
 }

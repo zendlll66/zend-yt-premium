@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { customers } from "@/db/schema/customer.schema";
 
@@ -10,6 +10,23 @@ export type CustomerProfile = {
   createdAt: Date | null;
   updatedAt: Date | null;
 };
+
+/** รายการลูกค้าทั้งหมด (สำหรับแดชบอร์ด) — ไม่รวม password */
+export async function findAllCustomers(limit = 200): Promise<CustomerProfile[]> {
+  const rows = await db
+    .select({
+      id: customers.id,
+      name: customers.name,
+      email: customers.email,
+      phone: customers.phone,
+      createdAt: customers.createdAt,
+      updatedAt: customers.updatedAt,
+    })
+    .from(customers)
+    .orderBy(desc(customers.createdAt))
+    .limit(limit);
+  return rows;
+}
 
 export async function findCustomerByEmail(email: string) {
   const [row] = await db

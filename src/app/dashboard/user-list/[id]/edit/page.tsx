@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { findAdminById } from "@/features/admin/admin.repo";
+import { findAllRoles } from "@/features/role/role.repo";
 import { Button } from "@/components/ui/button";
 import { EditUserForm } from "./edit-user-form";
 
@@ -11,8 +12,12 @@ export default async function EditUserPage({ params }: Props) {
   const userId = parseInt(id, 10);
   if (!Number.isFinite(userId)) notFound();
 
-  const user = await findAdminById(userId);
+  const [user, roles] = await Promise.all([
+    findAdminById(userId),
+    findAllRoles(),
+  ]);
   if (!user) notFound();
+  const roleOptions = roles.map((r) => ({ slug: r.slug, name: r.name }));
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -23,7 +28,7 @@ export default async function EditUserPage({ params }: Props) {
       </div>
       <h1 className="text-xl font-semibold">แก้ไขผู้ใช้</h1>
 
-      <EditUserForm user={user} />
+      <EditUserForm user={user} roles={roleOptions} />
     </div>
   );
 }

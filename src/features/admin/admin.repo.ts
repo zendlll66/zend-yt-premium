@@ -1,6 +1,8 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { adminUsers } from "@/db/schema/admin-user.schema";
+
+export type RoleCount = { role: string; count: number };
 
 export type AdminUserListItem = {
   id: number;
@@ -36,6 +38,18 @@ export async function findAdminById(id: number) {
   return user ?? null;
 }
 
+/** จำนวนผู้ใช้แยกตามบทบาท (สำหรับหน้า Role Management) */
+export async function getAdminCountByRole(): Promise<RoleCount[]> {
+  const rows = await db
+    .select({
+      role: adminUsers.role,
+      count: sql<number>`cast(count(*) as int)`,
+    })
+    .from(adminUsers)
+    .groupBy(adminUsers.role);
+  return rows.map((r) => ({ role: r.role, count: r.count }));
+}
+
 export async function findAllAdmins(): Promise<AdminUserListItem[]> {
   const rows = await db
     .select({
@@ -55,7 +69,7 @@ export async function createAdmin(data: {
   name: string;
   email: string;
   password: string;
-  role: "admin" | "cashier" | "chef";
+  role: string;
 }) {
   const [row] = await db
     .insert(adminUsers)
@@ -80,7 +94,7 @@ export async function updateAdmin(
     name?: string;
     email?: string;
     password?: string;
-    role?: "admin" | "cashier" | "chef";
+    role?: string;
   }
 ) {
   const payload: Record<string, unknown> = {};

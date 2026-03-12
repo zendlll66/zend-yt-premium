@@ -81,6 +81,12 @@ const NAV_MAIN = [
     ],
   },
   {
+    title: "รายการลูกค้า",
+    url: "/dashboard/customers",
+    icon: <HugeiconsIcon icon={UserMultipleIcon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
     title: "จอแสดงผล",
     url: "/dashboard/multi-display",
     icon: <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} />,
@@ -94,10 +100,12 @@ const NAV_MAIN = [
   },
   {
     title: "สิทธิ์การเข้าถึง",
-    url: "/dashboard/permissions",
+    url: "#",
     icon: <HugeiconsIcon icon={SecurityIcon} strokeWidth={2} />,
+    isActive: true,
     items: [
       { title: "กำหนดสิทธิ์หน้า", url: "/dashboard/permissions" },
+      { title: "จัดการบทบาท", url: "/dashboard/roles" },
     ],
   },
 ];

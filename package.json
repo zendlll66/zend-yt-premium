@@ -11,6 +11,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
+    "db:seed-roles": "tsx src/db/seed-roles.ts",
     "db:seed-pages": "tsx src/db/seed-pages.ts",
     "db:seed-categories": "tsx src/db/seed-categories.ts",
     "db:seed-products": "tsx src/db/seed-products.ts",
@@ -18,7 +19,7 @@
     "db:seed-orders": "tsx src/db/seed-orders.ts",
     "db:seed-membership": "tsx src/db/seed-membership.ts",
     "db:seed-promotions": "tsx src/db/seed-promotions.ts",
-    "db:seed-all": "tsx src/db/seed.ts && tsx src/db/seed-pages.ts && tsx src/db/seed-categories.ts && tsx src/db/seed-products.ts && tsx src/db/seed-modifiers.ts && tsx src/db/seed-orders.ts && tsx src/db/seed-membership.ts && tsx src/db/seed-promotions.ts"
+    "db:seed-all": "tsx src/db/seed.ts && tsx src/db/seed-roles.ts && tsx src/db/seed-pages.ts && tsx src/db/seed-categories.ts && tsx src/db/seed-products.ts && tsx src/db/seed-modifiers.ts && tsx src/db/seed-orders.ts && tsx src/db/seed-membership.ts && tsx src/db/seed-promotions.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1004.0",

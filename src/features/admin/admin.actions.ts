@@ -10,6 +10,7 @@ import {
   updateAdmin,
   deleteAdminById,
 } from "./admin.repo";
+import { findAllRoles } from "@/features/role/role.repo";
 import { SUPER_ADMIN_ROLE } from "./constants";
 
 export type CreateUserState = { error?: string };
@@ -31,8 +32,13 @@ export async function createUserAction(
     return { error: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร" };
   }
 
-  const validRoles = ["admin", "cashier", "chef"];
-  if (!validRoles.includes(role)) {
+  let validSlugs: string[];
+  try {
+    validSlugs = (await findAllRoles()).map((r) => r.slug).filter((s) => s !== SUPER_ADMIN_ROLE);
+  } catch {
+    validSlugs = ["admin", "cashier", "chef"];
+  }
+  if (!validSlugs.includes(role)) {
     return { error: "บทบาทไม่ถูกต้อง" };
   }
 
@@ -46,7 +52,7 @@ export async function createUserAction(
     name,
     email,
     password: passwordHash,
-    role: role as "admin" | "cashier" | "chef",
+    role,
   });
 
   if (!user) {
@@ -76,8 +82,13 @@ export async function updateUserAction(
     return { error: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร" };
   }
 
-  const validRoles = ["admin", "cashier", "chef"];
-  if (!validRoles.includes(role)) {
+  let validSlugs: string[];
+  try {
+    validSlugs = (await findAllRoles()).map((r) => r.slug).filter((s) => s !== SUPER_ADMIN_ROLE);
+  } catch {
+    validSlugs = ["admin", "cashier", "chef"];
+  }
+  if (!validSlugs.includes(role)) {
     return { error: "บทบาทไม่ถูกต้อง" };
   }
 
@@ -91,10 +102,10 @@ export async function updateUserAction(
     return { error: "อีเมลนี้ถูกใช้งานแล้ว" };
   }
 
-  const payload: { name: string; email: string; role?: "admin" | "cashier" | "chef"; password?: string } = {
+  const payload: { name: string; email: string; role?: string; password?: string } = {
     name,
     email,
-    role: role as "admin" | "cashier" | "chef",
+    role,
   };
   if (existing.role === SUPER_ADMIN_ROLE) {
     delete payload.role;
