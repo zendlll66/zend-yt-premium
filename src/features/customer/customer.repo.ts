@@ -7,6 +7,9 @@ export type CustomerProfile = {
   name: string;
   email: string;
   phone: string | null;
+  lineUserId: string | null;
+  lineDisplayName: string | null;
+  linePictureUrl: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
@@ -19,6 +22,9 @@ export async function findAllCustomers(limit = 200): Promise<CustomerProfile[]> 
       name: customers.name,
       email: customers.email,
       phone: customers.phone,
+      lineUserId: customers.lineUserId,
+      lineDisplayName: customers.lineDisplayName,
+      linePictureUrl: customers.linePictureUrl,
       createdAt: customers.createdAt,
       updatedAt: customers.updatedAt,
     })
@@ -37,6 +43,15 @@ export async function findCustomerByEmail(email: string) {
   return row ?? null;
 }
 
+export async function findCustomerByLineUserId(lineUserId: string) {
+  const [row] = await db
+    .select()
+    .from(customers)
+    .where(eq(customers.lineUserId, lineUserId))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function findCustomerById(id: number): Promise<CustomerProfile | null> {
   const [row] = await db
     .select({
@@ -44,6 +59,9 @@ export async function findCustomerById(id: number): Promise<CustomerProfile | nu
       name: customers.name,
       email: customers.email,
       phone: customers.phone,
+      lineUserId: customers.lineUserId,
+      lineDisplayName: customers.lineDisplayName,
+      linePictureUrl: customers.linePictureUrl,
       createdAt: customers.createdAt,
       updatedAt: customers.updatedAt,
     })
@@ -63,6 +81,9 @@ export async function createCustomer(data: {
   email: string;
   passwordHash: string;
   phone?: string | null;
+  lineUserId?: string | null;
+  lineDisplayName?: string | null;
+  linePictureUrl?: string | null;
 }) {
   const [row] = await db
     .insert(customers)
@@ -71,6 +92,9 @@ export async function createCustomer(data: {
       email: data.email,
       password: data.passwordHash,
       phone: data.phone ?? null,
+      lineUserId: data.lineUserId ?? null,
+      lineDisplayName: data.lineDisplayName ?? null,
+      linePictureUrl: data.linePictureUrl ?? null,
     })
     .returning({
       id: customers.id,
@@ -83,12 +107,20 @@ export async function createCustomer(data: {
 
 export async function updateCustomer(
   id: number,
-  data: { name?: string; email?: string; phone?: string | null }
+  data: {
+    name?: string;
+    email?: string;
+    phone?: string | null;
+    lineDisplayName?: string | null;
+    linePictureUrl?: string | null;
+  }
 ) {
   const payload: Record<string, unknown> = {};
   if (data.name != null) payload.name = data.name;
   if (data.email != null) payload.email = data.email;
   if (data.phone !== undefined) payload.phone = data.phone;
+  if (data.lineDisplayName !== undefined) payload.lineDisplayName = data.lineDisplayName;
+  if (data.linePictureUrl !== undefined) payload.linePictureUrl = data.linePictureUrl;
   if (Object.keys(payload).length === 0) return findCustomerById(id);
   const [row] = await db
     .update(customers)
@@ -99,6 +131,9 @@ export async function updateCustomer(
       name: customers.name,
       email: customers.email,
       phone: customers.phone,
+      lineUserId: customers.lineUserId,
+      lineDisplayName: customers.lineDisplayName,
+      linePictureUrl: customers.linePictureUrl,
       createdAt: customers.createdAt,
       updatedAt: customers.updatedAt,
     });

@@ -7,6 +7,12 @@ export type CustomerSessionUser = {
   name: string;
   email: string;
   phone: string | null;
+  /** true ถ้าเข้าสู่ระบบด้วย LINE (อีเมลอาจเป็น placeholder) */
+  isLineUser: boolean;
+  /** ชื่อจาก LINE (ถ้าเป็น LINE user) */
+  lineDisplayName: string | null;
+  /** URL รูปโปรไฟล์จาก LINE */
+  linePictureUrl: string | null;
 };
 
 export async function getCustomerSession(): Promise<CustomerSessionUser | null> {
@@ -22,5 +28,8 @@ export async function getCustomerSession(): Promise<CustomerSessionUser | null> 
     name: customer.name,
     email: customer.email,
     phone: customer.phone,
+    isLineUser: !!customer.lineUserId,
+    lineDisplayName: customer.lineDisplayName ?? null,
+    linePictureUrl: customer.linePictureUrl ?? null,
   };
 }

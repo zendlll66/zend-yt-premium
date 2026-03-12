@@ -4,9 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { changePasswordAction } from "@/features/customer/customer.actions";
+import { changePasswordAction, setPasswordAction } from "@/features/customer/customer.actions";
 
-export function ChangePasswordForm() {
+type Props = { isSetPassword?: boolean };
+
+export function ChangePasswordForm({ isSetPassword }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -17,11 +19,13 @@ export function ChangePasswordForm() {
     setError(null);
     setSuccess(false);
     const form = e.currentTarget;
-    const current = (form.elements.namedItem("currentPassword") as HTMLInputElement).value;
+    const current = (form.elements.namedItem("currentPassword") as HTMLInputElement | null)?.value;
     const newPass = (form.elements.namedItem("newPassword") as HTMLInputElement).value;
 
     setLoading(true);
-    const result = await changePasswordAction(current, newPass);
+    const result = isSetPassword
+      ? await setPasswordAction(newPass)
+      : await changePasswordAction(current ?? "", newPass);
     setLoading(false);
     if (result.error) {
       setError(result.error);
@@ -34,22 +38,24 @@ export function ChangePasswordForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div>
-        <label htmlFor="currentPassword" className="mb-1.5 block text-sm font-medium">
-          รหัสผ่านปัจจุบัน
-        </label>
-        <Input
-          id="currentPassword"
-          name="currentPassword"
-          type="password"
-          autoComplete="current-password"
-          required
-          disabled={loading}
-        />
-      </div>
+      {!isSetPassword && (
+        <div>
+          <label htmlFor="currentPassword" className="mb-1.5 block text-sm font-medium">
+            รหัสผ่านปัจจุบัน
+          </label>
+          <Input
+            id="currentPassword"
+            name="currentPassword"
+            type="password"
+            autoComplete="current-password"
+            required
+            disabled={loading}
+          />
+        </div>
+      )}
       <div>
         <label htmlFor="newPassword" className="mb-1.5 block text-sm font-medium">
-          รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)
+          {isSetPassword ? "รหัสผ่าน (อย่างน้อย 6 ตัว)" : "รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)"}
         </label>
         <Input
           id="newPassword"
@@ -68,11 +74,11 @@ export function ChangePasswordForm() {
       )}
       {success && (
         <p className="text-sm text-green-600 dark:text-green-400" role="status">
-          เปลี่ยนรหัสผ่านเรียบร้อยแล้ว
+          {isSetPassword ? "ตั้งรหัสผ่านเรียบร้อยแล้ว" : "เปลี่ยนรหัสผ่านเรียบร้อยแล้ว"}
         </p>
       )}
       <Button type="submit" disabled={loading}>
-        {loading ? "กำลังเปลี่ยน…" : "เปลี่ยนรหัสผ่าน"}
+        {loading ? "กำลังบันทึก…" : isSetPassword ? "ตั้งรหัสผ่าน" : "เปลี่ยนรหัสผ่าน"}
       </Button>
     </form>
   );

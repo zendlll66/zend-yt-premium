@@ -27,6 +27,10 @@ type SubscriptionItem = {
 
 type ProfileTabsProps = {
   profileDefaultValues: { name: string; email: string; phone: string };
+  isLineUser: boolean;
+  isPlaceholderEmail: boolean;
+  lineDisplayName: string | null;
+  linePictureUrl: string | null;
   activeMembership: { plan: PlanInfo } | null;
   membershipHistory: SubscriptionItem[];
 };
@@ -48,8 +52,91 @@ const BILLING_LABEL: Record<string, string> = {
   yearly: "รายปี",
 };
 
+function ProfileSummaryCard({
+  name,
+  email,
+  phone,
+  isLineUser,
+  isPlaceholderEmail,
+  lineDisplayName,
+  linePictureUrl,
+}: {
+  name: string;
+  email: string;
+  phone: string;
+  isLineUser: boolean;
+  isPlaceholderEmail: boolean;
+  lineDisplayName: string | null;
+  linePictureUrl: string | null;
+}) {
+  const displayName = (lineDisplayName || name) || "—";
+  const displayEmail = isPlaceholderEmail ? null : email;
+  const displayPhone = phone?.trim() || null;
+
+  return (
+    <div className="rounded-xl border bg-card p-6">
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
+        <div className="shrink-0">
+          {linePictureUrl ? (
+            <img
+              src={linePictureUrl}
+              alt="รูปโปรไฟล์"
+              className="h-24 w-24 rounded-full border-2 border-border object-cover"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-border bg-muted text-3xl font-medium text-muted-foreground">
+              {displayName.charAt(0).toUpperCase() || "?"}
+            </div>
+          )}
+        </div>
+        <div className="min-w-0 flex-1 space-y-3 text-center sm:text-left">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+            <h2 className="text-xl font-semibold">{displayName}</h2>
+            {isLineUser && (
+              <Badge variant="secondary" className="bg-[#06C755]/15 text-[#06C755] border-[#06C755]/30">
+                LINE
+              </Badge>
+            )}
+          </div>
+          <dl className="space-y-2 text-sm">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <dt className="font-medium text-muted-foreground">อีเมล</dt>
+              <dd className="break-all">
+                {displayEmail ? (
+                  <a href={`mailto:${displayEmail}`} className="text-foreground hover:underline">
+                    {displayEmail}
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground">ยังไม่ได้เพิ่มอีเมล</span>
+                )}
+              </dd>
+            </div>
+            <div className="flex flex-wrap items-baseline gap-2">
+              <dt className="font-medium text-muted-foreground">เบอร์โทร</dt>
+              <dd>
+                {displayPhone ? (
+                  <a href={`tel:${displayPhone}`} className="text-foreground hover:underline">
+                    {displayPhone}
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ProfileTabs({
   profileDefaultValues,
+  isLineUser,
+  isPlaceholderEmail,
+  lineDisplayName,
+  linePictureUrl,
   activeMembership,
   membershipHistory,
 }: ProfileTabsProps) {
@@ -57,6 +144,17 @@ export function ProfileTabs({
 
   return (
     <div className="space-y-8">
+      {/* สรุปโปรไฟล์ — ชื่อ รูป อีเมล เบอร์ จาก LINE */}
+      <ProfileSummaryCard
+        name={profileDefaultValues.name}
+        email={profileDefaultValues.email}
+        phone={profileDefaultValues.phone}
+        isLineUser={isLineUser}
+        isPlaceholderEmail={isPlaceholderEmail}
+        lineDisplayName={lineDisplayName}
+        linePictureUrl={linePictureUrl}
+      />
+
       {/* โปรสมาชิกที่ใช้อยู่ */}
       <div className="rounded-xl border bg-card p-6">
         <h2 className="mb-3 font-medium">โปรสมาชิกของฉัน</h2>
@@ -121,12 +219,27 @@ export function ProfileTabs({
             <div className="space-y-8">
               <div>
                 <h3 className="mb-4 font-medium">ข้อมูลส่วนตัว</h3>
-                <ProfileForm defaultValues={profileDefaultValues} />
+                <ProfileForm
+                  defaultValues={profileDefaultValues}
+                  isLineUser={isLineUser}
+                  isPlaceholderEmail={isPlaceholderEmail}
+                />
               </div>
-              <div>
-                <h3 className="mb-4 font-medium">เปลี่ยนรหัสผ่าน</h3>
-                <ChangePasswordForm />
-              </div>
+              {!isLineUser && (
+                <div>
+                  <h3 className="mb-4 font-medium">เปลี่ยนรหัสผ่าน</h3>
+                  <ChangePasswordForm />
+                </div>
+              )}
+              {isLineUser && (
+                <div>
+                  <h3 className="mb-4 font-medium">ตั้งรหัสผ่าน</h3>
+                  <p className="mb-2 text-sm text-muted-foreground">
+                    ตั้งรหัสผ่านเพื่อเข้าสู่ระบบด้วยอีเมลได้ (ไม่บังคับ)
+                  </p>
+                  <ChangePasswordForm isSetPassword />
+                </div>
+              )}
             </div>
           )}
 

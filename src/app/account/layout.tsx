@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCustomerSession } from "@/lib/auth-customer-server";
+import { isLinePlaceholderEmail } from "@/lib/line-verify";
 
 export default async function AccountLayout({
   children,
@@ -20,7 +21,11 @@ export default async function AccountLayout({
             บัญชีของฉัน
           </Link>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{customer.email}</span>
+            <span>
+              {customer.isLineUser && isLinePlaceholderEmail(customer.email)
+                ? customer.name
+                : customer.email}
+            </span>
             <form action="/api/auth/customer/logout" method="POST">
               <button
                 type="submit"
@@ -36,7 +41,7 @@ export default async function AccountLayout({
             href="/account/orders"
             className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            ประวัติการเช่า
+            ประวัติการซื้อ
           </Link>
           <Link
             href="/account/profile"

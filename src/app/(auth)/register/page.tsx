@@ -1,9 +1,6 @@
-import { RegisterForm } from "./register-form";
+import { redirect } from "next/navigation";
 
+/** สมัครสมาชิก = เข้าสู่ระบบด้วย LINE (auto register) */
 export default function RegisterPage() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
-      <RegisterForm />
-    </div>
-  );
+  redirect("/customer-login?from=/account");
 }

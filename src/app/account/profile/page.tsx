@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCustomerSession } from "@/lib/auth-customer-server";
+import { isLinePlaceholderEmail } from "@/lib/line-verify";
 import {
   findActiveMembershipByCustomerId,
   findCustomerMembershipsByCustomerId,
@@ -39,6 +40,10 @@ export default async function ProfilePage() {
           email: customer.email,
           phone: customer.phone ?? "",
         }}
+        isLineUser={customer.isLineUser}
+        isPlaceholderEmail={customer.isLineUser && isLinePlaceholderEmail(customer.email)}
+        lineDisplayName={customer.lineDisplayName ?? null}
+        linePictureUrl={customer.linePictureUrl ?? null}
         activeMembership={
           activeMembership
             ? {

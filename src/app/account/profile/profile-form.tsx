@@ -8,9 +8,11 @@ import { updateProfileAction } from "@/features/customer/customer.actions";
 
 type Props = {
   defaultValues: { name: string; email: string; phone: string };
+  isLineUser?: boolean;
+  isPlaceholderEmail?: boolean;
 };
 
-export function ProfileForm({ defaultValues }: Props) {
+export function ProfileForm({ defaultValues, isPlaceholderEmail }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,14 +44,15 @@ export function ProfileForm({ defaultValues }: Props) {
       </div>
       <div>
         <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
-          อีเมล *
+          {isPlaceholderEmail ? "เพิ่มอีเมล (ไม่บังคับ)" : "อีเมล *"}
         </label>
         <Input
           id="email"
           name="email"
           type="email"
-          defaultValue={defaultValues.email}
-          required
+          defaultValue={isPlaceholderEmail ? "" : defaultValues.email}
+          placeholder={isPlaceholderEmail ? "example@email.com" : undefined}
+          required={!isPlaceholderEmail}
           disabled={loading}
         />
       </div>
