@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     const displayName = (typeof lineName === "string" ? lineName.trim() : "") || "ผู้ใช้ LINE";
     const pictureUrl = typeof linePicture === "string" ? linePicture.trim() || null : null;
 
-    let customer = await findCustomerByLineUserId(lineUserId);
+    let customer: any = await findCustomerByLineUserId(lineUserId);
 
     if (customer) {
       // อัปเดตชื่อ/รูปจาก LINE ทุกครั้งที่ล็อกอิน

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ProfileForm } from "./profile-form";
-import { ChangePasswordForm } from "./change-password-form";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -225,21 +224,6 @@ export function ProfileTabs({
                   isPlaceholderEmail={isPlaceholderEmail}
                 />
               </div>
-              {!isLineUser && (
-                <div>
-                  <h3 className="mb-4 font-medium">เปลี่ยนรหัสผ่าน</h3>
-                  <ChangePasswordForm />
-                </div>
-              )}
-              {isLineUser && (
-                <div>
-                  <h3 className="mb-4 font-medium">ตั้งรหัสผ่าน</h3>
-                  <p className="mb-2 text-sm text-muted-foreground">
-                    ตั้งรหัสผ่านเพื่อเข้าสู่ระบบด้วยอีเมลได้ (ไม่บังคับ)
-                  </p>
-                  <ChangePasswordForm isSetPassword />
-                </div>
-              )}
             </div>
           )}
 

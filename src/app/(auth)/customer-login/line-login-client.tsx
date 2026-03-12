@@ -179,7 +179,6 @@ export function LineLoginClient() {
           <Button
             className="w-full bg-[#06C755] hover:bg-[#05b34b]"
             onClick={handleLogin}
-            disabled={status === "loading"}
           >
             เข้าสู่ระบบด้วย LINE
           </Button>
