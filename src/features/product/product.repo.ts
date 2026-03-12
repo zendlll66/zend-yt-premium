@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { products } from "@/db/schema/product.schema";
 import { categories } from "@/db/schema/category.schema";
@@ -16,42 +16,132 @@ export type ProductListItem = {
   imageUrl: string | null;
   description: string | null;
   stock: number;
+  lowStockThreshold: number | null;
   isActive: boolean;
   createdAt: Date | null;
 };
 
+const productListSelect = {
+  id: products.id,
+  name: products.name,
+  categoryId: products.categoryId,
+  categoryName: categories.name,
+  price: products.price,
+  deposit: products.deposit,
+  cost: products.cost,
+  sku: products.sku,
+  barcode: products.barcode,
+  imageUrl: products.imageUrl,
+  description: products.description,
+  stock: products.stock,
+  isActive: products.isActive,
+  createdAt: products.createdAt,
+};
+
+/** รายการสินค้าทั้งหมด — ถ้าคอลัมน์ low_stock_threshold ยังไม่มีจะคืน lowStockThreshold: null */
 export async function findAllProducts(): Promise<ProductListItem[]> {
-  const rows = await db
-    .select({
-      id: products.id,
-      name: products.name,
-      categoryId: products.categoryId,
-      categoryName: categories.name,
-      price: products.price,
-      deposit: products.deposit,
-      cost: products.cost,
-      sku: products.sku,
-      barcode: products.barcode,
-      imageUrl: products.imageUrl,
-      description: products.description,
-      stock: products.stock,
-      isActive: products.isActive,
-      createdAt: products.createdAt,
-    })
-    .from(products)
-    .leftJoin(categories, eq(products.categoryId, categories.id))
-    .orderBy(desc(products.createdAt));
-  return rows.map((r) => ({
-    ...r,
-    categoryName: r.categoryName ?? null,
-    deposit: r.deposit ?? null,
-    description: r.description ?? null,
-  }));
+  try {
+    const rows = await db
+      .select({
+        ...productListSelect,
+        lowStockThreshold: products.lowStockThreshold,
+      })
+      .from(products)
+      .leftJoin(categories, eq(products.categoryId, categories.id))
+      .orderBy(desc(products.createdAt));
+    return rows.map((r) => ({
+      ...r,
+      categoryName: r.categoryName ?? null,
+      deposit: r.deposit ?? null,
+      description: r.description ?? null,
+      lowStockThreshold: r.lowStockThreshold ?? null,
+    }));
+  } catch {
+    const rows = await db
+      .select(productListSelect)
+      .from(products)
+      .leftJoin(categories, eq(products.categoryId, categories.id))
+      .orderBy(desc(products.createdAt));
+    return rows.map((r) => ({
+      ...r,
+      categoryName: r.categoryName ?? null,
+      deposit: r.deposit ?? null,
+      description: r.description ?? null,
+      lowStockThreshold: null as number | null,
+    }));
+  }
 }
 
+/** สินค้าที่สต็อกต่ำกว่าเกณฑ์ที่ตั้ง (สำหรับแจ้งเตือน) — คืน [] ถ้าคอลัมน์ low_stock_threshold ยังไม่มี */
+export async function findProductsLowStock(): Promise<ProductListItem[]> {
+  try {
+    const rows = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        categoryId: products.categoryId,
+        categoryName: categories.name,
+        price: products.price,
+        deposit: products.deposit,
+        cost: products.cost,
+        sku: products.sku,
+        barcode: products.barcode,
+        imageUrl: products.imageUrl,
+        description: products.description,
+        stock: products.stock,
+        lowStockThreshold: products.lowStockThreshold,
+        isActive: products.isActive,
+        createdAt: products.createdAt,
+      })
+      .from(products)
+      .leftJoin(categories, eq(products.categoryId, categories.id))
+      .where(
+        and(
+          isNotNull(products.lowStockThreshold),
+          sql`${products.stock} <= ${products.lowStockThreshold}`
+        )
+      )
+      .orderBy(desc(products.createdAt));
+    return rows.map((r) => ({
+      ...r,
+      categoryName: r.categoryName ?? null,
+      deposit: r.deposit ?? null,
+      description: r.description ?? null,
+      lowStockThreshold: r.lowStockThreshold ?? null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** ถ้าคอลัมน์ low_stock_threshold ยังไม่มี จะคืน lowStockThreshold: null */
 export async function findProductById(id: number) {
-  const [row] = await db.select().from(products).where(eq(products.id, id)).limit(1);
-  return row ?? null;
+  try {
+    const [row] = await db.select().from(products).where(eq(products.id, id)).limit(1);
+    return row ?? null;
+  } catch {
+    const [row] = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        categoryId: products.categoryId,
+        price: products.price,
+        deposit: products.deposit,
+        cost: products.cost,
+        sku: products.sku,
+        barcode: products.barcode,
+        imageUrl: products.imageUrl,
+        description: products.description,
+        stock: products.stock,
+        isActive: products.isActive,
+        createdAt: products.createdAt,
+      })
+      .from(products)
+      .where(eq(products.id, id))
+      .limit(1);
+    if (!row) return null;
+    return { ...row, lowStockThreshold: null };
+  }
 }
 
 export async function createProduct(data: {
@@ -65,6 +155,7 @@ export async function createProduct(data: {
   imageUrl?: string | null;
   description?: string | null;
   stock?: number;
+  lowStockThreshold?: number | null;
   isActive?: boolean;
 }) {
   const [row] = await db
@@ -80,6 +171,7 @@ export async function createProduct(data: {
       imageUrl: data.imageUrl ?? null,
       description: data.description ?? null,
       stock: data.stock ?? 0,
+      lowStockThreshold: data.lowStockThreshold ?? null,
       isActive: data.isActive ?? true,
     })
     .returning();
@@ -99,6 +191,7 @@ export async function updateProduct(
     imageUrl?: string | null;
     description?: string | null;
     stock?: number;
+    lowStockThreshold?: number | null;
     isActive?: boolean;
   }
 ) {

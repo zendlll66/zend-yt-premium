@@ -20,6 +20,7 @@ type ProductRow = {
   imageUrl: string | null;
   description: string | null;
   stock?: number;
+  lowStockThreshold?: number | null;
   isActive: boolean;
 };
 
@@ -138,6 +139,23 @@ export function ProductForm({ categories, product, action }: Props) {
             disabled={isPending}
           />
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="low_stock_threshold" className="mb-1.5 block text-sm font-medium">
+          เกณฑ์แจ้งเตือนสต็อกต่ำ
+        </label>
+        <Input
+          id="low_stock_threshold"
+          name="low_stock_threshold"
+          type="number"
+          min={0}
+          step={1}
+          defaultValue={product?.lowStockThreshold ?? ""}
+          placeholder="ว่าง = ไม่เตือน"
+          disabled={isPending}
+        />
+        <p className="mt-1 text-xs text-muted-foreground">เมื่อจำนวนคงคลัง ≤ ค่านี้ จะแสดงแจ้งเตือนในแดชบอร์ด</p>
       </div>
 
       <div>

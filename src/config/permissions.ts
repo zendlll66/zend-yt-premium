@@ -11,6 +11,7 @@ export type PagePermission = {
 };
 
 export const PAGE_PERMISSIONS: PagePermission[] = [
+  { path: "/dashboard/reports", label: "Export รายงาน", roles: ["super_admin", "admin", "cashier"] },
   { path: "/dashboard/orders", label: "รายการคำสั่งเช่า", roles: ["super_admin", "admin", "cashier", "chef"] },
   { path: "/dashboard/modifiers/add", label: "เพิ่มกลุ่มตัวเลือก", roles: ["super_admin", "admin"] },
   { path: "/dashboard/modifiers", label: "ตัวเลือกสินค้า", roles: ["super_admin", "admin"] },
@@ -25,6 +26,7 @@ export const PAGE_PERMISSIONS: PagePermission[] = [
   { path: "/dashboard/customers", label: "รายการลูกค้า", roles: ["super_admin", "admin", "cashier"] },
   { path: "/dashboard/membership-plans", label: "แผนสมาชิก", roles: ["super_admin", "admin"] },
   { path: "/dashboard/memberships", label: "รายการสมัครสมาชิก", roles: ["super_admin", "admin"] },
+  { path: "/dashboard/audit-log", label: "บันทึกการใช้งาน (Audit log)", roles: ["super_admin", "admin"] },
   { path: "/dashboard/permissions/[id]/edit", label: "แก้ไขสิทธิ์หน้า", roles: ["super_admin"] },
   { path: "/dashboard/permissions", label: "สิทธิ์การเข้าถึงหน้า", roles: ["super_admin"] },
   { path: "/dashboard/roles", label: "จัดการบทบาท", roles: ["super_admin"] },

@@ -39,6 +39,12 @@ const NAV_MAIN = [
     isActive: true,
   },
   {
+    title: "Export รายงาน",
+    url: "/dashboard/reports",
+    icon: <HugeiconsIcon icon={CommandIcon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
     title: "จัดการสินค้า",
     url: "#",
     icon: <HugeiconsIcon icon={Package01Icon} strokeWidth={2} />,
@@ -106,6 +112,7 @@ const NAV_MAIN = [
     items: [
       { title: "กำหนดสิทธิ์หน้า", url: "/dashboard/permissions" },
       { title: "จัดการบทบาท", url: "/dashboard/roles" },
+      { title: "Audit log", url: "/dashboard/audit-log" },
     ],
   },
 ];

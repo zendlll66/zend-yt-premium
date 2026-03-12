@@ -54,7 +54,11 @@ function RentalHistoryCard({ order }: { order: OrderListItemWithItems }) {
             <Receipt className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <p className="font-medium tracking-tight">{order.orderNumber}</p>
+            <p className="font-medium tracking-tight">
+              <Link href={`/account/orders/${order.id}`} className="hover:underline">
+                {order.orderNumber}
+              </Link>
+            </p>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />

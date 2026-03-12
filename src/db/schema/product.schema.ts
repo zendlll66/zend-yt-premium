@@ -17,6 +17,8 @@ export const products = sqliteTable("products", {
   description: text("description"),
   /** จำนวนคงคลัง - ลดเมื่อชำระแล้ว เพิ่มกลับเมื่อคืนหรือยกเลิก */
   stock: integer("stock").notNull().default(0),
+  /** เกณฑ์แจ้งเตือนสต็อกต่ำ — ถ้า stock <= ค่านี้จะแสดงเตือน (null = ไม่เตือน) */
+  lowStockThreshold: integer("low_stock_threshold"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
     .$defaultFn(() => new Date())

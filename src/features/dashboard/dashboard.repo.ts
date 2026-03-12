@@ -1,4 +1,4 @@
-import { desc, eq, sql, sum } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql, sum } from "drizzle-orm";
 import { db } from "@/db";
 import { orders, orderItems } from "@/db/schema/order.schema";
 import { products } from "@/db/schema/product.schema";
@@ -26,11 +26,29 @@ export type RecentOrderItem = {
 
 const PAID_STATUS = "paid";
 
-export async function getDashboardStats(): Promise<DashboardStats> {
+function dateRangeCondition(from?: Date | null, to?: Date | null) {
+  if (!from && !to) return undefined;
+  const conditions = [];
+  if (from) conditions.push(gte(orders.createdAt, from));
+  if (to) {
+    const toEnd = new Date(to);
+    toEnd.setHours(23, 59, 59, 999);
+    conditions.push(lte(orders.createdAt, toEnd));
+  }
+  return conditions.length ? and(...conditions) : undefined;
+}
+
+export async function getDashboardStats(dateFrom?: Date | null, dateTo?: Date | null): Promise<DashboardStats> {
+  const dateFilter = dateRangeCondition(dateFrom, dateTo);
+  const whereClause = dateFilter
+    ? and(eq(orders.status, PAID_STATUS), dateFilter)
+    : eq(orders.status, PAID_STATUS);
+  const whereAll = dateFilter || undefined;
+
   const [revenueRow] = await db
     .select({ value: sum(orders.totalPrice) })
     .from(orders)
-    .where(eq(orders.status, PAID_STATUS));
+    .where(whereClause);
   const revenue = Number(revenueRow?.value ?? 0);
 
   const [costRow] = await db
@@ -40,14 +58,14 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     .from(orderItems)
     .innerJoin(orders, eq(orderItems.orderId, orders.id))
     .leftJoin(products, eq(orderItems.productId, products.id))
-    .where(eq(orders.status, PAID_STATUS));
+    .where(whereClause);
   const cost = Number(costRow?.value ?? 0);
   const profit = revenue - cost;
 
-  const statusCounts = await db
-    .select({ status: orders.status, count: sql<number>`cast(count(*) as int)` })
-    .from(orders)
-    .groupBy(orders.status);
+  const statusQuery = whereAll
+    ? db.select({ status: orders.status, count: sql<number>`cast(count(*) as int)` }).from(orders).where(whereAll).groupBy(orders.status)
+    : db.select({ status: orders.status, count: sql<number>`cast(count(*) as int)` }).from(orders).groupBy(orders.status);
+  const statusCounts = await statusQuery;
 
   const ordersByStatus: Record<string, number> = {};
   let totalOrders = 0;
@@ -60,14 +78,23 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return { revenue, cost, profit, ordersByStatus, totalOrders, paidOrders };
 }
 
-export async function getRevenueByDay(dayCount: number): Promise<RevenueByDayItem[]> {
+export async function getRevenueByDay(
+  dayCount: number,
+  dateFrom?: Date | null,
+  dateTo?: Date | null
+): Promise<RevenueByDayItem[]> {
+  const dateFilter = dateRangeCondition(dateFrom, dateTo);
+  const whereClause = dateFilter
+    ? and(eq(orders.status, PAID_STATUS), dateFilter)
+    : eq(orders.status, PAID_STATUS);
+
   const rows = await db
     .select({ totalPrice: orders.totalPrice, createdAt: orders.createdAt })
     .from(orders)
-    .where(eq(orders.status, PAID_STATUS));
+    .where(whereClause);
 
   const byDay: Record<string, { revenue: number; orders: number }> = {};
-  const today = new Date();
+  const today = dateTo ? new Date(dateTo) : new Date();
   for (let i = dayCount - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);

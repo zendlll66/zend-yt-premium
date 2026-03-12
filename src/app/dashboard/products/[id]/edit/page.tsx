@@ -51,6 +51,7 @@ export default async function EditProductPage({
           imageUrl: product.imageUrl,
           description: product.description,
           stock: product.stock,
+          lowStockThreshold: product.lowStockThreshold ?? undefined,
           isActive: product.isActive,
         }}
         action={updateProductAction}

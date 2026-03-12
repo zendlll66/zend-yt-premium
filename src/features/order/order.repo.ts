@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/db";
 import {
   orders,
@@ -299,6 +299,52 @@ export async function findOrders(limit = 50): Promise<OrderListItem[]> {
       createdAt: orders.createdAt,
     })
     .from(orders)
+    .orderBy(desc(orders.createdAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id: r.id,
+    orderNumber: r.orderNumber,
+    status: r.status,
+    totalPrice: r.totalPrice,
+    depositAmount: r.depositAmount,
+    rentalStart: r.rentalStart,
+    rentalEnd: r.rentalEnd,
+    customerName: r.customerName,
+    customerEmail: r.customerEmail,
+    createdAt: r.createdAt,
+  }));
+}
+
+/** รายการคำสั่งเช่าตามช่วงวันที่ (สำหรับ Export รายงาน) */
+export async function findOrdersByDateRange(
+  from: Date,
+  to: Date,
+  limit = 5000
+): Promise<OrderListItem[]> {
+  const fromTs = from;
+  const toEnd = new Date(to);
+  toEnd.setHours(23, 59, 59, 999);
+  const rows = await db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      status: orders.status,
+      totalPrice: orders.totalPrice,
+      depositAmount: orders.depositAmount,
+      rentalStart: orders.rentalStart,
+      rentalEnd: orders.rentalEnd,
+      customerName: orders.customerName,
+      customerEmail: orders.customerEmail,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .where(
+      and(
+        gte(orders.createdAt, fromTs),
+        lte(orders.createdAt, toEnd)
+      )
+    )
     .orderBy(desc(orders.createdAt))
     .limit(limit);
 

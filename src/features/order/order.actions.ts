@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getSessionUser } from "@/lib/auth-server";
+import { createAuditLog } from "@/features/audit/audit.repo";
 import {
   createRentalOrder,
   findOrderById,
@@ -65,6 +67,16 @@ export async function createRentalOrderAction(input: {
 
 export async function updateOrderStatusAction(orderId: number, status: RentalOrderStatus) {
   const order = await updateOrderStatus(orderId, status);
+  if (order) {
+    const user = await getSessionUser();
+    await createAuditLog({
+      adminUserId: user?.id ?? null,
+      action: `order.status.${status}`,
+      entityType: "order",
+      entityId: String(orderId),
+      details: `ออเดอร์ ${order.orderNumber} → ${status}`,
+    });
+  }
   revalidatePath("/dashboard/orders");
   revalidatePath(`/dashboard/orders/${orderId}`);
   return order ? {} : { error: "ไม่พบคำสั่ง" };

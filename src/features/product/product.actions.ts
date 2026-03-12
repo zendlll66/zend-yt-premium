@@ -30,6 +30,7 @@ export async function createProductAction(
   const deposit = parseNum(formData.get("deposit"));
   const cost = parseNum(formData.get("cost"));
   const stock = parseNum(formData.get("stock"));
+  const lowStockThreshold = parseNum(formData.get("low_stock_threshold"));
   const description = (formData.get("description") as string)?.trim() || null;
   const sku = (formData.get("sku") as string)?.trim() || null;
   const barcode = (formData.get("barcode") as string)?.trim() || null;
@@ -39,6 +40,7 @@ export async function createProductAction(
   if (!name) return { error: "กรุณากรอกชื่อสินค้า" };
   if (price < 0) return { error: "ราคาต้องไม่ต่ำกว่า 0" };
   if (stock != null && stock < 0) return { error: "จำนวนคงคลังต้องไม่ต่ำกว่า 0" };
+  if (lowStockThreshold != null && lowStockThreshold < 0) return { error: "เกณฑ์สต็อกต่ำต้องไม่ต่ำกว่า 0" };
 
   const product = await createProduct({
     name,
@@ -47,6 +49,7 @@ export async function createProductAction(
     deposit: deposit ?? null,
     cost: cost ?? null,
     stock: stock ?? 0,
+    lowStockThreshold: lowStockThreshold ?? null,
     description,
     sku,
     barcode,
@@ -70,6 +73,7 @@ export async function updateProductAction(
   const deposit = parseNum(formData.get("deposit"));
   const cost = parseNum(formData.get("cost"));
   const stock = parseNum(formData.get("stock"));
+  const lowStockThreshold = parseNum(formData.get("low_stock_threshold"));
   const description = (formData.get("description") as string)?.trim() || null;
   const sku = (formData.get("sku") as string)?.trim() || null;
   const barcode = (formData.get("barcode") as string)?.trim() || null;
@@ -79,6 +83,7 @@ export async function updateProductAction(
   if (!id || !name) return { error: "กรุณากรอกชื่อสินค้า" };
   if (price < 0) return { error: "ราคาต้องไม่ต่ำกว่า 0" };
   if (stock != null && stock < 0) return { error: "จำนวนคงคลังต้องไม่ต่ำกว่า 0" };
+  if (lowStockThreshold != null && lowStockThreshold < 0) return { error: "เกณฑ์สต็อกต่ำต้องไม่ต่ำกว่า 0" };
 
   const existing = await findProductById(id);
   if (!existing) return { error: "ไม่พบสินค้า" };
@@ -90,6 +95,7 @@ export async function updateProductAction(
     deposit: deposit ?? null,
     cost: cost ?? null,
     stock: stock !== null ? stock : undefined,
+    lowStockThreshold: lowStockThreshold !== undefined ? lowStockThreshold : undefined,
     description,
     sku,
     barcode,
