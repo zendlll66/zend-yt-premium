@@ -1,24 +1,25 @@
 import { sqliteTable, integer, text, real } from "drizzle-orm/sqlite-core";
 import { categories } from "./category.schema";
 
-/** สินค้า/ของเช่า (กล้อง รถ อื่นๆ) - ราคาเป็นต่อวัน */
+export const PRODUCT_STOCK_TYPES = ["individual", "family", "invite", "customer_account"] as const;
+export type ProductStockType = (typeof PRODUCT_STOCK_TYPES)[number];
+
+/** สินค้า/แพ็กเกจ */
 export const products = sqliteTable("products", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   categoryId: integer("category_id").references(() => categories.id, { onDelete: "set null" }),
-  /** ราคาเช่าต่อวัน (บาท) */
+  /** ราคาขาย */
   price: real("price").notNull(),
-  /** ค่ามัดจำ (บาท) - null = ไม่มี */
+  /** ราคาเดิม (ถ้ามี) */
   deposit: real("deposit"),
   cost: real("cost"),
   sku: text("sku"),
   barcode: text("barcode"),
   imageUrl: text("image_url"),
   description: text("description"),
-  /** จำนวนคงคลัง - ลดเมื่อชำระแล้ว เพิ่มกลับเมื่อคืนหรือยกเลิก */
-  stock: integer("stock").notNull().default(0),
-  /** เกณฑ์แจ้งเตือนสต็อกต่ำ — ถ้า stock <= ค่านี้จะแสดงเตือน (null = ไม่เตือน) */
-  lowStockThreshold: integer("low_stock_threshold"),
+  /** ประเภท stock ที่จะใช้ตอนจ่ายเงิน/assign stock */
+  stockType: text("stock_type", { enum: PRODUCT_STOCK_TYPES }).notNull().default("individual"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
     .$defaultFn(() => new Date())

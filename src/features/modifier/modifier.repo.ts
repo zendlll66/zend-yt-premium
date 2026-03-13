@@ -1,10 +1,14 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   modifierGroups,
   modifiers,
   productModifiers,
 } from "@/db/schema/modifier.schema";
+import { accountStock } from "@/db/schema/account-stock.schema";
+import { familyGroups } from "@/db/schema/family.schema";
+import { inviteLinks } from "@/db/schema/invite-link.schema";
+import type { ProductStockType } from "@/db/schema/product.schema";
 
 // ---------- Modifier Groups ----------
 
@@ -187,7 +191,8 @@ export type MenuProduct = {
   imageUrl: string | null;
   categoryId: number | null;
   categoryName: string | null;
-  /** จำนวนคงคลัง - ใช้จำกัดจำนวนที่ยืมได้ */
+  stockType: ProductStockType;
+  /** จำนวนคงเหลือตาม stock type */
   stock: number;
   modifierGroups: {
     id: number;
@@ -200,20 +205,62 @@ export type MenuProduct = {
 export async function getMenuForOrder(): Promise<MenuProduct[]> {
   const { products } = await import("@/db/schema/product.schema");
   const { categories } = await import("@/db/schema/category.schema");
-  const activeProducts = await db
-    .select({
-      id: products.id,
-      name: products.name,
-      price: products.price,
-      imageUrl: products.imageUrl,
-      categoryId: products.categoryId,
-      categoryName: categories.name,
-      stock: products.stock,
-    })
-    .from(products)
-    .leftJoin(categories, eq(products.categoryId, categories.id))
-    .where(eq(products.isActive, true))
-    .orderBy(asc(categories.name), asc(products.name));
+
+  const [individualRow, familyRow, inviteRow] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(accountStock)
+      .where(eq(accountStock.status, "available")),
+    db
+      .select({
+        count: sql<number>`coalesce(sum(case when ${familyGroups.limit} > ${familyGroups.used} then ${familyGroups.limit} - ${familyGroups.used} else 0 end), 0)`,
+      })
+      .from(familyGroups),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(inviteLinks)
+      .where(eq(inviteLinks.status, "available")),
+  ]);
+  const stockByType: Record<ProductStockType, number> = {
+    individual: Number(individualRow[0]?.count ?? 0),
+    family: Number(familyRow[0]?.count ?? 0),
+    invite: Number(inviteRow[0]?.count ?? 0),
+    customer_account: Number.MAX_SAFE_INTEGER,
+  };
+
+  const activeProducts = await (async () => {
+    try {
+      return await db
+        .select({
+          id: products.id,
+          name: products.name,
+          price: products.price,
+          imageUrl: products.imageUrl,
+          categoryId: products.categoryId,
+          categoryName: categories.name,
+          stockType: products.stockType,
+        })
+        .from(products)
+        .leftJoin(categories, eq(products.categoryId, categories.id))
+        .where(eq(products.isActive, true))
+        .orderBy(asc(categories.name), asc(products.name));
+    } catch {
+      const legacyRows = await db
+        .select({
+          id: products.id,
+          name: products.name,
+          price: products.price,
+          imageUrl: products.imageUrl,
+          categoryId: products.categoryId,
+          categoryName: categories.name,
+        })
+        .from(products)
+        .leftJoin(categories, eq(products.categoryId, categories.id))
+        .where(eq(products.isActive, true))
+        .orderBy(asc(categories.name), asc(products.name));
+      return legacyRows.map((r) => ({ ...r, stockType: "individual" as ProductStockType }));
+    }
+  })();
 
   const productIds = activeProducts.map((p) => p.id);
   if (productIds.length === 0) return [];
@@ -264,7 +311,8 @@ export async function getMenuForOrder(): Promise<MenuProduct[]> {
       imageUrl: p.imageUrl ?? null,
       categoryId: p.categoryId ?? null,
       categoryName: p.categoryName ?? null,
-      stock: p.stock,
+      stockType: p.stockType,
+      stock: stockByType[p.stockType] ?? 0,
       modifierGroups,
     };
   });

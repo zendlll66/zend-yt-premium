@@ -17,9 +17,15 @@ export async function createCategoryAction(
   formData: FormData
 ): Promise<CreateCategoryState> {
   const name = (formData.get("name") as string)?.trim() ?? "";
+  const imageUrl = (formData.get("image_url") as string)?.trim() ?? "";
+  const detail = (formData.get("detail") as string)?.trim() ?? "";
   if (!name) return { error: "กรุณากรอกชื่อหมวดหมู่" };
 
-  const category = await createCategory({ name });
+  const category = await createCategory({
+    name,
+    imageUrl: imageUrl || null,
+    detail: detail || null,
+  });
   if (!category) return { error: "สร้างหมวดหมู่ไม่สำเร็จ" };
 
   revalidatePath("/dashboard/categories");
@@ -32,12 +38,18 @@ export async function updateCategoryAction(
 ): Promise<UpdateCategoryState> {
   const id = parseInt((formData.get("id") as string) ?? "0", 10);
   const name = (formData.get("name") as string)?.trim() ?? "";
+  const imageUrl = (formData.get("image_url") as string)?.trim() ?? "";
+  const detail = (formData.get("detail") as string)?.trim() ?? "";
   if (!id || !name) return { error: "กรุณากรอกชื่อหมวดหมู่" };
 
   const existing = await findCategoryById(id);
   if (!existing) return { error: "ไม่พบหมวดหมู่" };
 
-  const category = await updateCategory(id, { name });
+  const category = await updateCategory(id, {
+    name,
+    imageUrl: imageUrl || null,
+    detail: detail || null,
+  });
   if (!category) return { error: "อัปเดตไม่สำเร็จ" };
 
   revalidatePath("/dashboard/categories");

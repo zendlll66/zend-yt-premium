@@ -19,8 +19,7 @@ type ProductRow = {
   barcode: string | null;
   imageUrl: string | null;
   description: string | null;
-  stock?: number;
-  lowStockThreshold?: number | null;
+  stockType?: "individual" | "family" | "invite" | "customer_account";
   isActive: boolean;
 };
 
@@ -44,13 +43,13 @@ export function ProductForm({ categories, product, action }: Props) {
 
       <div>
         <label htmlFor="name" className="mb-1.5 block text-sm font-medium">
-          ชื่อสินค้า/ของเช่า *
+          ชื่อแพ็กเกจ *
         </label>
         <Input
           id="name"
           name="name"
           defaultValue={product?.name}
-          placeholder="ชื่อสินค้า"
+          placeholder="เช่น YouTube Premium Individual 1 เดือน"
           required
           disabled={isPending}
         />
@@ -79,7 +78,7 @@ export function ProductForm({ categories, product, action }: Props) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="price" className="mb-1.5 block text-sm font-medium">
-            ราคาเช่าต่อวัน (บาท) *
+            ราคาขาย (บาท) *
           </label>
           <Input
             id="price"
@@ -94,7 +93,7 @@ export function ProductForm({ categories, product, action }: Props) {
         </div>
         <div>
           <label htmlFor="deposit" className="mb-1.5 block text-sm font-medium">
-            ค่ามัดจำ (บาท)
+            ราคาเดิม (ถ้ามี)
           </label>
           <Input
             id="deposit"
@@ -103,7 +102,7 @@ export function ProductForm({ categories, product, action }: Props) {
             min={0}
             step={0.01}
             defaultValue={product?.deposit ?? ""}
-            placeholder="0"
+            placeholder="ใช้ทำราคาโปรโมชันได้"
             disabled={isPending}
           />
         </div>
@@ -112,7 +111,7 @@ export function ProductForm({ categories, product, action }: Props) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="cost" className="mb-1.5 block text-sm font-medium">
-            ต้นทุน
+            ต้นทุนต่อออเดอร์
           </label>
           <Input
             id="cost"
@@ -125,48 +124,33 @@ export function ProductForm({ categories, product, action }: Props) {
           />
         </div>
         <div>
-          <label htmlFor="stock" className="mb-1.5 block text-sm font-medium">
-            จำนวนคงคลัง *
+          <label htmlFor="stock_type" className="mb-1.5 block text-sm font-medium">
+            ประเภทสต็อก *
           </label>
-          <Input
-            id="stock"
-            name="stock"
-            type="number"
-            min={0}
-            step={1}
-            defaultValue={product?.stock ?? 0}
-            required
+          <select
+            id="stock_type"
+            name="stock_type"
+            defaultValue={product?.stockType ?? "individual"}
+            className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
             disabled={isPending}
-          />
+          >
+            <option value="individual">Individual Account</option>
+            <option value="family">Family Group</option>
+            <option value="invite">Invite Link</option>
+            <option value="customer_account">Customer Account</option>
+          </select>
         </div>
       </div>
 
       <div>
-        <label htmlFor="low_stock_threshold" className="mb-1.5 block text-sm font-medium">
-          เกณฑ์แจ้งเตือนสต็อกต่ำ
-        </label>
-        <Input
-          id="low_stock_threshold"
-          name="low_stock_threshold"
-          type="number"
-          min={0}
-          step={1}
-          defaultValue={product?.lowStockThreshold ?? ""}
-          placeholder="ว่าง = ไม่เตือน"
-          disabled={isPending}
-        />
-        <p className="mt-1 text-xs text-muted-foreground">เมื่อจำนวนคงคลัง ≤ ค่านี้ จะแสดงแจ้งเตือนในแดชบอร์ด</p>
-      </div>
-
-      <div>
         <label htmlFor="description" className="mb-1.5 block text-sm font-medium">
-          คำอธิบาย
+          รายละเอียดแพ็กเกจ
         </label>
         <textarea
           id="description"
           name="description"
           defaultValue={product?.description ?? ""}
-          placeholder="รายละเอียดของเช่า"
+          placeholder="เช่น ระยะเวลาใช้งาน, เงื่อนไข, วิธีส่งมอบ"
           rows={3}
           disabled={isPending}
           className="w-full rounded-lg border border-input bg-input/30 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -223,7 +207,7 @@ export function ProductForm({ categories, product, action }: Props) {
             className="h-4 w-4 rounded border-input"
           />
           <label htmlFor="is_active" className="text-sm">
-            เปิดให้เช่า
+            เปิดขายแพ็กเกจนี้
           </label>
         </div>
       )}

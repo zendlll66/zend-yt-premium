@@ -141,6 +141,41 @@
       "when": 1731300000000,
       "tag": "0021_line_login_customers",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1773080000000,
+      "tag": "0022_youtube_stock_and_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1773080001000,
+      "tag": "0023_orders_product_type_and_customer",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1773080002000,
+      "tag": "0024_categories_image_and_detail",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1773080003000,
+      "tag": "0025_products_stock_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1773080004000,
+      "tag": "0026_products_remove_legacy_stock_columns",
+      "breakpoints": true
     }
   ]
 }

@@ -36,19 +36,19 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Zend Rental",
-    template: "%s | Zend Rental",
+    default: "Zend Premium",
+    template: "%s | Zend Premium",
   },
-  description: "ระบบจัดการธุรกิจเช่าสินค้า — จองสินค้า ชำระเงิน ออกบิล และจัดการสมาชิกในที่เดียว",
-  keywords: ["rental", "เช่าสินค้า", "ระบบเช่า", "zend rental", "ธุรกิจเช่า", "จัดการคำสั่งเช่า"],
+  description: "ระบบจัดการคำสั่งซื้อและสมาชิก — ชำระเงิน จัดการสต็อก และดูแลลูกค้าในที่เดียว",
+  keywords: ["youtube premium", "ระบบขายบัญชี", "ระบบจัดการคำสั่งซื้อ", "zend premium", "stock management"],
   authors: [{ name: "Zend" }],
   creator: "Zend",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   openGraph: {
     type: "website",
     locale: "th_TH",
-    title: "Zend Rental — ระบบจัดการธุรกิจเช่าสินค้า",
-    description: "จองสินค้าเช่า ชำระเงิน ออกบิล และจัดการสมาชิกในที่เดียว",
+    title: "Zend Premium — ระบบจัดการคำสั่งซื้อและสมาชิก",
+    description: "จัดการคำสั่งซื้อ ชำระเงิน สต็อก และสมาชิกในที่เดียว",
   },
   robots: {
     index: true,

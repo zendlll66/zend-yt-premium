@@ -1,23 +1,40 @@
 import { sqliteTable, integer, text, real } from "drizzle-orm/sqlite-core";
 import { adminUsers } from "./admin-user.schema";
 import { products } from "./product.schema";
+import { customers } from "./customer.schema";
 
-/** สถานะคำสั่งเช่า */
-export const RENTAL_ORDER_STATUSES = ["pending", "paid", "completed", "cancelled"] as const;
-export type RentalOrderStatus = (typeof RENTAL_ORDER_STATUSES)[number];
+/** สถานะคำสั่งซื้อ/เช่า */
+export const ORDER_STATUSES = [
+  "pending",
+  "paid",
+  "fulfilled",
+  "completed",
+  "cancelled",
+  "refunded",
+] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+export type RentalOrderStatus = OrderStatus;
 
-/** คำสั่งเช่า (ลูกค้าส่ง + ชำระผ่าน Stripe) */
+/** ประเภทสินค้า/บริการของออเดอร์ */
+export const ORDER_PRODUCT_TYPES = ["individual", "family", "invite", "customer_account"] as const;
+export type OrderProductType = (typeof ORDER_PRODUCT_TYPES)[number];
+
+/** คำสั่งซื้อหลัก */
 export const orders = sqliteTable("orders", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   orderNumber: text("order_number").notNull().unique(),
-  status: text("status", { enum: RENTAL_ORDER_STATUSES }).notNull().default("pending"),
+  status: text("status", { enum: ORDER_STATUSES }).notNull().default("pending"),
+  /** ประเภทสินค้า: individual, family, invite, customer_account */
+  productType: text("product_type", { enum: ORDER_PRODUCT_TYPES }).notNull().default("individual"),
+  /** ถ้ามาจากลูกค้าในระบบ LINE จะผูก customerId ไว้ */
+  customerId: integer("customer_id").references(() => customers.id, { onDelete: "set null" }),
   totalPrice: real("total_price").notNull(),
-  /** ค่ามัดจำรวม */
+  /** ค่ามัดจำรวม (สำหรับ rental เดิม) */
   depositAmount: real("deposit_amount").notNull().default(0),
-  /** วันที่เริ่มเช่า */
-  rentalStart: integer("rental_start", { mode: "timestamp" }).notNull(),
-  /** วันที่คืน */
-  rentalEnd: integer("rental_end", { mode: "timestamp" }).notNull(),
+  /** วันที่เริ่มเช่า (สำหรับ rental) */
+  rentalStart: integer("rental_start", { mode: "timestamp" }),
+  /** วันที่คืน (สำหรับ rental) */
+  rentalEnd: integer("rental_end", { mode: "timestamp" }),
   customerName: text("customer_name").notNull(),
   customerEmail: text("customer_email").notNull(),
   customerPhone: text("customer_phone"),
@@ -28,9 +45,13 @@ export const orders = sqliteTable("orders", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .$defaultFn(() => new Date())
     .notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .$defaultFn(() => new Date())
+    .$onUpdate(() => new Date())
+    .notNull(),
 });
 
-/** วิธีรับสินค้า */
+/** วิธีรับสินค้า (ใช้กับ rental เดิม) */
 export const DELIVERY_OPTIONS = ["pickup", "delivery"] as const;
 export type DeliveryOption = (typeof DELIVERY_OPTIONS)[number];
 

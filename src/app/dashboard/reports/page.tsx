@@ -2,7 +2,7 @@ import { ReportExportForm } from "./report-export-form";
 
 export const metadata = {
   title: "Export รายงาน | แดชบอร์ด",
-  description: "ส่งออกคำสั่งเช่า/รายได้เป็น CSV ตามช่วงวันที่",
+  description: "ส่งออกคำสั่งซื้อ/รายได้เป็น CSV ตามช่วงวันที่",
 };
 
 export default function ReportsPage() {
@@ -11,7 +11,7 @@ export default function ReportsPage() {
       <div>
         <h1 className="text-xl font-semibold">Export รายงาน</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          ส่งออกคำสั่งเช่า/รายได้เป็น CSV ตามช่วงวันที่ สำหรับใช้ทำบัญชีหรือส่งสรรพากร
+          ส่งออกคำสั่งซื้อ/รายได้เป็น CSV ตามช่วงวันที่ สำหรับใช้ทำบัญชีหรือส่งสรรพากร
         </p>
       </div>
       <ReportExportForm />

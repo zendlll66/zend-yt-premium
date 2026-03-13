@@ -11,10 +11,10 @@ export default async function AddProductPage() {
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/products">← จัดการสินค้า</Link>
+          <Link href="/dashboard/products">← จัดการแพ็กเกจ</Link>
         </Button>
       </div>
-      <h1 className="text-xl font-semibold">เพิ่มสินค้า/ของเช่า</h1>
+      <h1 className="text-xl font-semibold">เพิ่มแพ็กเกจ</h1>
       <ProductForm categories={categories} action={createProductAction} />
     </div>
   );

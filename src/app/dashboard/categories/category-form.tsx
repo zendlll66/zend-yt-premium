@@ -1,19 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ImageUpload } from "@/components/image-upload";
 import type { CreateCategoryState, UpdateCategoryState } from "@/features/category/category.actions";
 import type { createCategoryAction, updateCategoryAction } from "@/features/category/category.actions";
 
 type Props = {
-  category?: { id: number; name: string } | null;
+  category?: { id: number; name: string; imageUrl: string | null; detail: string | null } | null;
   action: typeof createCategoryAction | typeof updateCategoryAction;
 };
 
 export function CategoryForm({ category, action }: Props) {
   const isEdit = !!category;
+  const [imageUrl, setImageUrl] = useState(category?.imageUrl ?? "");
   const [state, formAction, isPending] = useActionState(
     action,
     {} as CreateCategoryState & UpdateCategoryState
@@ -34,6 +36,32 @@ export function CategoryForm({ category, action }: Props) {
           placeholder="ชื่อหมวดหมู่"
           required
           disabled={isPending}
+        />
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-sm font-medium">รูปหมวดหมู่</label>
+        <ImageUpload
+          folder="categories"
+          value={imageUrl}
+          onChange={setImageUrl}
+          name="image_url"
+          disabled={isPending}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="detail" className="mb-1.5 block text-sm font-medium">
+          รายละเอียด (ไม่บังคับ)
+        </label>
+        <textarea
+          id="detail"
+          name="detail"
+          defaultValue={category?.detail ?? ""}
+          placeholder="เช่น หมวดหมู่บัญชี YouTube Premium"
+          rows={3}
+          disabled={isPending}
+          className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
         />
       </div>
 

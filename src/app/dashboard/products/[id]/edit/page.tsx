@@ -33,10 +33,10 @@ export default async function EditProductPage({
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/products">← จัดการสินค้า</Link>
+          <Link href="/dashboard/products">← จัดการแพ็กเกจ</Link>
         </Button>
       </div>
-      <h1 className="text-xl font-semibold">แก้ไขสินค้า/ของเช่า</h1>
+      <h1 className="text-xl font-semibold">แก้ไขแพ็กเกจ</h1>
       <ProductForm
         categories={categories}
         product={{
@@ -50,8 +50,7 @@ export default async function EditProductPage({
           barcode: product.barcode,
           imageUrl: product.imageUrl,
           description: product.description,
-          stock: product.stock,
-          lowStockThreshold: product.lowStockThreshold ?? undefined,
+          stockType: product.stockType,
           isActive: product.isActive,
         }}
         action={updateProductAction}

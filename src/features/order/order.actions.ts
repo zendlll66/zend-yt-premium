@@ -5,13 +5,11 @@ import { getSessionUser } from "@/lib/auth-server";
 import { createAuditLog } from "@/features/audit/audit.repo";
 import {
   createRentalOrder,
-  findOrderById,
   updateOrderStatus,
   checkStockForItems,
-  updateOrderItemFulfillment,
 } from "./order.repo";
 import type { OrderItemInput } from "./order.repo";
-import type { RentalOrderStatus, FulfillmentStatus } from "@/db/schema/order.schema";
+import type { OrderStatus } from "@/db/schema/order.schema";
 
 export type CreateRentalOrderState = { orderId?: number; orderNumber?: string; error?: string };
 
@@ -32,32 +30,58 @@ export async function createRentalOrderAction(input: {
     if (typeof item.price !== "number" || item.price < 0) return { error: "ราคาไม่ถูกต้อง" };
     if (!Number.isInteger(item.quantity) || item.quantity < 1) return { error: "จำนวนไม่ถูกต้อง" };
     if (!Array.isArray(item.modifiers)) item.modifiers = [];
-    const start = item.rentalStart instanceof Date ? item.rentalStart : new Date(item.rentalStart);
-    const end = item.rentalEnd instanceof Date ? item.rentalEnd : new Date(item.rentalEnd);
-    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) {
-      return { error: "กรุณาเลือกวันรับและวันคืนของทุกรายการ" };
-    }
-    if (end <= start) return { error: `วันที่คืนต้องอยู่หลังวันที่รับ (${item.productName})` };
-    if (!item.deliveryOption || !["pickup", "delivery"].includes(item.deliveryOption)) {
-      return { error: "กรุณาเลือกวิธีรับสินค้า (รับที่ร้าน หรือ ส่ง) ของทุกรายการ" };
+    const hasRentalDates =
+      item.rentalStart != null &&
+      item.rentalEnd != null &&
+      Number.isFinite(new Date(item.rentalStart).getTime()) &&
+      Number.isFinite(new Date(item.rentalEnd).getTime());
+    if (hasRentalDates) {
+      const start = item.rentalStart instanceof Date ? item.rentalStart : new Date(item.rentalStart);
+      const end = item.rentalEnd instanceof Date ? item.rentalEnd : new Date(item.rentalEnd);
+      if (end <= start) return { error: `วันที่คืนต้องอยู่หลังวันที่รับ (${item.productName})` };
+      if (!item.deliveryOption || !["pickup", "delivery"].includes(item.deliveryOption)) {
+        return { error: "กรุณาเลือกวิธีรับสินค้า (รับที่ร้าน หรือ ส่ง) ของทุกรายการ" };
+      }
     }
   }
 
   const itemsWithDates = input.items.map((item) => ({
     ...item,
-    rentalStart: item.rentalStart instanceof Date ? item.rentalStart : new Date(item.rentalStart),
-    rentalEnd: item.rentalEnd instanceof Date ? item.rentalEnd : new Date(item.rentalEnd),
+    rentalStart:
+      item.rentalStart != null && Number.isFinite(new Date(item.rentalStart).getTime())
+        ? item.rentalStart instanceof Date
+          ? item.rentalStart
+          : new Date(item.rentalStart)
+        : null,
+    rentalEnd:
+      item.rentalEnd != null && Number.isFinite(new Date(item.rentalEnd).getTime())
+        ? item.rentalEnd instanceof Date
+          ? item.rentalEnd
+          : new Date(item.rentalEnd)
+        : null,
+    deliveryOption: item.deliveryOption ?? null,
   }));
 
   const stockCheck = await checkStockForItems(itemsWithDates);
   if (!stockCheck.ok) return { error: stockCheck.error };
 
-  const order = await createRentalOrder({
-    customerName: input.customerName.trim(),
-    customerEmail: input.customerEmail.trim(),
-    customerPhone: input.customerPhone?.trim() || null,
-    items: itemsWithDates,
-  });
+  let order;
+  try {
+    order = await createRentalOrder({
+      customerName: input.customerName.trim(),
+      customerEmail: input.customerEmail.trim(),
+      customerPhone: input.customerPhone?.trim() || null,
+      items: itemsWithDates,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "MIXED_PRODUCT_TYPE_NOT_SUPPORTED") {
+      return { error: "ไม่สามารถสั่งซื้อสินค้าคนละประเภทสต็อกในออเดอร์เดียวกันได้" };
+    }
+    if (error instanceof Error && error.message === "CUSTOMER_ACCOUNT_ORDER_NOT_SUPPORTED_IN_THIS_FLOW") {
+      return { error: "แพ็กเกจแบบ Customer Account ต้องสั่งซื้อผ่านฟอร์มส่งบัญชีลูกค้า" };
+    }
+    throw error;
+  }
 
   if (!order) return { error: "สร้างคำสั่งเช่าไม่สำเร็จ" };
 
@@ -65,7 +89,7 @@ export async function createRentalOrderAction(input: {
   return { orderId: order.id, orderNumber: order.orderNumber };
 }
 
-export async function updateOrderStatusAction(orderId: number, status: RentalOrderStatus) {
+export async function updateOrderStatusAction(orderId: number, status: OrderStatus) {
   const order = await updateOrderStatus(orderId, status);
   if (order) {
     const user = await getSessionUser();
@@ -80,15 +104,4 @@ export async function updateOrderStatusAction(orderId: number, status: RentalOrd
   revalidatePath("/dashboard/orders");
   revalidatePath(`/dashboard/orders/${orderId}`);
   return order ? {} : { error: "ไม่พบคำสั่ง" };
-}
-
-export async function updateOrderItemFulfillmentAction(
-  orderItemId: number,
-  orderId: number,
-  status: FulfillmentStatus
-) {
-  const ok = await updateOrderItemFulfillment(orderItemId, status);
-  revalidatePath("/dashboard/orders");
-  revalidatePath(`/dashboard/orders/${orderId}`);
-  return ok ? {} : { error: "อัปเดตไม่สำเร็จ" };
 }

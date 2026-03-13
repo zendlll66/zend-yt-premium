@@ -21,7 +21,7 @@ export default async function CustomersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">รายการลูกค้า</h1>
         <p className="text-sm text-muted-foreground">
-          ลูกค้าที่สมัครใช้บริการเช่าในระบบ
+          ลูกค้าที่สมัครใช้งานในระบบ
         </p>
       </div>
 
@@ -34,7 +34,7 @@ export default async function CustomersPage() {
                 <th className="px-4 py-3 font-medium">อีเมล</th>
                 <th className="px-4 py-3 font-medium">เบอร์โทร</th>
                 <th className="px-4 py-3 font-medium">สมัครเมื่อ</th>
-                <th className="px-4 py-3 font-medium text-right">ดูคำสั่งเช่า</th>
+                <th className="px-4 py-3 font-medium text-right">ดูคำสั่งซื้อ</th>
               </tr>
             </thead>
             <tbody>
@@ -54,7 +54,7 @@ export default async function CustomersPage() {
                     <td className="px-4 py-3 text-right">
                       <Button variant="ghost" size="sm" asChild>
                         <Link href={`/dashboard/orders?customer=${c.email}`}>
-                          ดูคำสั่งเช่า
+                          ดูคำสั่งซื้อ
                         </Link>
                       </Button>
                     </td>

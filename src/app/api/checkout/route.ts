@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { findOrderById, validateOrderStock } from "@/features/order/order.repo";
+import { findOrderById } from "@/features/order/order.repo";
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 
-/** สร้าง Stripe Checkout Session สำหรับคำสั่งเช่า (ชำระด้วยบัตร) */
+/** สร้าง Stripe Checkout Session สำหรับคำสั่งซื้อ */
 export async function POST(req: NextRequest) {
   if (!stripe) {
     return NextResponse.json(
@@ -25,11 +25,9 @@ export async function POST(req: NextRequest) {
     if (order.status !== "pending") {
       return NextResponse.json({ error: "คำสั่งนี้ชำระแล้วหรือยกเลิกแล้ว" }, { status: 400 });
     }
-    const stockCheck = await validateOrderStock(orderId);
-    if (!stockCheck.ok) return NextResponse.json({ error: stockCheck.error }, { status: 400 });
-
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
     const amountSatang = Math.round(Number(order.totalPrice) * 100); // THB -> satang
+    const productTypeText = getProductTypeText(order.productType);
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -41,8 +39,8 @@ export async function POST(req: NextRequest) {
             currency: "thb",
             unit_amount: amountSatang,
             product_data: {
-              name: `คำสั่งเช่า #${order.orderNumber}`,
-              description: `วันที่เช่า ${formatDate(order.rentalStart)} - ${formatDate(order.rentalEnd)}`,
+              name: `คำสั่งซื้อ #${order.orderNumber}`,
+              description: `ประเภทสินค้า: ${productTypeText}`,
             },
           },
         },
@@ -62,11 +60,10 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function formatDate(d: Date | null): string {
-  if (!d) return "-";
-  return new Date(d).toLocaleDateString("th-TH", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+function getProductTypeText(productType: string): string {
+  if (productType === "individual") return "Individual";
+  if (productType === "family") return "Family";
+  if (productType === "invite") return "Invite Link";
+  if (productType === "customer_account") return "Customer Account";
+  return productType;
 }

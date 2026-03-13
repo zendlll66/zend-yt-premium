@@ -26,7 +26,12 @@ export default async function EditCategoryPage({
       </div>
       <h1 className="text-xl font-semibold">แก้ไขหมวดหมู่</h1>
       <CategoryForm
-        category={{ id: category.id, name: category.name }}
+        category={{
+          id: category.id,
+          name: category.name,
+          imageUrl: category.imageUrl ?? null,
+          detail: category.detail ?? null,
+        }}
         action={updateCategoryAction}
       />
     </div>

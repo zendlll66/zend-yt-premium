@@ -19,15 +19,23 @@ function formatMoney(n: number) {
   }).format(n);
 }
 
+function getStockTypeLabel(stockType: string) {
+  if (stockType === "individual") return "Individual";
+  if (stockType === "family") return "Family";
+  if (stockType === "invite") return "Invite Link";
+  if (stockType === "customer_account") return "Customer Account";
+  return stockType;
+}
+
 export default async function ProductsPage() {
   const products = await findAllProducts();
 
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">จัดการสินค้า</h1>
+        <h1 className="text-xl font-semibold">จัดการแพ็กเกจ</h1>
         <Button asChild>
-          <Link href="/dashboard/products/add">เพิ่มสินค้า</Link>
+          <Link href="/dashboard/products/add">เพิ่มแพ็กเกจ</Link>
         </Button>
       </div>
 
@@ -37,11 +45,11 @@ export default async function ProductsPage() {
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 font-medium">รูป</th>
-                <th className="px-4 py-3 font-medium">ชื่อ</th>
+                <th className="px-4 py-3 font-medium">ชื่อแพ็กเกจ</th>
                 <th className="px-4 py-3 font-medium">หมวดหมู่</th>
-                <th className="px-4 py-3 font-medium">ราคา/วัน</th>
-                <th className="px-4 py-3 font-medium">มัดจำ</th>
-                <th className="px-4 py-3 font-medium">คงคลัง</th>
+                <th className="px-4 py-3 font-medium">ราคาขาย</th>
+                <th className="px-4 py-3 font-medium">ราคาเดิม</th>
+                <th className="px-4 py-3 font-medium">ประเภทสต็อก</th>
                 <th className="px-4 py-3 font-medium">สถานะ</th>
                 <th className="px-4 py-3 font-medium">สร้างเมื่อ</th>
                 <th className="px-4 py-3 text-right font-medium">จัดการ</th>
@@ -51,7 +59,7 @@ export default async function ProductsPage() {
               {products.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
-                    ยังไม่มีสินค้า
+                    ยังไม่มีแพ็กเกจ
                   </td>
                 </tr>
               ) : (
@@ -76,7 +84,7 @@ export default async function ProductsPage() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {p.deposit != null && p.deposit > 0 ? `${formatMoney(p.deposit)} ฿` : "-"}
                     </td>
-                    <td className="px-4 py-3">{p.stock}</td>
+                    <td className="px-4 py-3">{getStockTypeLabel(p.stockType)}</td>
                     <td className="px-4 py-3">
                       <span
                         className={
@@ -85,7 +93,7 @@ export default async function ProductsPage() {
                             : "text-muted-foreground"
                         }
                       >
-                        {p.isActive ? "เปิดให้เช่า" : "ปิด"}
+                        {p.isActive ? "เปิดขาย" : "ปิด"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">

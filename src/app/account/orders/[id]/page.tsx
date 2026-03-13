@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Calendar, Package, Receipt, Truck } from "lucide-react";
+import { Receipt } from "lucide-react";
 import { getCustomerSession } from "@/lib/auth-customer-server";
 import { findOrderById } from "@/features/order/order.repo";
-import { FulfillmentStepperReadOnly } from "@/components/fulfillment-stepper-readonly";
 import { Button } from "@/components/ui/button";
 
 function formatDate(d: Date | null) {
@@ -26,6 +25,8 @@ function orderStatusLabel(status: string): { label: string; className: string } 
   switch (status) {
     case "paid":
       return { label: "ชำระเงินแล้ว", className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" };
+    case "fulfilled":
+      return { label: "จัดส่งสำเร็จ", className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" };
     case "completed":
       return { label: "ดำเนินการเสร็จสิ้น", className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" };
     case "cancelled":
@@ -33,6 +34,14 @@ function orderStatusLabel(status: string): { label: string; className: string } 
     default:
       return { label: "รอชำระเงิน", className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" };
   }
+}
+
+function getProductTypeLabel(productType: string) {
+  if (productType === "individual") return "Individual";
+  if (productType === "family") return "Family";
+  if (productType === "invite") return "Invite Link";
+  if (productType === "customer_account") return "Customer Account";
+  return productType;
 }
 
 export default async function AccountOrderDetailPage({
@@ -56,7 +65,7 @@ export default async function AccountOrderDetailPage({
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/account/orders">← ประวัติการเช่า</Link>
+          <Link href="/account/orders">← ประวัติคำสั่งซื้อ</Link>
         </Button>
       </div>
 
@@ -69,10 +78,7 @@ export default async function AccountOrderDetailPage({
             <div className="min-w-0">
               <p className="font-medium tracking-tight">{order.orderNumber}</p>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5" />
-                  {formatDate(order.rentalStart)} – {formatDate(order.rentalEnd)}
-                </span>
+                <span>ประเภท: {getProductTypeLabel(order.productType)}</span>
               </div>
             </div>
           </div>
@@ -88,21 +94,14 @@ export default async function AccountOrderDetailPage({
 
         {order.items.length > 0 && (
           <div className="border-t border-border/60 bg-background/50 p-4">
-            <p className="mb-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Truck className="h-3.5 w-3.5" />
-              สถานะการจัดส่ง
-            </p>
-            <ul className="space-y-4">
+            <p className="mb-3 text-xs font-medium text-muted-foreground">รายการสินค้า</p>
+            <ul className="space-y-2">
               {order.items.map((item) => (
-                <li key={item.id} className="rounded-lg border border-border/40 bg-muted/20 p-3">
-                  <p className="mb-2 text-sm font-medium">{item.productName}</p>
-                  <p className="mb-3 text-xs text-muted-foreground">
-                    {formatDate(item.rentalStart)} – {formatDate(item.rentalEnd)} · จำนวน {item.quantity}
-                    {item.modifiers.length > 0 && (
-                      <span> · {item.modifiers.map((m) => m.modifierName).join(", ")}</span>
-                    )}
-                  </p>
-                  <FulfillmentStepperReadOnly currentStatus={item.fulfillmentStatus} />
+                <li key={item.id} className="rounded-lg border border-border/40 bg-muted/20 p-3 text-sm">
+                  {item.productName} · จำนวน {item.quantity}
+                  {item.modifiers.length > 0 && (
+                    <span className="text-muted-foreground"> · {item.modifiers.map((m) => m.modifierName).join(", ")}</span>
+                  )}
                 </li>
               ))}
             </ul>

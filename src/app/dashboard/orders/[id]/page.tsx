@@ -3,14 +3,6 @@ import { notFound } from "next/navigation";
 import { findOrderById } from "@/features/order/order.repo";
 import { Button } from "@/components/ui/button";
 import { OrderStatusActions } from "./order-status-actions";
-import { OrderItemFulfillmentSelect } from "./order-item-fulfillment";
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "รอชำระเงิน",
-  paid: "ชำระแล้ว",
-  completed: "คืนแล้ว",
-  cancelled: "ยกเลิก",
-};
 
 function formatDate(d: Date | null) {
   if (!d) return "-";
@@ -26,6 +18,14 @@ function formatMoney(n: number) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(n);
+}
+
+function getProductTypeLabel(productType: string) {
+  if (productType === "individual") return "Individual";
+  if (productType === "family") return "Family";
+  if (productType === "invite") return "Invite Link";
+  if (productType === "customer_account") return "Customer Account";
+  return productType;
 }
 
 export default async function OrderDetailPage({
@@ -44,7 +44,7 @@ export default async function OrderDetailPage({
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/orders">← รายการคำสั่งเช่า</Link>
+          <Link href="/dashboard/orders">← รายการคำสั่งซื้อ</Link>
         </Button>
       </div>
 
@@ -54,13 +54,11 @@ export default async function OrderDetailPage({
           <p className="text-sm text-muted-foreground">
             สร้างเมื่อ {formatDate(order.createdAt)}
           </p>
+          <p className="text-sm text-muted-foreground">
+            ประเภทสินค้า: {getProductTypeLabel(order.productType)}
+          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/dashboard/orders/${order.id}/tracking`}>ติดตามการส่ง</Link>
-          </Button>
-          <OrderStatusActions orderId={order.id} currentStatus={order.status} />
-        </div>
+        <OrderStatusActions orderId={order.id} currentStatus={order.status} />
       </div>
 
       <div className="rounded-xl border bg-card p-4">
@@ -78,77 +76,44 @@ export default async function OrderDetailPage({
         </p>
       </div>
 
-      <div className="rounded-xl border bg-card p-4">
-        <h2 className="mb-3 font-medium">ช่วงเวลาเช่า</h2>
-        <p className="text-sm text-muted-foreground">
-          {formatDate(order.rentalStart)} – {formatDate(order.rentalEnd)}
-        </p>
-      </div>
-
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="px-4 py-3 font-medium">สินค้า</th>
-              <th className="px-4 py-3 font-medium">วันรับ–วันคืน / วิธีรับ</th>
-              <th className="px-4 py-3 font-medium">สถานะการส่ง</th>
-              <th className="px-4 py-3 font-medium text-right">ราคา/จำนวน</th>
-              <th className="px-4 py-3 font-medium text-right">รวม</th>
-            </tr>
-          </thead>
-          <tbody>
-            {order.items.map((item) => (
-              <tr key={item.id} className="border-b last:border-0">
-                <td className="px-4 py-3">
-                  <div className="font-medium">{item.productName}</div>
-                  {item.modifiers.length > 0 && (
-                    <ul className="mt-1 text-xs text-muted-foreground">
-                      {item.modifiers.map((m, i) => (
-                        <li key={i}>
-                          {m.modifierName}
-                          {m.price > 0 ? ` +${formatMoney(m.price)}` : ""}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {item.rentalStart && item.rentalEnd ? (
-                    <>
-                      {formatDate(item.rentalStart)} – {formatDate(item.rentalEnd)}
-                      {item.deliveryOption && (
-                        <span className="ml-2">
-                          · {item.deliveryOption === "pickup" ? "รับที่ร้าน" : "ส่ง"}
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <OrderItemFulfillmentSelect
-                    orderItemId={item.id}
-                    orderId={order.id}
-                    currentStatus={item.fulfillmentStatus}
-                  />
-                  {item.fulfillmentUpdatedAt && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      อัปเดต {formatDate(item.fulfillmentUpdatedAt)}
-                    </p>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {formatMoney(item.price)} × {item.quantity}
-                </td>
-                <td className="px-4 py-3 text-right font-medium">
-                  {formatMoney(item.totalPrice)} ฿
-                </td>
+      {order.items.length > 0 && (
+        <div className="rounded-xl border bg-card overflow-hidden">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="px-4 py-3 font-medium">สินค้า</th>
+                <th className="px-4 py-3 font-medium text-right">ราคา/จำนวน</th>
+                <th className="px-4 py-3 font-medium text-right">รวม</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {order.items.map((item) => (
+                <tr key={item.id} className="border-b last:border-0">
+                  <td className="px-4 py-3">
+                    <div className="font-medium">{item.productName}</div>
+                    {item.modifiers.length > 0 && (
+                      <ul className="mt-1 text-xs text-muted-foreground">
+                        {item.modifiers.map((m, i) => (
+                          <li key={i}>
+                            {m.modifierName}
+                            {m.price > 0 ? ` +${formatMoney(m.price)}` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {formatMoney(item.price)} × {item.quantity}
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium">
+                    {formatMoney(item.totalPrice)} ฿
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className="flex flex-col gap-1 rounded-xl border bg-muted/30 px-4 py-3 text-right">
         {order.depositAmount > 0 && (

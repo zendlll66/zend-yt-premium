@@ -22,8 +22,7 @@ export function DashboardLowStockAlert({ products }: Props) {
           <ul className="mt-2 flex flex-wrap gap-2">
             {products.slice(0, 8).map((p) => (
               <li key={p.id} className="rounded bg-amber-100 px-2 py-1 text-sm dark:bg-amber-900/40">
-                {p.name}: {p.stock}
-                {p.lowStockThreshold != null ? ` (เกณฑ์ ${p.lowStockThreshold})` : ""}
+                {p.name} ({p.stockType})
               </li>
             ))}
             {products.length > 8 && (

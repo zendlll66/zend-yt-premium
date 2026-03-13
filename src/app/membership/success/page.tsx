@@ -38,14 +38,14 @@ export default async function MembershipSuccessPage({
       </div>
       <h1 className="text-center text-xl font-semibold">สมัครสมาชิกสำเร็จ</h1>
       <p className="max-w-sm text-center text-sm text-muted-foreground">
-        คุณสามารถใช้สิทธิ์วันเช่าฟรีและส่วนลดได้ทันทีเมื่อเช่าครั้งถัดไป
+        คุณสามารถใช้สิทธิ์สมาชิกและส่วนลดได้ทันทีในคำสั่งซื้อถัดไป
       </p>
       <div className="flex gap-3">
         <Button variant="outline" asChild>
-          <Link href="/rent">ไปเช่าของ</Link>
+          <Link href="/rent">ไปหน้าสินค้า</Link>
         </Button>
         <Button asChild>
-          <Link href="/account/orders">ดูประวัติการเช่า</Link>
+          <Link href="/account/orders">ดูประวัติคำสั่งซื้อ</Link>
         </Button>
       </div>
     </div>

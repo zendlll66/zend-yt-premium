@@ -22,6 +22,7 @@ import {
   UserMultipleIcon,
   Settings05Icon,
   SecurityIcon,
+  DatabaseIcon,
 } from "@hugeicons/core-free-icons";
 import { canAccess, type PermissionRule } from "@/config/permissions";
 
@@ -54,6 +55,19 @@ const NAV_MAIN = [
       { title: "เพิ่มสินค้า", url: "/dashboard/products/add" },
       { title: "ตัวเลือก (Modifiers)", url: "/dashboard/modifiers" },
       { title: "จัดโปร", url: "/dashboard/promotions" },
+    ],
+  },
+  {
+    title: "Manage Stock",
+    url: "#",
+    icon: <HugeiconsIcon icon={DatabaseIcon} strokeWidth={2} />,
+    isActive: true,
+    items: [
+      { title: "ภาพรวม Stock", url: "/dashboard/stocks" },
+      { title: "Individual Accounts", url: "/dashboard/stocks/account-stock" },
+      { title: "Family Groups", url: "/dashboard/stocks/family-groups" },
+      { title: "Invite Links", url: "/dashboard/stocks/invite-links" },
+      { title: "Customer Accounts", url: "/dashboard/stocks/customer-accounts" },
     ],
   },
   {

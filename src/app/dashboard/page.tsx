@@ -41,7 +41,7 @@ export default async function Page({ searchParams }: PageProps) {
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold">ภาพรวม</h1>
         <p className="text-muted-foreground text-sm">
-          สรุปรายได้ ต้นทุน กำไร และสถิติบิลจากคำสั่งเช่าที่ชำระแล้ว
+          สรุปรายได้ ต้นทุน กำไร และสถิติจากคำสั่งซื้อที่ชำระแล้ว
           {hasDateFilter ? " · กรองตามช่วงวันที่ที่เลือก" : ` · ข้อมูลกราฟใช้ช่วง ${DAYS_LABEL} วันล่าสุด`}
         </p>
       </div>
@@ -60,7 +60,7 @@ export default async function Page({ searchParams }: PageProps) {
         <Button variant="outline" size="sm" asChild>
           <Link href="/dashboard/orders">
             <ReceiptText className="mr-1.5 h-4 w-4" />
-            รายการคำสั่งเช่า
+            รายการคำสั่งซื้อ
           </Link>
         </Button>
         <Button variant="outline" size="sm" asChild>

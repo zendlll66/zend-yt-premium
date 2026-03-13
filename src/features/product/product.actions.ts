@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { deleteFromR2 } from "@/lib/r2";
+import type { ProductStockType } from "@/db/schema/product.schema";
 import {
   findProductById,
   createProduct,
@@ -20,6 +21,19 @@ function parseNum(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function parseStockType(v: unknown): ProductStockType | null {
+  const value = String(v ?? "").trim();
+  if (
+    value === "individual" ||
+    value === "family" ||
+    value === "invite" ||
+    value === "customer_account"
+  ) {
+    return value;
+  }
+  return null;
+}
+
 export async function createProductAction(
   _prev: CreateProductState,
   formData: FormData
@@ -29,8 +43,7 @@ export async function createProductAction(
   const price = parseNum(formData.get("price")) ?? 0;
   const deposit = parseNum(formData.get("deposit"));
   const cost = parseNum(formData.get("cost"));
-  const stock = parseNum(formData.get("stock"));
-  const lowStockThreshold = parseNum(formData.get("low_stock_threshold"));
+  const stockType = parseStockType(formData.get("stock_type"));
   const description = (formData.get("description") as string)?.trim() || null;
   const sku = (formData.get("sku") as string)?.trim() || null;
   const barcode = (formData.get("barcode") as string)?.trim() || null;
@@ -39,8 +52,7 @@ export async function createProductAction(
 
   if (!name) return { error: "กรุณากรอกชื่อสินค้า" };
   if (price < 0) return { error: "ราคาต้องไม่ต่ำกว่า 0" };
-  if (stock != null && stock < 0) return { error: "จำนวนคงคลังต้องไม่ต่ำกว่า 0" };
-  if (lowStockThreshold != null && lowStockThreshold < 0) return { error: "เกณฑ์สต็อกต่ำต้องไม่ต่ำกว่า 0" };
+  if (!stockType) return { error: "กรุณาเลือกประเภทสต็อก" };
 
   const product = await createProduct({
     name,
@@ -48,8 +60,7 @@ export async function createProductAction(
     price,
     deposit: deposit ?? null,
     cost: cost ?? null,
-    stock: stock ?? 0,
-    lowStockThreshold: lowStockThreshold ?? null,
+    stockType,
     description,
     sku,
     barcode,
@@ -72,8 +83,7 @@ export async function updateProductAction(
   const price = parseNum(formData.get("price")) ?? 0;
   const deposit = parseNum(formData.get("deposit"));
   const cost = parseNum(formData.get("cost"));
-  const stock = parseNum(formData.get("stock"));
-  const lowStockThreshold = parseNum(formData.get("low_stock_threshold"));
+  const stockType = parseStockType(formData.get("stock_type"));
   const description = (formData.get("description") as string)?.trim() || null;
   const sku = (formData.get("sku") as string)?.trim() || null;
   const barcode = (formData.get("barcode") as string)?.trim() || null;
@@ -82,8 +92,7 @@ export async function updateProductAction(
 
   if (!id || !name) return { error: "กรุณากรอกชื่อสินค้า" };
   if (price < 0) return { error: "ราคาต้องไม่ต่ำกว่า 0" };
-  if (stock != null && stock < 0) return { error: "จำนวนคงคลังต้องไม่ต่ำกว่า 0" };
-  if (lowStockThreshold != null && lowStockThreshold < 0) return { error: "เกณฑ์สต็อกต่ำต้องไม่ต่ำกว่า 0" };
+  if (!stockType) return { error: "กรุณาเลือกประเภทสต็อก" };
 
   const existing = await findProductById(id);
   if (!existing) return { error: "ไม่พบสินค้า" };
@@ -94,8 +103,7 @@ export async function updateProductAction(
     price,
     deposit: deposit ?? null,
     cost: cost ?? null,
-    stock: stock !== null ? stock : undefined,
-    lowStockThreshold: lowStockThreshold !== undefined ? lowStockThreshold : undefined,
+    stockType,
     description,
     sku,
     barcode,

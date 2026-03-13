@@ -1,7 +1,9 @@
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
+import { sqliteTable, integer, text, real } from "drizzle-orm/sqlite-core";
 import { db } from "@/db";
 import { products } from "@/db/schema/product.schema";
 import { categories } from "@/db/schema/category.schema";
+import type { ProductStockType } from "@/db/schema/product.schema";
 
 export type ProductListItem = {
   id: number;
@@ -15,8 +17,7 @@ export type ProductListItem = {
   barcode: string | null;
   imageUrl: string | null;
   description: string | null;
-  stock: number;
-  lowStockThreshold: number | null;
+  stockType: ProductStockType;
   isActive: boolean;
   createdAt: Date | null;
 };
@@ -33,115 +34,122 @@ const productListSelect = {
   barcode: products.barcode,
   imageUrl: products.imageUrl,
   description: products.description,
-  stock: products.stock,
+  stockType: products.stockType,
   isActive: products.isActive,
   createdAt: products.createdAt,
 };
 
-/** รายการสินค้าทั้งหมด — ถ้าคอลัมน์ low_stock_threshold ยังไม่มีจะคืน lowStockThreshold: null */
+const productsLegacy = sqliteTable("products", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  categoryId: integer("category_id"),
+  price: real("price").notNull(),
+  deposit: real("deposit"),
+  cost: real("cost"),
+  sku: text("sku"),
+  barcode: text("barcode"),
+  imageUrl: text("image_url"),
+  description: text("description"),
+  isActive: integer("is_active", { mode: "boolean" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }),
+});
+
+let productColumnSupportCache: { stockType: boolean } | null = null;
+
+async function getProductColumnSupport(): Promise<{ stockType: boolean }> {
+  // Cache เฉพาะตอนที่ตรวจพบคอลัมน์แล้วเท่านั้น
+  // เพื่อเลี่ยงเคส migrate เสร็จ แต่ dev server ยังถือค่า false ค้างอยู่
+  if (productColumnSupportCache?.stockType) return productColumnSupportCache;
+  try {
+    const client = db as unknown as {
+      $client?: { execute?: (sql: string) => Promise<{ rows?: Array<Record<string, unknown>> }> };
+    };
+    const result = await client.$client?.execute?.('PRAGMA table_info("products")');
+    const rows = (result?.rows ?? []) as Array<Record<string, unknown>>;
+    const names = new Set(rows.map((r) => String(r.name ?? "")));
+    productColumnSupportCache = { stockType: names.has("stock_type") };
+    return productColumnSupportCache;
+  } catch {
+    return { stockType: false };
+  }
+}
+
+/** รายการแพ็กเกจทั้งหมด */
 export async function findAllProducts(): Promise<ProductListItem[]> {
-  try {
+  const columnSupport = await getProductColumnSupport();
+  if (!columnSupport.stockType) {
     const rows = await db
       .select({
-        ...productListSelect,
-        lowStockThreshold: products.lowStockThreshold,
-      })
-      .from(products)
-      .leftJoin(categories, eq(products.categoryId, categories.id))
-      .orderBy(desc(products.createdAt));
-    return rows.map((r) => ({
-      ...r,
-      categoryName: r.categoryName ?? null,
-      deposit: r.deposit ?? null,
-      description: r.description ?? null,
-      lowStockThreshold: r.lowStockThreshold ?? null,
-    }));
-  } catch {
-    const rows = await db
-      .select(productListSelect)
-      .from(products)
-      .leftJoin(categories, eq(products.categoryId, categories.id))
-      .orderBy(desc(products.createdAt));
-    return rows.map((r) => ({
-      ...r,
-      categoryName: r.categoryName ?? null,
-      deposit: r.deposit ?? null,
-      description: r.description ?? null,
-      lowStockThreshold: null as number | null,
-    }));
-  }
-}
-
-/** สินค้าที่สต็อกต่ำกว่าเกณฑ์ที่ตั้ง (สำหรับแจ้งเตือน) — คืน [] ถ้าคอลัมน์ low_stock_threshold ยังไม่มี */
-export async function findProductsLowStock(): Promise<ProductListItem[]> {
-  try {
-    const rows = await db
-      .select({
-        id: products.id,
-        name: products.name,
-        categoryId: products.categoryId,
+        id: productsLegacy.id,
+        name: productsLegacy.name,
+        categoryId: productsLegacy.categoryId,
         categoryName: categories.name,
-        price: products.price,
-        deposit: products.deposit,
-        cost: products.cost,
-        sku: products.sku,
-        barcode: products.barcode,
-        imageUrl: products.imageUrl,
-        description: products.description,
-        stock: products.stock,
-        lowStockThreshold: products.lowStockThreshold,
-        isActive: products.isActive,
-        createdAt: products.createdAt,
+        price: productsLegacy.price,
+        deposit: productsLegacy.deposit,
+        cost: productsLegacy.cost,
+        sku: productsLegacy.sku,
+        barcode: productsLegacy.barcode,
+        imageUrl: productsLegacy.imageUrl,
+        description: productsLegacy.description,
+        isActive: productsLegacy.isActive,
+        createdAt: productsLegacy.createdAt,
       })
-      .from(products)
-      .leftJoin(categories, eq(products.categoryId, categories.id))
-      .where(
-        and(
-          isNotNull(products.lowStockThreshold),
-          sql`${products.stock} <= ${products.lowStockThreshold}`
-        )
-      )
-      .orderBy(desc(products.createdAt));
+      .from(productsLegacy)
+      .leftJoin(categories, eq(productsLegacy.categoryId, categories.id))
+      .orderBy(desc(productsLegacy.createdAt));
     return rows.map((r) => ({
       ...r,
       categoryName: r.categoryName ?? null,
       deposit: r.deposit ?? null,
       description: r.description ?? null,
-      lowStockThreshold: r.lowStockThreshold ?? null,
+      stockType: "individual" as ProductStockType,
     }));
-  } catch {
-    return [];
   }
+
+  const rows = await db
+    .select(productListSelect)
+    .from(products)
+    .leftJoin(categories, eq(products.categoryId, categories.id))
+    .orderBy(desc(products.createdAt));
+  return rows.map((r) => ({
+    ...r,
+    categoryName: r.categoryName ?? null,
+    deposit: r.deposit ?? null,
+    description: r.description ?? null,
+  }));
 }
 
-/** ถ้าคอลัมน์ low_stock_threshold ยังไม่มี จะคืน lowStockThreshold: null */
+/** Legacy: ไม่ใช้ stock จาก product แล้ว */
+export async function findProductsLowStock(): Promise<ProductListItem[]> {
+  return [];
+}
+
 export async function findProductById(id: number) {
-  try {
-    const [row] = await db.select().from(products).where(eq(products.id, id)).limit(1);
-    return row ?? null;
-  } catch {
+  const columnSupport = await getProductColumnSupport();
+  if (!columnSupport.stockType) {
     const [row] = await db
       .select({
-        id: products.id,
-        name: products.name,
-        categoryId: products.categoryId,
-        price: products.price,
-        deposit: products.deposit,
-        cost: products.cost,
-        sku: products.sku,
-        barcode: products.barcode,
-        imageUrl: products.imageUrl,
-        description: products.description,
-        stock: products.stock,
-        isActive: products.isActive,
-        createdAt: products.createdAt,
+        id: productsLegacy.id,
+        name: productsLegacy.name,
+        categoryId: productsLegacy.categoryId,
+        price: productsLegacy.price,
+        deposit: productsLegacy.deposit,
+        cost: productsLegacy.cost,
+        sku: productsLegacy.sku,
+        barcode: productsLegacy.barcode,
+        imageUrl: productsLegacy.imageUrl,
+        description: productsLegacy.description,
+        isActive: productsLegacy.isActive,
+        createdAt: productsLegacy.createdAt,
       })
-      .from(products)
-      .where(eq(products.id, id))
+      .from(productsLegacy)
+      .where(eq(productsLegacy.id, id))
       .limit(1);
-    if (!row) return null;
-    return { ...row, lowStockThreshold: null };
+    return row ? { ...row, stockType: "individual" as ProductStockType } : null;
   }
+
+  const [row] = await db.select().from(products).where(eq(products.id, id)).limit(1);
+  return row ?? null;
 }
 
 export async function createProduct(data: {
@@ -154,10 +162,29 @@ export async function createProduct(data: {
   barcode?: string | null;
   imageUrl?: string | null;
   description?: string | null;
-  stock?: number;
-  lowStockThreshold?: number | null;
+  stockType?: ProductStockType;
   isActive?: boolean;
 }) {
+  const columnSupport = await getProductColumnSupport();
+  if (!columnSupport.stockType) {
+    const [legacy] = await db
+      .insert(productsLegacy)
+      .values({
+        name: data.name,
+        categoryId: data.categoryId ?? null,
+        price: data.price,
+        deposit: data.deposit ?? null,
+        cost: data.cost ?? null,
+        sku: data.sku ?? null,
+        barcode: data.barcode ?? null,
+        imageUrl: data.imageUrl ?? null,
+        description: data.description ?? null,
+        isActive: data.isActive ?? true,
+      })
+      .returning();
+    return legacy ? { ...legacy, stockType: "individual" as ProductStockType } : null;
+  }
+
   const [row] = await db
     .insert(products)
     .values({
@@ -170,8 +197,7 @@ export async function createProduct(data: {
       barcode: data.barcode ?? null,
       imageUrl: data.imageUrl ?? null,
       description: data.description ?? null,
-      stock: data.stock ?? 0,
-      lowStockThreshold: data.lowStockThreshold ?? null,
+      stockType: data.stockType ?? "individual",
       isActive: data.isActive ?? true,
     })
     .returning();
@@ -190,13 +216,22 @@ export async function updateProduct(
     barcode?: string | null;
     imageUrl?: string | null;
     description?: string | null;
-    stock?: number;
-    lowStockThreshold?: number | null;
+    stockType?: ProductStockType;
     isActive?: boolean;
   }
 ) {
+  const columnSupport = await getProductColumnSupport();
   const payload: Record<string, unknown> = { ...data };
+  if (!columnSupport.stockType) delete payload.stockType;
   if (Object.keys(payload).length === 0) return findProductById(id);
+  if (!columnSupport.stockType) {
+    const [legacy] = await db
+      .update(productsLegacy)
+      .set(payload as Partial<typeof productsLegacy.$inferInsert>)
+      .where(eq(productsLegacy.id, id))
+      .returning();
+    return legacy ? { ...legacy, stockType: "individual" as ProductStockType } : null;
+  }
   const [row] = await db
     .update(products)
     .set(payload as Partial<typeof products.$inferInsert>)
@@ -211,6 +246,19 @@ export async function deleteProductById(id: number): Promise<boolean> {
 }
 
 export async function setProductActive(id: number, isActive: boolean) {
-  const [row] = await db.update(products).set({ isActive }).where(eq(products.id, id)).returning();
+  const columnSupport = await getProductColumnSupport();
+  if (!columnSupport.stockType) {
+    const [row] = await db
+      .update(productsLegacy)
+      .set({ isActive })
+      .where(eq(productsLegacy.id, id))
+      .returning({ id: productsLegacy.id, isActive: productsLegacy.isActive });
+    return row ?? null;
+  }
+  const [row] = await db
+    .update(products)
+    .set({ isActive })
+    .where(eq(products.id, id))
+    .returning({ id: products.id, isActive: products.isActive });
   return row ?? null;
 }

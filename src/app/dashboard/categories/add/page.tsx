@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createCategoryAction } from "@/features/category/category.actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { CategoryForm } from "../category-form";
 
 export default function AddCategoryPage() {
