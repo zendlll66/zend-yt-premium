@@ -5,20 +5,20 @@ const STEPS = [
   {
     step: 1,
     icon: Search,
-    title: "เลือกสินค้า",
-    detail: "เลือกหมวดและรายการที่ต้องการเช่า กำหนดวันที่เริ่ม-คืน",
+    title: "เลือกแพ็กเกจ",
+    detail: "เลือกหมวด เช่น YouTube, Netflix หรือบริการอื่นที่ต้องการ",
   },
   {
     step: 2,
     icon: CreditCard,
-    title: "กรอกข้อมูล & ชำระเงิน",
+    title: "ยืนยันคำสั่งซื้อ",
     detail: "ลงทะเบียนหรือเข้าสู่ระบบ ชำระผ่านบัตรด้วย Stripe",
   },
   {
     step: 3,
     icon: PackageCheck,
-    title: "รับของ & คืนตามกำหนด",
-    detail: "รับสินค้าตามที่อยู่จัดส่ง คืนตามวันที่กำหนด",
+    title: "รับรหัส/ลิงก์เข้าใช้งาน",
+    detail: "ระบบส่งข้อมูลใช้งานอัตโนมัติ และเก็บใน Inventory เพื่อดูย้อนหลังได้",
   },
 ];
 
@@ -39,7 +39,7 @@ export function HowItWorksSection() {
             ใช้บริการอย่างไร
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-            3 ขั้นตอน สะดวก รวดเร็ว
+            3 ขั้นตอนง่ายๆ ตั้งแต่ซื้อจนรับข้อมูลใช้งาน
           </p>
         </motion.div>
         <div className="relative grid gap-8 md:grid-cols-3">

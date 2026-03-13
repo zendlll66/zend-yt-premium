@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { customerInventories } from "@/db/schema/customer-inventory.schema";
 import { orders } from "@/db/schema/order.schema";
@@ -23,7 +23,38 @@ export async function addCustomerInventoryItem(data: {
   const activatedAt = data.activatedAt ?? new Date();
   const expiresAt =
     data.expiresAt ?? new Date(activatedAt.getTime() + durationDays * 24 * 60 * 60 * 1000);
-  const [row] = await conn
+
+  const [existing] = await conn
+    .select({ id: customerInventories.id })
+    .from(customerInventories)
+    .where(
+      and(
+        eq(customerInventories.customerId, data.customerId),
+        eq(customerInventories.orderId, data.orderId),
+        eq(customerInventories.itemType, data.itemType)
+      )
+    )
+    .limit(1);
+
+  if (existing) {
+    const [updated] = await conn
+      .update(customerInventories)
+      .set({
+        title: data.title,
+        loginEmail: data.loginEmail ?? null,
+        loginPassword: data.loginPassword ?? null,
+        inviteLink: data.inviteLink ?? null,
+        durationDays,
+        activatedAt,
+        expiresAt,
+        note: data.note ?? null,
+      })
+      .where(eq(customerInventories.id, existing.id))
+      .returning();
+    return updated ?? null;
+  }
+
+  const [created] = await conn
     .insert(customerInventories)
     .values({
       customerId: data.customerId,
@@ -40,7 +71,7 @@ export async function addCustomerInventoryItem(data: {
       createdAt: new Date(),
     })
     .returning();
-  return row ?? null;
+  return created ?? null;
 }
 
 export async function findCustomerInventory(customerId: number) {
@@ -62,7 +93,12 @@ export async function findCustomerInventory(customerId: number) {
     })
     .from(customerInventories)
     .leftJoin(orders, eq(customerInventories.orderId, orders.id))
-    .where(eq(customerInventories.customerId, customerId))
+    .where(
+      and(
+        eq(customerInventories.customerId, customerId),
+        inArray(orders.status, ["paid", "fulfilled", "completed"])
+      )
+    )
     .orderBy(desc(customerInventories.createdAt));
 }
 

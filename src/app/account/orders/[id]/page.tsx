@@ -4,15 +4,7 @@ import { Receipt } from "lucide-react";
 import { getCustomerSession } from "@/lib/auth-customer-server";
 import { findOrderById } from "@/features/order/order.repo";
 import { Button } from "@/components/ui/button";
-
-function formatDate(d: Date | null) {
-  if (!d) return "—";
-  return new Intl.DateTimeFormat("th-TH", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(d));
-}
+import { getVisibleModifiers } from "@/lib/customer-account-credentials";
 
 function formatMoney(amount: number) {
   return new Intl.NumberFormat("th-TH", {
@@ -99,8 +91,11 @@ export default async function AccountOrderDetailPage({
               {order.items.map((item) => (
                 <li key={item.id} className="rounded-lg border border-border/40 bg-muted/20 p-3 text-sm">
                   {item.productName} · จำนวน {item.quantity}
-                  {item.modifiers.length > 0 && (
-                    <span className="text-muted-foreground"> · {item.modifiers.map((m) => m.modifierName).join(", ")}</span>
+                  {getVisibleModifiers(item.modifiers).length > 0 && (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · {getVisibleModifiers(item.modifiers).map((m) => m.modifierName).join(", ")}
+                    </span>
                   )}
                 </li>
               ))}

@@ -39,16 +39,26 @@ export const metadata: Metadata = {
     default: "Zend Premium",
     template: "%s | Zend Premium",
   },
-  description: "ระบบจัดการคำสั่งซื้อและสมาชิก — ชำระเงิน จัดการสต็อก และดูแลลูกค้าในที่เดียว",
-  keywords: ["youtube premium", "ระบบขายบัญชี", "ระบบจัดการคำสั่งซื้อ", "zend premium", "stock management"],
+  description:
+    "Zend Premium บริการขายแพ็กเกจดิจิทัล (Individual, Family, Invite, Customer Account) พร้อมระบบสต็อกอัตโนมัติและ Inventory สำหรับลูกค้า",
+  keywords: [
+    "youtube premium",
+    "netflix premium",
+    "spotify premium",
+    "ระบบขายรหัส",
+    "ระบบจัดการสต็อกดิจิทัล",
+    "inventory ลูกค้า",
+    "zend premium",
+  ],
   authors: [{ name: "Zend" }],
   creator: "Zend",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   openGraph: {
     type: "website",
     locale: "th_TH",
-    title: "Zend Premium — ระบบจัดการคำสั่งซื้อและสมาชิก",
-    description: "จัดการคำสั่งซื้อ ชำระเงิน สต็อก และสมาชิกในที่เดียว",
+    title: "Zend Premium — บริการแพ็กเกจพรีเมียมและระบบจัดการสต็อก",
+    description:
+      "ซื้อแพ็กเกจพรีเมียมได้ทันที พร้อมระบบจัดการคำสั่งซื้อ สต็อก และ Inventory ลูกค้าในที่เดียว",
   },
   robots: {
     index: true,

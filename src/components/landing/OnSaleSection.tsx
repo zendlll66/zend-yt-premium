@@ -46,7 +46,7 @@ function ProductSaleCard({ product }: { product: MenuProductWithDiscount }) {
             {formatMoney(product.price)} ฿
           </span>
           <span className="rounded-full bg-violet-600 px-2.5 py-0.5 text-xs font-medium text-white tabular-nums dark:bg-violet-500">
-            {formatMoney(roundedPrice)} ฿/วัน
+                {formatMoney(roundedPrice)} ฿
           </span>
         </div>
       </div>
@@ -79,10 +79,10 @@ export function OnSaleSection({ products }: OnSaleSectionProps) {
             โปรโมชัน
           </p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            สินค้าลดราคา
+            แพ็กเกจลดราคา
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-            เลือกสินค้าที่ร่วมโปร ลดราคาต่อวัน
+            เลือกแพ็กเกจที่ร่วมโปรและรับราคาพิเศษทันที
           </p>
         </div>
 
@@ -99,7 +99,7 @@ export function OnSaleSection({ products }: OnSaleSectionProps) {
             className="rounded-full bg-violet-600 px-8 hover:bg-violet-700 dark:bg-violet-500 dark:hover:bg-violet-600"
           >
             <Link href="/rent">
-              ไปหน้ารายการเช่า
+              ไปหน้ารายการแพ็กเกจ
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>

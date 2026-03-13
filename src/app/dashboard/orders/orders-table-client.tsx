@@ -1,0 +1,217 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import type { DashboardOrderListItem } from "@/features/order/order.repo";
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: "รอชำระเงิน",
+  paid: "ชำระแล้ว",
+  fulfilled: "จัดส่งสำเร็จ",
+  completed: "เสร็จสิ้น",
+  cancelled: "ยกเลิก",
+  refunded: "คืนเงิน",
+};
+
+function formatMoney(n: number) {
+  return new Intl.NumberFormat("th-TH", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
+function getProductTypeLabel(productType: string) {
+  if (productType === "individual") return "Individual";
+  if (productType === "family") return "Family";
+  if (productType === "invite") return "Invite Link";
+  if (productType === "customer_account") return "Customer Account";
+  return productType;
+}
+
+type Props = {
+  orders: DashboardOrderListItem[];
+};
+
+export function OrdersTableClient({ orders }: Props) {
+  const [selectedProduct, setSelectedProduct] = useState<string>("all");
+  const [selectedProductType, setSelectedProductType] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+
+  const productOptions = useMemo(() => {
+    const names = new Set<string>();
+    for (const order of orders) {
+      for (const item of order.items) names.add(item.productName);
+    }
+    return ["all", ...Array.from(names).sort((a, b) => a.localeCompare(b, "th"))];
+  }, [orders]);
+
+  const productTypeOptions = useMemo(() => {
+    const types = new Set<string>();
+    for (const order of orders) types.add(order.productType);
+    return ["all", ...Array.from(types)];
+  }, [orders]);
+
+  const statusOptions = useMemo(() => {
+    const statuses = new Set<string>();
+    for (const order of orders) statuses.add(order.status);
+    return ["all", ...Array.from(statuses)];
+  }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const passProduct =
+        selectedProduct === "all" ||
+        order.items.some((item) => item.productName === selectedProduct);
+      const passProductType =
+        selectedProductType === "all" || order.productType === selectedProductType;
+      const passStatus = selectedStatus === "all" || order.status === selectedStatus;
+      return passProduct && passProductType && passStatus;
+    });
+  }, [orders, selectedProduct, selectedProductType, selectedStatus]);
+
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-2 rounded-xl border bg-card p-3 md:grid-cols-3">
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">สินค้า</label>
+          <select
+            className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+            value={selectedProduct}
+            onChange={(e) => setSelectedProduct(e.target.value)}
+          >
+            {productOptions.map((name) => (
+              <option key={name} value={name}>
+                {name === "all" ? "ทั้งหมด" : name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">ประเภทสินค้า</label>
+          <select
+            className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+            value={selectedProductType}
+            onChange={(e) => setSelectedProductType(e.target.value)}
+          >
+            {productTypeOptions.map((type) => (
+              <option key={type} value={type}>
+                {type === "all" ? "ทั้งหมด" : getProductTypeLabel(type)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">สถานะ</label>
+          <select
+            className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+          >
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status === "all" ? "ทั้งหมด" : (STATUS_LABELS[status] ?? status)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-card">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="px-4 py-3 font-medium">เลขที่</th>
+                <th className="px-4 py-3 font-medium">ลูกค้า</th>
+                <th className="px-4 py-3 font-medium">สินค้า</th>
+                <th className="px-4 py-3 font-medium">ประเภทสินค้า</th>
+                <th className="px-4 py-3 font-medium">สถานะ</th>
+                <th className="px-4 py-3 font-medium">ยอดรวม</th>
+                <th className="px-4 py-3 text-right font-medium">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                    ไม่พบรายการตามเงื่อนไขที่เลือก
+                  </td>
+                </tr>
+              ) : (
+                filteredOrders.map((o) => (
+                  <tr key={o.id} className="border-b last:border-0">
+                    <td className="px-4 py-3 font-mono text-sm">{o.orderNumber}</td>
+                    <td className="px-4 py-3">
+                      {o.customerIdResolved ? (
+                        <Link
+                          href={`/dashboard/customers/${o.customerIdResolved}`}
+                          className="inline-flex items-center gap-2 rounded-full border px-2 py-1 text-xs hover:bg-muted"
+                        >
+                          {o.customerLinePictureUrl ? (
+                            <img
+                              src={o.customerLinePictureUrl}
+                              alt=""
+                              className="h-6 w-6 rounded-full object-cover"
+                            />
+                          ) : (
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px]">
+                              U
+                            </span>
+                          )}
+                          <span className="max-w-[180px] truncate">
+                            {o.customerLineDisplayName ?? o.customerName}
+                          </span>
+                        </Link>
+                      ) : (
+                        <span className="font-medium">{o.customerName}</span>
+                      )}
+                      <span className="mt-1 block text-xs text-muted-foreground">{o.customerEmail}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {o.items.length > 0 ? (
+                        <ul className="space-y-1 text-xs text-muted-foreground">
+                          {o.items.slice(0, 3).map((item, idx) => (
+                            <li key={`${o.id}-item-${idx}`}>
+                              {item.productName} x{item.quantity}
+                            </li>
+                          ))}
+                          {o.items.length > 3 && <li>... และอีก {o.items.length - 3} รายการ</li>}
+                        </ul>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {getProductTypeLabel(o.productType)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={
+                          o.status === "cancelled"
+                            ? "text-muted-foreground"
+                            : o.status === "paid" || o.status === "completed"
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-amber-600 dark:text-amber-400"
+                        }
+                      >
+                        {STATUS_LABELS[o.status] ?? o.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">{formatMoney(o.totalPrice)} ฿</td>
+                    <td className="px-4 py-3 text-right">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/dashboard/orders/${o.id}`}>รายละเอียด</Link>
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+

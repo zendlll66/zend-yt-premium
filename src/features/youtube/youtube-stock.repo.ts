@@ -498,6 +498,58 @@ export async function findCustomerAccounts(limit = 200) {
   return db.select().from(customerAccounts).orderBy(desc(customerAccounts.createdAt)).limit(limit);
 }
 
+export async function findCustomerAccountNotifyTarget(id: number) {
+  const [row] = await db
+    .select({
+      id: customerAccounts.id,
+      status: customerAccounts.status,
+      email: customerAccounts.email,
+      notes: customerAccounts.notes,
+      orderCustomerEmail: orders.customerEmail,
+      lineUserId: customers.lineUserId,
+    })
+    .from(customerAccounts)
+    .leftJoin(orders, eq(customerAccounts.orderId, orders.id))
+    .leftJoin(customers, eq(orders.customerId, customers.id))
+    .where(eq(customerAccounts.id, id))
+    .limit(1);
+
+  if (!row) return null;
+  if (row.lineUserId?.trim()) {
+    return {
+      id: row.id,
+      status: row.status,
+      email: row.email,
+      notes: row.notes,
+      lineUserId: row.lineUserId.trim(),
+    };
+  }
+
+  if (!row.orderCustomerEmail) {
+    return {
+      id: row.id,
+      status: row.status,
+      email: row.email,
+      notes: row.notes,
+      lineUserId: null,
+    };
+  }
+
+  const [byEmail] = await db
+    .select({ lineUserId: customers.lineUserId })
+    .from(customers)
+    .where(eq(customers.email, row.orderCustomerEmail))
+    .limit(1);
+
+  return {
+    id: row.id,
+    status: row.status,
+    email: row.email,
+    notes: row.notes,
+    lineUserId: byEmail?.lineUserId?.trim() ?? null,
+  };
+}
+
 export async function updateCustomerAccountStatus(
   id: number,
   status: "pending" | "processing" | "done",

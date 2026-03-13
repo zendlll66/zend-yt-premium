@@ -64,12 +64,12 @@ function ProductCard({ product }: { product: ProductWithOptionalDiscount }) {
                 {formatMoney(product.price)} ฿
               </span>
               <span className="rounded-full bg-violet-600 px-2.5 py-0.5 text-xs font-medium text-white tabular-nums">
-                {formatMoney(discountedPrice)} ฿/วัน
+                {formatMoney(discountedPrice)} ฿
               </span>
             </>
           ) : (
             <span className="rounded-full bg-violet-600 px-2.5 py-0.5 text-xs font-medium text-white">
-              {formatMoney(product.price)} ฿/วัน
+              {formatMoney(product.price)} ฿
             </span>
           )}
         </span>
@@ -117,7 +117,7 @@ export function ProductsCarouselSection({ products }: ProductsCarouselSectionPro
             รายการทั้งหมด
           </p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            เลื่อนดูทุกรายการให้เช่า
+            เลื่อนดูแพ็กเกจทั้งหมด
           </h2>
           {/* <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
             เลื่อนอัตโนมัติทุก 4 วินาที — เอาเมาส์วางบนแถบเพื่อหยุด
@@ -159,7 +159,7 @@ export function ProductsCarouselSection({ products }: ProductsCarouselSectionPro
         <div className="mt-12 text-center">
           <Button asChild size="lg" className="rounded-full bg-violet-600 px-8 hover:bg-violet-700">
             <Link href="/rent">
-              ไปหน้ารายการเช่า
+              ไปหน้ารายการแพ็กเกจ
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>

@@ -1,7 +1,6 @@
 import { getMenuForOrder } from "@/features/modifier/modifier.repo";
 import { getShopSettings } from "@/features/settings/settings.repo";
 import { getCustomerSession } from "@/lib/auth-customer-server";
-import { findAddressesByCustomerId } from "@/features/customer-address/customer-address.repo";
 import { findActiveMembershipByCustomerId } from "@/features/membership/membership.repo";
 import { getActivePromotionDiscountMap } from "@/features/promotion/promotion.repo";
 import { getCartByCustomerId } from "@/features/cart/cart.repo";
@@ -14,8 +13,7 @@ export default async function RentPage() {
     getCustomerSession(),
     getActivePromotionDiscountMap(),
   ]);
-  const [addresses, activeMembership, initialCart] = await Promise.all([
-    customer ? findAddressesByCustomerId(customer.id) : [],
+  const [activeMembership, initialCart] = await Promise.all([
     customer ? findActiveMembershipByCustomerId(customer.id) : null,
     customer ? getCartByCustomerId(customer.id) : [],
   ]);
@@ -30,15 +28,18 @@ export default async function RentPage() {
   return (
     <RentClient
       menu={menu}
-      shopName={shop.shopName || "ร้านเช่า"}
-      shopLogo={shop.shopLogo}
       shopDescription={shop.shopDescription}
-      deliveryEnabled={shop.deliveryEnabled === "1"}
       customer={customer ? { name: customer.name, email: customer.email, phone: customer.phone } : null}
-      addresses={addresses}
       membership={membership}
       productDiscountMap={productDiscountMap}
       initialCart={initialCart}
+      paymentOptions={{
+        stripeEnabled: shop.paymentStripeEnabled === "1",
+        bankEnabled: shop.paymentBankEnabled === "1",
+        bankName: shop.bankName,
+        bankAccountName: shop.bankAccountName,
+        bankAccountNumber: shop.bankAccountNumber,
+      }}
     />
   );
 }

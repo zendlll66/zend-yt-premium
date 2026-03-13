@@ -22,7 +22,7 @@ export function FinalCtaSection() {
           transition={{ delay: 0.05 }}
           className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl"
         >
-          พร้อมเริ่มเช่าแล้วหรือยัง?
+          พร้อมเริ่มใช้งานแพ็กเกจแล้วหรือยัง?
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 16 }}
@@ -31,7 +31,7 @@ export function FinalCtaSection() {
           transition={{ delay: 0.1 }}
           className="mt-4 text-white/70"
         >
-          สมัครสมาชิกวันนี้ จองของที่ต้องการได้ทันที
+          ซื้อแพ็กเกจที่ต้องการวันนี้ แล้วรับข้อมูลใช้งานพร้อมบันทึกใน Inventory ทันที
         </motion.p>
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -41,7 +41,7 @@ export function FinalCtaSection() {
           className="mt-10 flex flex-wrap items-center justify-center gap-4"
         >
           <Button size="lg" className="rounded-full bg-violet-500 px-8 hover:bg-violet-600" asChild>
-            <Link href="/rent">ไปหน้ารายการเช่า</Link>
+            <Link href="/rent">ไปหน้ารายการแพ็กเกจ</Link>
           </Button>
           <Button
             size="lg"

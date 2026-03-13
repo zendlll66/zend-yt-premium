@@ -26,6 +26,12 @@ export async function saveSettingsAction(
     openingHours: (formData.get("openingHours") as string)?.trim() ?? "",
     theme: (formData.get("theme") as string)?.trim() || "default",
     deliveryEnabled: formData.get("deliveryEnabled") === "on" ? "1" : "0",
+    paymentStripeEnabled: formData.get("paymentStripeEnabled") === "on" ? "1" : "0",
+    paymentBankEnabled: formData.get("paymentBankEnabled") === "on" ? "1" : "0",
+    bankName: (formData.get("bankName") as string)?.trim() ?? "",
+    bankAccountName: (formData.get("bankAccountName") as string)?.trim() ?? "",
+    bankAccountNumber: (formData.get("bankAccountNumber") as string)?.trim() ?? "",
+    bankPromptpayId: (formData.get("bankPromptpayId") as string)?.trim() ?? "",
   };
 
   await saveShopSettings(data);

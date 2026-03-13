@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { findOrderById } from "@/features/order/order.repo";
 import { Button } from "@/components/ui/button";
 import { OrderStatusActions } from "./order-status-actions";
+import { getVisibleModifiers } from "@/lib/customer-account-credentials";
 
 function formatDate(d: Date | null) {
   if (!d) return "-";
@@ -63,17 +64,38 @@ export default async function OrderDetailPage({
 
       <div className="rounded-xl border bg-card p-4">
         <h2 className="mb-3 font-medium">ข้อมูลลูกค้า</h2>
-        <p className="text-sm">
-          <span className="font-medium">{order.customerName}</span>
-          <br />
-          {order.customerEmail}
-          {order.customerPhone && (
-            <>
-              <br />
-              {order.customerPhone}
-            </>
-          )}
-        </p>
+        <div className="text-sm">
+          {order.customerIdResolved ? (
+            <Link
+              href={`/dashboard/customers/${order.customerIdResolved}`}
+              className="mb-2 inline-flex items-center gap-2 rounded-full border px-2 py-1 text-xs hover:bg-muted"
+            >
+              {order.customerLinePictureUrl ? (
+                <img
+                  src={order.customerLinePictureUrl}
+                  alt=""
+                  className="h-6 w-6 rounded-full object-cover"
+                />
+              ) : (
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px]">
+                  U
+                </span>
+              )}
+              <span>{order.customerLineDisplayName ?? order.customerName}</span>
+            </Link>
+          ) : null}
+          <p>
+            <span className="font-medium">{order.customerName}</span>
+            <br />
+            {order.customerEmail}
+            {order.customerPhone && (
+              <>
+                <br />
+                {order.customerPhone}
+              </>
+            )}
+          </p>
+        </div>
       </div>
 
       {order.items.length > 0 && (
@@ -91,9 +113,9 @@ export default async function OrderDetailPage({
                 <tr key={item.id} className="border-b last:border-0">
                   <td className="px-4 py-3">
                     <div className="font-medium">{item.productName}</div>
-                    {item.modifiers.length > 0 && (
+                    {getVisibleModifiers(item.modifiers).length > 0 && (
                       <ul className="mt-1 text-xs text-muted-foreground">
-                        {item.modifiers.map((m, i) => (
+                        {getVisibleModifiers(item.modifiers).map((m, i) => (
                           <li key={i}>
                             {m.modifierName}
                             {m.price > 0 ? ` +${formatMoney(m.price)}` : ""}

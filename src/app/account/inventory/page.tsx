@@ -33,7 +33,7 @@ export default async function AccountInventoryPage() {
         </Button>
         <h1 className="mt-2 text-xl font-semibold">Inventory ของฉัน</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          ข้อมูลบัญชี/ลิงก์ที่ได้รับหลังชำระเงิน จะถูกเก็บไว้ที่หน้านี้
+          แสดงเฉพาะรายการที่ชำระเงินสำเร็จแล้ว พร้อมข้อมูลรหัส/ลิงก์สำหรับเข้าใช้งาน
         </p>
       </div>
 
@@ -58,19 +58,24 @@ export default async function AccountInventoryPage() {
                   {item.loginEmail && (
                     <p className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span>{item.loginEmail}</span>
+                      <span>Email: {item.loginEmail}</span>
                     </p>
                   )}
                   {item.loginPassword && (
                     <p className="flex items-center gap-2">
                       <KeyRound className="h-4 w-4 text-muted-foreground" />
-                      <span>{item.loginPassword}</span>
+                      <span>Password: {item.loginPassword}</span>
                     </p>
                   )}
                   {item.inviteLink && (
                     <p className="flex items-center gap-2 break-all">
                       <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                      <span>{item.inviteLink}</span>
+                      <span>Link: {item.inviteLink}</span>
+                    </p>
+                  )}
+                  {!item.loginEmail && !item.loginPassword && !item.inviteLink && (
+                    <p className="text-xs text-muted-foreground">
+                      ยังไม่มีข้อมูลรหัส/ลิงก์ในระบบ กรุณาติดต่อแอดมิน
                     </p>
                   )}
                   {item.note && <p className="text-muted-foreground">{item.note}</p>}

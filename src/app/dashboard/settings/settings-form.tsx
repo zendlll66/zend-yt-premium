@@ -113,6 +113,88 @@ export function SettingsForm({ initial }: Props) {
         </label>
       </section>
 
+      {/* การชำระเงิน */}
+      <section className="rounded-xl border bg-card p-6">
+        <h2 className="mb-4 font-semibold">การชำระเงิน</h2>
+        <div className="space-y-4">
+          <label className="flex cursor-pointer items-center gap-3">
+            <input
+              type="checkbox"
+              name="paymentStripeEnabled"
+              value="on"
+              defaultChecked={initial.paymentStripeEnabled === "1"}
+              disabled={isPending}
+              className="h-4 w-4 rounded border-input"
+            />
+            <span className="text-sm font-medium">เปิดรับชำระผ่าน Stripe (บัตร)</span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-3">
+            <input
+              type="checkbox"
+              name="paymentBankEnabled"
+              value="on"
+              defaultChecked={initial.paymentBankEnabled === "1"}
+              disabled={isPending}
+              className="h-4 w-4 rounded border-input"
+            />
+            <span className="text-sm font-medium">เปิดรับโอนธนาคาร/QR</span>
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="bankName" className="mb-1.5 block text-sm font-medium">
+                ธนาคาร
+              </label>
+              <Input
+                id="bankName"
+                name="bankName"
+                defaultValue={initial.bankName}
+                placeholder="เช่น กสิกรไทย"
+                disabled={isPending}
+              />
+            </div>
+            <div>
+              <label htmlFor="bankAccountName" className="mb-1.5 block text-sm font-medium">
+                ชื่อบัญชี
+              </label>
+              <Input
+                id="bankAccountName"
+                name="bankAccountName"
+                defaultValue={initial.bankAccountName}
+                placeholder="ชื่อเจ้าของบัญชี"
+                disabled={isPending}
+              />
+            </div>
+            <div>
+              <label htmlFor="bankAccountNumber" className="mb-1.5 block text-sm font-medium">
+                เลขบัญชีธนาคาร
+              </label>
+              <Input
+                id="bankAccountNumber"
+                name="bankAccountNumber"
+                defaultValue={initial.bankAccountNumber}
+                placeholder="xxx-x-xxxxx-x"
+                disabled={isPending}
+              />
+            </div>
+            <div>
+              <label htmlFor="bankPromptpayId" className="mb-1.5 block text-sm font-medium">
+                PromptPay ID (สำหรับ QR)
+              </label>
+              <Input
+                id="bankPromptpayId"
+                name="bankPromptpayId"
+                defaultValue={initial.bankPromptpayId}
+                placeholder="เบอร์โทร/เลขพร้อมเพย์"
+                disabled={isPending}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            QR จะสร้างตามยอดอัตโนมัติจาก PromptPay ID หากไม่ได้กรอก จะยังเห็นข้อมูลบัญชีแต่สร้าง QR ไม่ได้
+          </p>
+        </div>
+      </section>
+
       {/* ใบเสร็จ / พิมพ์ */}
       <section className="rounded-xl border bg-card p-6">
         <h2 className="mb-4 font-semibold">ใบเสร็จ / การพิมพ์</h2>

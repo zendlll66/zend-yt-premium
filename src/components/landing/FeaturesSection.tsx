@@ -4,18 +4,18 @@ import { CreditCard, Shield, Package } from "lucide-react";
 const FEATURES = [
   {
     icon: CreditCard,
-    title: "ชำระง่าย",
-    description: "รองรับบัตรเครดิตผ่าน Stripe ปลอดภัย มั่นใจได้",
+    title: "ชำระเงินปลอดภัย",
+    description: "รองรับบัตรเครดิตผ่าน Stripe พร้อมตรวจสอบสถานะคำสั่งซื้อแบบเรียลไทม์",
   },
   {
     icon: Shield,
-    title: "มัดจำชัดเจน",
-    description: "ระบบมัดจำและคืนเงินเป็นมาตรฐาน โปร่งใส",
+    title: "จัดการสต็อกแม่นยำ",
+    description: "แยกสต็อกตามประเภท Individual, Family, Invite และ Customer Account",
   },
   {
     icon: Package,
-    title: "จัดส่งถึงที่",
-    description: "จัดการที่อยู่จัดส่งได้หลายที่ เลือกที่รับของสะดวก",
+    title: "มี Inventory ให้ลูกค้า",
+    description: "ลูกค้าดูข้อมูลอีเมล/รหัส/ลิงก์ และเช็กวันคงเหลือของแพ็กเกจได้เอง",
   },
 ];
 
@@ -36,7 +36,7 @@ export function FeaturesSection() {
             ทำไมต้องใช้บริการเรา
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-            กระบวนการเช่าง่าย ปลอดภัย โปร่งใส
+            ออกแบบเพื่อร้านที่ขายรหัสดิจิทัลและแพ็กเกจพรีเมียมโดยเฉพาะ
           </p>
         </motion.div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

@@ -16,8 +16,16 @@ export default async function StocksPage() {
   ]);
   const accountAvailable = accounts.filter((a) => a.status === "available").length;
   const accountUsed = accounts.filter((a) => a.status === "sold").length;
-  const familyUsed = familyData.groups.reduce((sum, g) => sum + g.used, 0);
-  const familyAvailable = familyData.groups.reduce((sum, g) => sum + Math.max(0, g.limit - g.used), 0);
+  const familyUsed = familyData.groups.reduce((sum, g) => {
+    const members = familyData.membersByGroup[g.id] ?? [];
+    return sum + members.filter((m) => m.memberStatus === "in_use").length;
+  }, 0);
+  const familyAvailable = familyData.groups.reduce((sum, g) => {
+    const members = familyData.membersByGroup[g.id] ?? [];
+    const available = members.filter((m) => m.memberStatus === "available").length;
+    const released = members.filter((m) => m.memberStatus === "released").length;
+    return sum + available + released;
+  }, 0);
   const inviteAvailable = links.filter((l) => l.status === "available").length;
   const inviteUsed = links.filter((l) => l.status === "used").length;
   const customerPending = customerAccounts.filter((c) => c.status === "pending").length;

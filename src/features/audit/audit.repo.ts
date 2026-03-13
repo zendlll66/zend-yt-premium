@@ -21,17 +21,45 @@ export async function createAuditLog(params: {
   entityId?: string | null;
   details?: string | null;
 }) {
-  const [row] = await db
-    .insert(auditLogs)
-    .values({
-      adminUserId: params.adminUserId ?? null,
-      action: params.action,
-      entityType: params.entityType,
-      entityId: params.entityId ?? null,
-      details: params.details ?? null,
-    })
-    .returning();
-  return row ?? null;
+  const baseValues = {
+    action: params.action,
+    entityType: params.entityType,
+    entityId: params.entityId ?? null,
+    details: params.details ?? null,
+  };
+
+  try {
+    const [row] = await db
+      .insert(auditLogs)
+      .values({
+        ...baseValues,
+        adminUserId: params.adminUserId ?? null,
+      })
+      .returning();
+    return row ?? null;
+  } catch (error) {
+    // If admin_user_id is stale (FK mismatch) or insert fails for any reason,
+    // fallback to system log (adminUserId = null) so business flow won't crash.
+    try {
+      const [row] = await db
+        .insert(auditLogs)
+        .values({
+          ...baseValues,
+          adminUserId: null,
+        })
+        .returning();
+      return row ?? null;
+    } catch (fallbackError) {
+      console.error("[AUDIT] Failed to write audit log", {
+        error,
+        fallbackError,
+        action: params.action,
+        entityType: params.entityType,
+        entityId: params.entityId ?? null,
+      });
+      return null;
+    }
+  }
 }
 
 export async function findRecentAuditLogs(limit = 100): Promise<AuditLogEntry[]> {

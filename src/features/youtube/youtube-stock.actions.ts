@@ -15,12 +15,14 @@ import {
   updateAccountStockById,
   updateCustomerAccountStatus,
   updateCustomerAccountById,
+  findCustomerAccountNotifyTarget,
   updateFamilyGroupById,
   updateFamilyMemberById,
   updateFamilyGroupHeadAccount,
   updateInviteLinkById,
   updateInviteLinkStatus,
 } from "./youtube-stock.repo";
+import { pushLineTextMessage } from "@/lib/line-message";
 
 function refreshStocksPage() {
   revalidatePath("/dashboard/stocks");
@@ -178,7 +180,22 @@ export async function updateCustomerAccountStatusAction(formData: FormData) {
   const status = ((formData.get("status") as string) || "pending") as "pending" | "processing" | "done";
   const notes = (formData.get("notes") as string)?.trim() ?? "";
   if (!id || !Number.isFinite(id)) return;
+  const before = await findCustomerAccountNotifyTarget(id);
   await updateCustomerAccountStatus(id, status, notes || null);
+  const after = await findCustomerAccountNotifyTarget(id);
+  if (
+    before &&
+    after &&
+    before.status !== "done" &&
+    after.status === "done" &&
+    after.lineUserId
+  ) {
+    const noteLine = after.notes?.trim() ? `\nหมายเหตุ: ${after.notes.trim()}` : "";
+    await pushLineTextMessage(
+      after.lineUserId,
+      `บัญชีนี้ใช้งานได้แล้ว\nบัญชี: ${after.email}${noteLine}`
+    );
+  }
   refreshStocksPage();
 }
 
@@ -189,7 +206,22 @@ export async function updateCustomerAccountAction(formData: FormData) {
   const status = ((formData.get("status") as string) || "pending") as "pending" | "processing" | "done";
   const notes = (formData.get("notes") as string)?.trim() ?? "";
   if (!id || !Number.isFinite(id) || !email || !password) return;
+  const before = await findCustomerAccountNotifyTarget(id);
   await updateCustomerAccountById({ id, email, password, status, notes: notes || null });
+  const after = await findCustomerAccountNotifyTarget(id);
+  if (
+    before &&
+    after &&
+    before.status !== "done" &&
+    after.status === "done" &&
+    after.lineUserId
+  ) {
+    const noteLine = after.notes?.trim() ? `\nหมายเหตุ: ${after.notes.trim()}` : "";
+    await pushLineTextMessage(
+      after.lineUserId,
+      `บัญชีนี้ใช้งานได้แล้ว\nบัญชี: ${after.email}${noteLine}`
+    );
+  }
   refreshStocksPage();
 }
 

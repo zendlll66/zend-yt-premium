@@ -1,7 +1,6 @@
 "use client";
 
 import { HeroSection } from "./HeroSection";
-import { CategoryCarousel } from "./CategoryCarousel";
 import { ProductsCarouselSection } from "./ProductsCarouselSection";
 import { OnSaleSection } from "./OnSaleSection";
 import { FeaturesSection } from "./FeaturesSection";
@@ -41,7 +40,7 @@ export function LandingPage({ products = [], onSaleProducts = [], membershipPlan
                 โปรสมัครสมาชิก
               </h2>
               <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-                เลือกแผนรายเดือนหรือรายปี ใช้สิทธิ์วันเช่าฟรีและส่วนลดทุกครั้งที่เช่า
+                เลือกแผนรายเดือนหรือรายปี รับสิทธิ์ส่วนลดและสิทธิพิเศษสำหรับลูกค้าประจำ
               </p>
             </div>
             <MembershipBentoPricing plans={membershipPlans} />

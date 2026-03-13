@@ -5,9 +5,11 @@ import { customerAccounts } from "@/db/schema/customer-account.schema";
 import { customers } from "@/db/schema/customer.schema";
 import { familyGroups, familyMembers } from "@/db/schema/family.schema";
 import { inviteLinks } from "@/db/schema/invite-link.schema";
-import { orderItems, orders, type OrderProductType } from "@/db/schema/order.schema";
+import { orderItemModifiers, orderItems, orders, type OrderProductType } from "@/db/schema/order.schema";
 import { products } from "@/db/schema/product.schema";
 import { addCustomerInventoryItem } from "@/features/inventory/customer-inventory.repo";
+import { pushLineTextMessage } from "@/lib/line-message";
+import { extractCustomerAccountCredentials } from "@/lib/customer-account-credentials";
 
 type AssignContext = {
   orderId: number;
@@ -97,46 +99,50 @@ async function claimInviteLink(conn: typeof db, ctx: AssignContext): Promise<Ass
 
 async function claimFamilySlot(conn: typeof db, ctx: AssignContext): Promise<AssignedStock> {
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    const [family] = await conn
+    const [slot] = await conn
       .select({
-        id: familyGroups.id,
+        memberId: familyMembers.id,
+        familyGroupId: familyMembers.familyGroupId,
+        currentOrderId: familyMembers.orderId,
+        email: familyMembers.email,
+        memberPassword: familyMembers.memberPassword,
         name: familyGroups.name,
-        headEmail: familyGroups.headEmail,
-        headPassword: familyGroups.headPassword,
       })
-      .from(familyGroups)
-      .where(sql`${familyGroups.used} < ${familyGroups.limit}`)
-      .orderBy(familyGroups.used, familyGroups.id)
+      .from(familyMembers)
+      .innerJoin(familyGroups, eq(familyMembers.familyGroupId, familyGroups.id))
+      .leftJoin(orders, eq(familyMembers.orderId, orders.id))
+      .where(
+        sql`${familyMembers.orderId} is null or ${orders.status} in ('cancelled', 'refunded')`
+      )
+      .orderBy(familyMembers.familyGroupId, familyMembers.id)
       .limit(1);
 
-    if (!family) break;
+    if (!slot) break;
 
     const [updated] = await conn
-      .update(familyGroups)
+      .update(familyMembers)
       .set({
-        used: sql`${familyGroups.used} + 1`,
-        updatedAt: new Date(),
+        customerId: ctx.customerId,
+        orderId: ctx.orderId,
       })
-      .where(and(eq(familyGroups.id, family.id), sql`${familyGroups.used} < ${familyGroups.limit}`))
-      .returning({ id: familyGroups.id });
+      .where(
+        and(
+          eq(familyMembers.id, slot.memberId),
+          slot.currentOrderId == null
+            ? sql`${familyMembers.orderId} is null`
+            : eq(familyMembers.orderId, slot.currentOrderId)
+        )
+      )
+      .returning({ id: familyMembers.id });
 
     if (!updated) continue;
 
-    await conn.insert(familyMembers).values({
-      familyGroupId: family.id,
-      customerId: ctx.customerId,
-      email: family.headEmail ?? ctx.customerEmail,
-      memberPassword: family.headPassword ?? null,
-      orderId: ctx.orderId,
-      createdAt: new Date(),
-    });
-
     return {
       kind: "family",
-      familyGroupId: family.id,
-      familyName: family.name,
-      email: family.headEmail ?? ctx.customerEmail,
-      password: family.headPassword ?? null,
+      familyGroupId: slot.familyGroupId,
+      familyName: slot.name,
+      email: slot.email,
+      password: slot.memberPassword ?? null,
     };
   }
 
@@ -151,6 +157,24 @@ async function resolveCustomerId(conn: typeof db, ctx: AssignContext): Promise<n
     .where(eq(customers.email, ctx.customerEmail))
     .limit(1);
   return customer?.id ?? null;
+}
+
+async function sendLineInventoryMessage(
+  conn: typeof db,
+  customerId: number,
+  message: string
+) {
+  const [customer] = await conn
+    .select({ lineUserId: customers.lineUserId })
+    .from(customers)
+    .where(eq(customers.id, customerId))
+    .limit(1);
+  const lineUserId = customer?.lineUserId?.trim();
+  if (!lineUserId) {
+    console.warn(`[LINE] customer ${customerId} has no lineUserId, skip push`);
+    return;
+  }
+  await pushLineTextMessage(lineUserId, message);
 }
 
 async function resolveOrderDurationDays(conn: typeof db, orderId: number): Promise<number> {
@@ -173,6 +197,38 @@ async function resolveOrderDurationDays(conn: typeof db, orderId: number): Promi
   }
 }
 
+async function resolveCustomerAccountCredentialsFromOrder(
+  conn: typeof db,
+  orderId: number
+): Promise<{ email: string | null; password: string | null }> {
+  try {
+    const itemRows = await conn
+      .select({ id: orderItems.id })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, orderId));
+    if (itemRows.length === 0) return { email: null, password: null };
+    const modifierRows = await conn
+      .select({
+        orderItemId: orderItemModifiers.orderItemId,
+        modifierName: orderItemModifiers.modifierName,
+        price: orderItemModifiers.price,
+      })
+      .from(orderItemModifiers)
+      .where(
+        sql`${orderItemModifiers.orderItemId} in (${sql.join(
+          itemRows.map((r) => sql`${r.id}`),
+          sql`, `
+        )})`
+      );
+    const parsed = extractCustomerAccountCredentials(
+      modifierRows.map((m) => ({ modifierName: m.modifierName, price: m.price }))
+    );
+    return parsed;
+  } catch {
+    return { email: null, password: null };
+  }
+}
+
 async function writeInventoryForAssignedStock(conn: typeof db, ctx: AssignContext, stock: AssignedStock) {
   const customerId = await resolveCustomerId(conn, ctx);
   if (!customerId) return;
@@ -189,6 +245,11 @@ async function writeInventoryForAssignedStock(conn: typeof db, ctx: AssignContex
       durationDays,
       tx: conn,
     });
+    await sendLineInventoryMessage(
+      conn,
+      customerId,
+      `ออเดอร์ #${ctx.orderId} ชำระเงินสำเร็จ\nประเภท: Individual\nEmail: ${stock.email}\nPassword: ${stock.password}`
+    );
     return;
   }
 
@@ -204,6 +265,11 @@ async function writeInventoryForAssignedStock(conn: typeof db, ctx: AssignContex
       note: `family_group_id=${stock.familyGroupId}`,
       tx: conn,
     });
+    await sendLineInventoryMessage(
+      conn,
+      customerId,
+      `ออเดอร์ #${ctx.orderId} ชำระเงินสำเร็จ\nประเภท: Family (${stock.familyName})\nEmail: ${stock.email}\nPassword: ${stock.password ?? "-"}`
+    );
     return;
   }
 
@@ -217,7 +283,46 @@ async function writeInventoryForAssignedStock(conn: typeof db, ctx: AssignContex
       durationDays,
       tx: conn,
     });
+    await sendLineInventoryMessage(
+      conn,
+      customerId,
+      `ออเดอร์ #${ctx.orderId} ชำระเงินสำเร็จ\nประเภท: Invite Link\nลิงก์: ${stock.link}`
+    );
     return;
+  }
+
+  const creds = await resolveCustomerAccountCredentialsFromOrder(conn, ctx.orderId);
+  const loginEmail = creds.email ?? ctx.customerEmail;
+  const loginPassword = creds.password;
+
+  const [existingCustomerAccount] = await conn
+    .select({ id: customerAccounts.id })
+    .from(customerAccounts)
+    .where(eq(customerAccounts.orderId, ctx.orderId))
+    .limit(1);
+
+  if (customerId && loginPassword) {
+    if (existingCustomerAccount) {
+      await conn
+        .update(customerAccounts)
+        .set({
+          email: loginEmail,
+          password: loginPassword,
+          status: "pending",
+          updatedAt: new Date(),
+        })
+        .where(eq(customerAccounts.id, existingCustomerAccount.id));
+    } else {
+      await conn.insert(customerAccounts).values({
+        customerId,
+        email: loginEmail,
+        password: loginPassword,
+        orderId: ctx.orderId,
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
   }
 
   await addCustomerInventoryItem({
@@ -225,11 +330,17 @@ async function writeInventoryForAssignedStock(conn: typeof db, ctx: AssignContex
     orderId: ctx.orderId,
     itemType: "customer_account",
     title: "Customer Account",
-    loginEmail: ctx.customerEmail,
+    loginEmail,
+    loginPassword,
     durationDays,
-    note: stock.message,
+    note: "pending",
     tx: conn,
   });
+  await sendLineInventoryMessage(
+    conn,
+    customerId,
+    `ออเดอร์ #${ctx.orderId} ชำระเงินสำเร็จ\nประเภท: Customer Account\nEmail: ${loginEmail}\nPassword: ${loginPassword ?? "-"}`
+  );
 }
 
 export async function assignStockForPaidOrder(input: {
@@ -316,6 +427,11 @@ export async function createCustomerAccountForOrder(
       durationDays: await resolveOrderDurationDays(db, ctx.orderId),
       note: "pending",
     });
+    await sendLineInventoryMessage(
+      db,
+      order.customerId,
+      `ออเดอร์ #${ctx.orderId}\nได้รับบัญชีจากลูกค้าแล้ว\nEmail: ${row.email}\nPassword: ${row.password}`
+    );
   }
   return row;
 }

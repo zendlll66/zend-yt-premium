@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Package, CreditCard, Truck } from "lucide-react";
+import { ArrowRight, Sparkles, Package, CreditCard, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { MenuProduct } from "@/features/modifier/modifier.repo";
 
@@ -18,9 +18,9 @@ type HeroSectionProps = {
 
 export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSectionProps) {
   const stats = [
-    { icon: Package, label: "รายการให้เช่า", value: productCount > 0 ? `${productCount}+` : "หลากหลาย" },
+    { icon: Package, label: "แพ็กเกจพร้อมขาย", value: productCount > 0 ? `${productCount}+` : "หลากหลาย" },
     { icon: CreditCard, label: "ชำระบัตร", value: "Stripe" },
-    { icon: Truck, label: "จัดส่งถึงที่", value: "รับที่ร้าน/ส่ง" },
+    { icon: Shield, label: "จัดส่งรหัสทันที", value: "Auto Delivery" },
   ];
 
   return (
@@ -35,22 +35,22 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
         >
           <p className="mb-4 flex items-center justify-center gap-2 text-sm font-medium tracking-widest text-white/70">
             <Sparkles className="h-4 w-4" />
-            ระบบเช่าอุปกรณ์ระดับพรีเมียม
+            บริการแพ็กเกจ Premium และบัญชีดิจิทัล
           </p>
           <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-            เช่าทุกอย่าง
+            ซื้อแพ็กเกจพรีเมียม
             <br />
             <span className="bg-gradient-to-r from-violet-300 via-purple-300 to-fuchsia-300 bg-clip-text text-transparent">
-              ที่คุณต้องการ
+              รับรหัสใช้งานได้ทันที
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-balance text-lg text-white/70 sm:text-xl">
-            กล้อง รถ และอุปกรณ์อื่นๆ — จองออนไลน์ ชำระด้วยบัตร รับของถึงที่
+            รองรับ Individual, Family, Invite Link และแบบลูกค้าส่งบัญชีมาให้ร้าน พร้อมระบบ Inventory เช็กวันคงเหลือ
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Button size="lg" className="rounded-full bg-violet-500 px-8 text-base hover:bg-violet-600" asChild>
               <Link href="/rent">
-                เริ่มเช่าตอนนี้
+                เลือกแพ็กเกจตอนนี้
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -68,7 +68,7 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
               className="rounded-full px-8 text-base text-white/80 hover:bg-white/10 hover:text-white"
               asChild
             >
-              <Link href="/#membership">ดูโปรสมาชิก</Link>
+              <Link href="/#membership">ดูโปรและสิทธิพิเศษ</Link>
             </Button>
           </div>
         </motion.div>
@@ -102,7 +102,7 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
             className="mt-16 w-full"
           >
             <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-white/50">
-              สินค้าแนะนำ
+              แพ็กเกจแนะนำ
             </p>
             <div className="flex flex-wrap items-stretch justify-center gap-4">
               {featuredProducts.slice(0, 4).map((product) => {
@@ -133,7 +133,7 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
                         {product.name}
                       </p>
                       <p className="mt-2 text-xs font-semibold text-violet-300">
-                        {formatMoney(product.price)} ฿/วัน
+                        {formatMoney(product.price)} ฿
                       </p>
                     </div>
                   </Link>
@@ -145,7 +145,7 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
                 href="#products"
                 className="text-sm font-medium text-white/60 underline-offset-4 hover:text-violet-300 hover:underline"
               >
-                เลื่อนลงดูรายการทั้งหมด
+                เลื่อนลงดูแพ็กเกจทั้งหมด
               </Link>
             </p>
           </motion.div>

@@ -13,6 +13,7 @@ import type { MenuProduct } from "@/features/modifier/modifier.repo";
 import { updateCartItemAction, removeCartItemAction } from "@/features/cart/cart.actions";
 import { ShoppingBag, MapPin, Store, CreditCard, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getVisibleModifiers } from "@/lib/customer-account-credentials";
 
 function formatDateShort(s: string) {
   if (!s) return "—";
@@ -128,9 +129,11 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold">{item.productName}</p>
-                      {item.modifiers.length > 0 && (
+                      {getVisibleModifiers(item.modifiers).length > 0 && (
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          {item.modifiers.map((m) => m.modifierName).join(", ")}
+                          {getVisibleModifiers(item.modifiers)
+                            .map((m) => m.modifierName)
+                            .join(", ")}
                         </p>
                       )}
                       <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">

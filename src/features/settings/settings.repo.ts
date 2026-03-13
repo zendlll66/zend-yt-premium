@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { settings } from "@/db/schema/settings.schema";
 
@@ -20,6 +19,13 @@ export const SETTING_KEYS = {
   theme: "theme",
   /** เปิดบริการส่ง (1 = เปิด ให้เลือกรับที่ร้านหรือส่งได้, 0 = รับที่ร้านอย่างเดียว) */
   deliveryEnabled: "delivery_enabled",
+  /** ช่องทางชำระเงิน */
+  paymentStripeEnabled: "payment_stripe_enabled",
+  paymentBankEnabled: "payment_bank_enabled",
+  bankName: "bank_name",
+  bankAccountName: "bank_account_name",
+  bankAccountNumber: "bank_account_number",
+  bankPromptpayId: "bank_promptpay_id",
 } as const;
 
 /** ค่าที่ใช้ได้สำหรับ theme (ต้องตรงกับ [data-theme] ใน globals.css) */
@@ -42,6 +48,12 @@ const DEFAULTS: Record<string, string> = {
   [SETTING_KEYS.openingHours]: "",
   [SETTING_KEYS.theme]: "default",
   [SETTING_KEYS.deliveryEnabled]: "1",
+  [SETTING_KEYS.paymentStripeEnabled]: "1",
+  [SETTING_KEYS.paymentBankEnabled]: "0",
+  [SETTING_KEYS.bankName]: "",
+  [SETTING_KEYS.bankAccountName]: "",
+  [SETTING_KEYS.bankAccountNumber]: "",
+  [SETTING_KEYS.bankPromptpayId]: "",
 };
 
 export type ShopSettings = {
@@ -61,6 +73,15 @@ export type ShopSettings = {
   theme: string;
   /** "1" = เปิดบริการส่ง, "0" = รับที่ร้านอย่างเดียว */
   deliveryEnabled: string;
+  /** "1" = เปิดจ่ายผ่าน Stripe, "0" = ปิด */
+  paymentStripeEnabled: string;
+  /** "1" = เปิดจ่ายผ่านโอนธนาคาร/QR, "0" = ปิด */
+  paymentBankEnabled: string;
+  bankName: string;
+  bankAccountName: string;
+  bankAccountNumber: string;
+  /** พร้อมเพย์สำหรับสร้าง QR แบบระบุยอด */
+  bankPromptpayId: string;
 };
 
 export async function getShopSettings(): Promise<ShopSettings> {
@@ -82,6 +103,15 @@ export async function getShopSettings(): Promise<ShopSettings> {
     openingHours: map.get(SETTING_KEYS.openingHours) ?? DEFAULTS[SETTING_KEYS.openingHours],
     theme: map.get(SETTING_KEYS.theme) ?? DEFAULTS[SETTING_KEYS.theme],
     deliveryEnabled: map.get(SETTING_KEYS.deliveryEnabled) ?? DEFAULTS[SETTING_KEYS.deliveryEnabled],
+    paymentStripeEnabled:
+      map.get(SETTING_KEYS.paymentStripeEnabled) ?? DEFAULTS[SETTING_KEYS.paymentStripeEnabled],
+    paymentBankEnabled:
+      map.get(SETTING_KEYS.paymentBankEnabled) ?? DEFAULTS[SETTING_KEYS.paymentBankEnabled],
+    bankName: map.get(SETTING_KEYS.bankName) ?? DEFAULTS[SETTING_KEYS.bankName],
+    bankAccountName: map.get(SETTING_KEYS.bankAccountName) ?? DEFAULTS[SETTING_KEYS.bankAccountName],
+    bankAccountNumber:
+      map.get(SETTING_KEYS.bankAccountNumber) ?? DEFAULTS[SETTING_KEYS.bankAccountNumber],
+    bankPromptpayId: map.get(SETTING_KEYS.bankPromptpayId) ?? DEFAULTS[SETTING_KEYS.bankPromptpayId],
   };
 }
 
@@ -102,6 +132,17 @@ export async function saveShopSettings(data: Partial<ShopSettings>): Promise<voi
   if (data.openingHours !== undefined) entries.push([SETTING_KEYS.openingHours, String(data.openingHours)]);
   if (data.theme !== undefined) entries.push([SETTING_KEYS.theme, String(data.theme)]);
   if (data.deliveryEnabled !== undefined) entries.push([SETTING_KEYS.deliveryEnabled, String(data.deliveryEnabled)]);
+  if (data.paymentStripeEnabled !== undefined)
+    entries.push([SETTING_KEYS.paymentStripeEnabled, String(data.paymentStripeEnabled)]);
+  if (data.paymentBankEnabled !== undefined)
+    entries.push([SETTING_KEYS.paymentBankEnabled, String(data.paymentBankEnabled)]);
+  if (data.bankName !== undefined) entries.push([SETTING_KEYS.bankName, String(data.bankName)]);
+  if (data.bankAccountName !== undefined)
+    entries.push([SETTING_KEYS.bankAccountName, String(data.bankAccountName)]);
+  if (data.bankAccountNumber !== undefined)
+    entries.push([SETTING_KEYS.bankAccountNumber, String(data.bankAccountNumber)]);
+  if (data.bankPromptpayId !== undefined)
+    entries.push([SETTING_KEYS.bankPromptpayId, String(data.bankPromptpayId)]);
 
   for (const [key, value] of entries) {
     await db

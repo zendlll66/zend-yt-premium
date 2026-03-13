@@ -6,8 +6,9 @@ import {
   productModifiers,
 } from "@/db/schema/modifier.schema";
 import { accountStock } from "@/db/schema/account-stock.schema";
-import { familyGroups } from "@/db/schema/family.schema";
+import { familyMembers } from "@/db/schema/family.schema";
 import { inviteLinks } from "@/db/schema/invite-link.schema";
+import { orders } from "@/db/schema/order.schema";
 import type { ProductStockType } from "@/db/schema/product.schema";
 
 // ---------- Modifier Groups ----------
@@ -213,9 +214,16 @@ export async function getMenuForOrder(): Promise<MenuProduct[]> {
       .where(eq(accountStock.status, "available")),
     db
       .select({
-        count: sql<number>`coalesce(sum(case when ${familyGroups.limit} > ${familyGroups.used} then ${familyGroups.limit} - ${familyGroups.used} else 0 end), 0)`,
+        count: sql<number>`coalesce(sum(
+          case
+            when ${familyMembers.orderId} is null then 1
+            when ${orders.status} in ('cancelled', 'refunded') then 1
+            else 0
+          end
+        ), 0)`,
       })
-      .from(familyGroups),
+      .from(familyMembers)
+      .leftJoin(orders, eq(familyMembers.orderId, orders.id)),
     db
       .select({ count: sql<number>`count(*)` })
       .from(inviteLinks)

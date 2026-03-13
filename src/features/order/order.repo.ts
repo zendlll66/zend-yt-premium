@@ -10,8 +10,9 @@ import { products } from "@/db/schema/product.schema";
 import type { ProductStockType } from "@/db/schema/product.schema";
 import { payments } from "@/db/schema/payment.schema";
 import { accountStock } from "@/db/schema/account-stock.schema";
-import { familyGroups } from "@/db/schema/family.schema";
+import { familyMembers } from "@/db/schema/family.schema";
 import { inviteLinks } from "@/db/schema/invite-link.schema";
+import { customers } from "@/db/schema/customer.schema";
 import { generateOrderNumber } from "@/lib/order-number";
 import { findActiveMembershipByEmail } from "@/features/membership/membership.repo";
 import { assignStockForPaidOrder } from "@/features/youtube/youtube-stock.service";
@@ -59,6 +60,9 @@ export type OrderListItem = {
   rentalEnd: Date | null;
   customerName: string;
   customerEmail: string;
+  customerIdResolved?: number | null;
+  customerLineDisplayName?: string | null;
+  customerLinePictureUrl?: string | null;
   createdAt: Date | null;
 };
 
@@ -89,11 +93,18 @@ export type OrderDetail = {
   customerName: string;
   customerEmail: string;
   customerPhone: string | null;
+  customerIdResolved?: number | null;
+  customerLineDisplayName?: string | null;
+  customerLinePictureUrl?: string | null;
   stripePaymentIntentId: string | null;
   stripePaymentStatus: string | null;
   createdBy: number | null;
   createdAt: Date | null;
   items: OrderItemWithModifiers[];
+};
+
+export type DashboardOrderListItem = OrderListItem & {
+  items: Array<{ productName: string; quantity: number }>;
 };
 
 async function reserveOrderNumber(): Promise<string> {
@@ -119,24 +130,31 @@ type OrderColumnSupport = {
 let orderColumnSupportCache: OrderColumnSupport | null = null;
 
 async function getOrderColumnSupport(): Promise<OrderColumnSupport> {
-  if (orderColumnSupportCache) return orderColumnSupportCache;
+  if (orderColumnSupportCache?.productType) return orderColumnSupportCache;
   try {
-    const result = await db.execute(sql`PRAGMA table_info("orders")`);
-    const rows = (result.rows ?? []) as Array<Record<string, unknown>>;
+    const client = db as unknown as {
+      $client?: { execute?: (query: string) => Promise<{ rows?: Array<Record<string, unknown>> }> };
+    };
+    const result = await client.$client?.execute?.('PRAGMA table_info("orders")');
+    const rows = (result?.rows ?? []) as Array<Record<string, unknown>>;
     const names = new Set(rows.map((r) => String(r.name ?? "")));
-    orderColumnSupportCache = {
+    const support = {
       productType: names.has("product_type"),
       customerId: names.has("customer_id"),
       updatedAt: names.has("updated_at"),
     };
-    return orderColumnSupportCache;
+    // Cache only when modern columns exist to avoid stale false after migrations.
+    if (support.productType) {
+      orderColumnSupportCache = support;
+    }
+    return support;
   } catch {
-    orderColumnSupportCache = {
+    const fallback = {
       productType: false,
       customerId: false,
       updatedAt: false,
     };
-    return orderColumnSupportCache;
+    return fallback;
   }
 }
 
@@ -195,9 +213,6 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
     throw new Error("MIXED_PRODUCT_TYPE_NOT_SUPPORTED");
   }
   const inferredProductType = [...productTypeSet][0] ?? "individual";
-  if (inferredProductType === "customer_account") {
-    throw new Error("CUSTOMER_ACCOUNT_ORDER_NOT_SUPPORTED_IN_THIS_FLOW");
-  }
 
   for (const item of data.items) {
     const hasRentalDates = isDate(item.rentalStart) && isDate(item.rentalEnd);
@@ -521,6 +536,117 @@ export async function findOrders(limit = 50): Promise<OrderListItem[]> {
   }));
 }
 
+export async function findOrdersForDashboard(limit = 50): Promise<DashboardOrderListItem[]> {
+  const columnSupport = await getOrderColumnSupport();
+  const rows = columnSupport.productType
+    ? await db
+        .select({
+          id: orders.id,
+          orderNumber: orders.orderNumber,
+          status: orders.status,
+          productType: orders.productType,
+          totalPrice: orders.totalPrice,
+          depositAmount: orders.depositAmount,
+          rentalStart: orders.rentalStart,
+          rentalEnd: orders.rentalEnd,
+          customerName: orders.customerName,
+          customerEmail: orders.customerEmail,
+          customerId: columnSupport.customerId ? orders.customerId : sql<number | null>`null`,
+          createdAt: orders.createdAt,
+        })
+        .from(orders)
+        .orderBy(desc(orders.createdAt))
+        .limit(limit)
+    : await db
+        .select({
+          id: orders.id,
+          orderNumber: orders.orderNumber,
+          status: orders.status,
+          totalPrice: orders.totalPrice,
+          depositAmount: orders.depositAmount,
+          rentalStart: orders.rentalStart,
+          rentalEnd: orders.rentalEnd,
+          customerName: orders.customerName,
+          customerEmail: orders.customerEmail,
+          customerId: sql<number | null>`null`,
+          createdAt: orders.createdAt,
+        })
+        .from(orders)
+        .orderBy(desc(orders.createdAt))
+        .limit(limit);
+
+  if (rows.length === 0) return [];
+
+  const orderIds = rows.map((r) => r.id);
+  const itemRows = await db
+    .select({
+      orderId: orderItems.orderId,
+      productName: orderItems.productName,
+      quantity: orderItems.quantity,
+    })
+    .from(orderItems)
+    .where(inArray(orderItems.orderId, orderIds));
+
+  const itemsByOrder: Record<number, Array<{ productName: string; quantity: number }>> = {};
+  for (const id of orderIds) itemsByOrder[id] = [];
+  for (const row of itemRows) {
+    itemsByOrder[row.orderId].push({
+      productName: row.productName,
+      quantity: row.quantity,
+    });
+  }
+
+  const customerIds = [...new Set(rows.map((r) => r.customerId).filter((id): id is number => id != null))];
+  const customerEmails = [...new Set(rows.map((r) => r.customerEmail).filter(Boolean))];
+  const customersByIdRows =
+    customerIds.length > 0
+      ? await db
+          .select({
+            id: customers.id,
+            email: customers.email,
+            lineDisplayName: customers.lineDisplayName,
+            linePictureUrl: customers.linePictureUrl,
+          })
+          .from(customers)
+          .where(inArray(customers.id, customerIds))
+      : [];
+  const customersByEmailRows =
+    customerEmails.length > 0
+      ? await db
+          .select({
+            id: customers.id,
+            email: customers.email,
+            lineDisplayName: customers.lineDisplayName,
+            linePictureUrl: customers.linePictureUrl,
+          })
+          .from(customers)
+          .where(inArray(customers.email, customerEmails))
+      : [];
+  const customersById = new Map(customersByIdRows.map((c) => [c.id, c]));
+  const customersByEmail = new Map(customersByEmailRows.map((c) => [c.email, c]));
+
+  return rows.map((r) => {
+    const customer = (r.customerId != null ? customersById.get(r.customerId) : undefined) ?? customersByEmail.get(r.customerEmail);
+    return {
+      id: r.id,
+      orderNumber: r.orderNumber,
+      status: r.status,
+      productType: columnSupport.productType ? r.productType : "individual",
+      totalPrice: r.totalPrice,
+      depositAmount: r.depositAmount,
+      rentalStart: r.rentalStart,
+      rentalEnd: r.rentalEnd,
+      customerName: r.customerName,
+      customerEmail: r.customerEmail,
+      customerIdResolved: customer?.id ?? null,
+      customerLineDisplayName: customer?.lineDisplayName ?? null,
+      customerLinePictureUrl: customer?.linePictureUrl ?? null,
+      createdAt: r.createdAt,
+      items: itemsByOrder[r.id] ?? [],
+    };
+  });
+}
+
 /** รายการคำสั่งเช่าตามช่วงวันที่ (สำหรับ Export รายงาน) */
 export async function findOrdersByDateRange(
   from: Date,
@@ -625,6 +751,7 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
           customerName: orders.customerName,
           customerEmail: orders.customerEmail,
           customerPhone: orders.customerPhone,
+          customerId: columnSupport.customerId ? orders.customerId : sql<number | null>`null`,
           stripePaymentIntentId: orders.stripePaymentIntentId,
           stripePaymentStatus: orders.stripePaymentStatus,
           createdBy: orders.createdBy,
@@ -645,6 +772,7 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
           customerName: orders.customerName,
           customerEmail: orders.customerEmail,
           customerPhone: orders.customerPhone,
+          customerId: sql<number | null>`null`,
           stripePaymentIntentId: orders.stripePaymentIntentId,
           stripePaymentStatus: orders.stripePaymentStatus,
           createdBy: orders.createdBy,
@@ -673,6 +801,28 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
     {} as Record<number, { modifierName: string; price: number }[]>
   );
 
+  const resolvedCustomer = row.customerId
+    ? await db
+        .select({
+          id: customers.id,
+          lineDisplayName: customers.lineDisplayName,
+          linePictureUrl: customers.linePictureUrl,
+        })
+        .from(customers)
+        .where(eq(customers.id, row.customerId))
+        .limit(1)
+        .then((rows) => rows[0] ?? null)
+    : await db
+        .select({
+          id: customers.id,
+          lineDisplayName: customers.lineDisplayName,
+          linePictureUrl: customers.linePictureUrl,
+        })
+        .from(customers)
+        .where(eq(customers.email, row.customerEmail))
+        .limit(1)
+        .then((rows) => rows[0] ?? null);
+
   return {
     id: row.id,
     orderNumber: row.orderNumber,
@@ -685,6 +835,9 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
     customerName: row.customerName,
     customerEmail: row.customerEmail,
     customerPhone: row.customerPhone,
+    customerIdResolved: resolvedCustomer?.id ?? null,
+    customerLineDisplayName: resolvedCustomer?.lineDisplayName ?? null,
+    customerLinePictureUrl: resolvedCustomer?.linePictureUrl ?? null,
     stripePaymentIntentId: row.stripePaymentIntentId,
     stripePaymentStatus: row.stripePaymentStatus,
     createdBy: row.createdBy,
@@ -718,9 +871,16 @@ async function getAvailableStockByType(stockType: ProductStockType): Promise<num
   if (stockType === "family") {
     const [row] = await db
       .select({
-        count: sql<number>`coalesce(sum(case when ${familyGroups.limit} > ${familyGroups.used} then ${familyGroups.limit} - ${familyGroups.used} else 0 end), 0)`,
+        count: sql<number>`coalesce(sum(
+          case
+            when ${familyMembers.orderId} is null then 1
+            when ${orders.status} in ('cancelled', 'refunded') then 1
+            else 0
+          end
+        ), 0)`,
       })
-      .from(familyGroups);
+      .from(familyMembers)
+      .leftJoin(orders, eq(familyMembers.orderId, orders.id));
     return Number(row?.count ?? 0);
   }
   if (stockType === "invite") {
@@ -787,12 +947,54 @@ export async function checkStockForItems(
 }
 
 export async function updateOrderStatus(id: number, status: OrderStatus) {
-  const [row] = await db
-    .update(orders)
-    .set({ status })
-    .where(eq(orders.id, id))
-    .returning();
-  return row ?? null;
+  const columnSupport = await getOrderColumnSupport();
+  return db.transaction(async (tx) => {
+    const [current] = columnSupport.productType
+      ? await tx
+          .select({
+            id: orders.id,
+            orderNumber: orders.orderNumber,
+            status: orders.status,
+            productType: orders.productType,
+            customerId: columnSupport.customerId ? orders.customerId : sql<number | null>`null`,
+            customerEmail: orders.customerEmail,
+          })
+          .from(orders)
+          .where(eq(orders.id, id))
+          .limit(1)
+      : await tx
+          .select({
+            id: orders.id,
+            orderNumber: orders.orderNumber,
+            status: orders.status,
+            customerEmail: orders.customerEmail,
+          })
+          .from(orders)
+          .where(eq(orders.id, id))
+          .limit(1);
+    if (!current) return null;
+
+    const [updated] = await tx
+      .update(orders)
+      .set({ status })
+      .where(eq(orders.id, id))
+      .returning();
+    if (!updated) return null;
+
+    if (status === "paid" && current.status !== "paid") {
+      await assignStockForPaidOrder({
+        orderId: id,
+        productType: columnSupport.productType
+          ? (current.productType as OrderProductType)
+          : "individual",
+        customerId: columnSupport.customerId ? (current.customerId ?? null) : null,
+        customerEmail: current.customerEmail,
+        tx,
+      });
+    }
+
+    return updated;
+  });
 }
 
 export async function setOrderStripePayment(
