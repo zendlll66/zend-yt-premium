@@ -44,6 +44,12 @@ export default async function AccountLayout({
             ประวัติการซื้อ
           </Link>
           <Link
+            href="/account/inventory"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            Inventory
+          </Link>
+          <Link
             href="/account/profile"
             className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >

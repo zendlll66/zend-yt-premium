@@ -14,6 +14,14 @@ export default async function StocksPage() {
     findInviteLinks(200),
     findCustomerAccounts(200),
   ]);
+  const accountAvailable = accounts.filter((a) => a.status === "available").length;
+  const accountUsed = accounts.filter((a) => a.status === "sold").length;
+  const familyUsed = familyData.groups.reduce((sum, g) => sum + g.used, 0);
+  const familyAvailable = familyData.groups.reduce((sum, g) => sum + Math.max(0, g.limit - g.used), 0);
+  const inviteAvailable = links.filter((l) => l.status === "available").length;
+  const inviteUsed = links.filter((l) => l.status === "used").length;
+  const customerPending = customerAccounts.filter((c) => c.status === "pending").length;
+  const customerDone = customerAccounts.filter((c) => c.status === "done").length;
 
   return (
     <div className="flex flex-1 flex-col gap-6">
@@ -27,28 +35,36 @@ export default async function StocksPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-xl border bg-card p-4">
           <h2 className="font-medium">Individual Accounts</h2>
-          <p className="mt-1 text-sm text-muted-foreground">จำนวน {accounts.length} รายการ</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            คงเหลือ {accountAvailable} · ส่งแล้ว {accountUsed}
+          </p>
           <Button className="mt-3" asChild>
             <Link href="/dashboard/stocks/account-stock">จัดการ Individual</Link>
           </Button>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <h2 className="font-medium">Family Groups</h2>
-          <p className="mt-1 text-sm text-muted-foreground">จำนวน {familyData.groups.length} กลุ่ม</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            คงเหลือ {familyAvailable} slot · ส่งแล้ว {familyUsed}
+          </p>
           <Button className="mt-3" asChild>
             <Link href="/dashboard/stocks/family-groups">จัดการ Family</Link>
           </Button>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <h2 className="font-medium">Invite Links</h2>
-          <p className="mt-1 text-sm text-muted-foreground">จำนวน {links.length} ลิงก์</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            คงเหลือ {inviteAvailable} · ส่งแล้ว {inviteUsed}
+          </p>
           <Button className="mt-3" asChild>
             <Link href="/dashboard/stocks/invite-links">จัดการ Invite Links</Link>
           </Button>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <h2 className="font-medium">Customer Accounts</h2>
-          <p className="mt-1 text-sm text-muted-foreground">จำนวน {customerAccounts.length} รายการ</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            รอดำเนินการ {customerPending} · เสร็จแล้ว {customerDone}
+          </p>
           <Button className="mt-3" asChild>
             <Link href="/dashboard/stocks/customer-accounts">จัดการ Customer Accounts</Link>
           </Button>

@@ -19,6 +19,7 @@ type ProductRow = {
   barcode: string | null;
   imageUrl: string | null;
   description: string | null;
+  durationDays: number;
   stockType?: "individual" | "family" | "invite" | "customer_account";
   isActive: boolean;
 };
@@ -140,6 +141,22 @@ export function ProductForm({ categories, product, action }: Props) {
             <option value="customer_account">Customer Account</option>
           </select>
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="duration_days" className="mb-1.5 block text-sm font-medium">
+          อายุแพ็กเกจ (วัน) *
+        </label>
+        <Input
+          id="duration_days"
+          name="duration_days"
+          type="number"
+          min={1}
+          step={1}
+          defaultValue={product?.durationDays ?? 30}
+          required
+          disabled={isPending}
+        />
       </div>
 
       <div>

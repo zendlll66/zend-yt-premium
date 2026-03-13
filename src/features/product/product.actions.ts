@@ -43,6 +43,7 @@ export async function createProductAction(
   const price = parseNum(formData.get("price")) ?? 0;
   const deposit = parseNum(formData.get("deposit"));
   const cost = parseNum(formData.get("cost"));
+  const durationDays = parseNum(formData.get("duration_days")) ?? 30;
   const stockType = parseStockType(formData.get("stock_type"));
   const description = (formData.get("description") as string)?.trim() || null;
   const sku = (formData.get("sku") as string)?.trim() || null;
@@ -52,6 +53,7 @@ export async function createProductAction(
 
   if (!name) return { error: "กรุณากรอกชื่อสินค้า" };
   if (price < 0) return { error: "ราคาต้องไม่ต่ำกว่า 0" };
+  if (!Number.isInteger(durationDays) || durationDays < 1) return { error: "จำนวนวันต้องมากกว่า 0" };
   if (!stockType) return { error: "กรุณาเลือกประเภทสต็อก" };
 
   const product = await createProduct({
@@ -60,6 +62,7 @@ export async function createProductAction(
     price,
     deposit: deposit ?? null,
     cost: cost ?? null,
+    durationDays,
     stockType,
     description,
     sku,
@@ -83,6 +86,7 @@ export async function updateProductAction(
   const price = parseNum(formData.get("price")) ?? 0;
   const deposit = parseNum(formData.get("deposit"));
   const cost = parseNum(formData.get("cost"));
+  const durationDays = parseNum(formData.get("duration_days")) ?? 30;
   const stockType = parseStockType(formData.get("stock_type"));
   const description = (formData.get("description") as string)?.trim() || null;
   const sku = (formData.get("sku") as string)?.trim() || null;
@@ -92,6 +96,7 @@ export async function updateProductAction(
 
   if (!id || !name) return { error: "กรุณากรอกชื่อสินค้า" };
   if (price < 0) return { error: "ราคาต้องไม่ต่ำกว่า 0" };
+  if (!Number.isInteger(durationDays) || durationDays < 1) return { error: "จำนวนวันต้องมากกว่า 0" };
   if (!stockType) return { error: "กรุณาเลือกประเภทสต็อก" };
 
   const existing = await findProductById(id);
@@ -103,6 +108,7 @@ export async function updateProductAction(
     price,
     deposit: deposit ?? null,
     cost: cost ?? null,
+    durationDays,
     stockType,
     description,
     sku,

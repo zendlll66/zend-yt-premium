@@ -99,8 +99,20 @@ async function seedAccountStock(seedOrderIds: { soldIndividual: number; reserved
 
 async function seedFamilyStock(seedOrderIds: { family1: number; family2: number }) {
   const families = [
-    { name: "YT Family Group A", limit: 6, notes: "Seed group A" },
-    { name: "YT Family Group B", limit: 6, notes: "Seed group B" },
+    {
+      name: "YT Family Group A",
+      limit: 6,
+      notes: "Seed group A",
+      headEmail: "family-head-a@example.com",
+      headPassword: "head-pass-a",
+    },
+    {
+      name: "YT Family Group B",
+      limit: 6,
+      notes: "Seed group B",
+      headEmail: "family-head-b@example.com",
+      headPassword: "head-pass-b",
+    },
   ];
 
   const familyIdByName = new Map<string, number>();
@@ -114,6 +126,8 @@ async function seedFamilyStock(seedOrderIds: { family1: number; family2: number 
       .insert(familyGroups)
       .values({
         name: family.name,
+        headEmail: family.headEmail,
+        headPassword: family.headPassword,
         limit: family.limit,
         used: 0,
         notes: family.notes,
@@ -124,9 +138,30 @@ async function seedFamilyStock(seedOrderIds: { family1: number; family2: number 
     if (row) familyIdByName.set(family.name, row.id);
   }
 
+  for (const family of families) {
+    await db
+      .update(familyGroups)
+      .set({
+        headEmail: family.headEmail,
+        headPassword: family.headPassword,
+        updatedAt: new Date(),
+      })
+      .where(eq(familyGroups.name, family.name));
+  }
+
   const members = [
-    { familyName: "YT Family Group A", email: "family-slot-a1@example.com", orderId: seedOrderIds.family1 },
-    { familyName: "YT Family Group A", email: "family-slot-a2@example.com", orderId: seedOrderIds.family2 },
+    {
+      familyName: "YT Family Group A",
+      email: "family-slot-a1@example.com",
+      memberPassword: "family-member-pass-1",
+      orderId: seedOrderIds.family1,
+    },
+    {
+      familyName: "YT Family Group A",
+      email: "family-slot-a2@example.com",
+      memberPassword: "family-member-pass-2",
+      orderId: seedOrderIds.family2,
+    },
   ];
 
   let addedMembers = 0;
@@ -142,6 +177,7 @@ async function seedFamilyStock(seedOrderIds: { family1: number; family2: number 
     await db.insert(familyMembers).values({
       familyGroupId: familyId,
       email: member.email,
+      memberPassword: member.memberPassword,
       customerId: null,
       orderId: member.orderId,
       createdAt: new Date(),

@@ -2,9 +2,12 @@ import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { accountStock } from "@/db/schema/account-stock.schema";
 import { customerAccounts } from "@/db/schema/customer-account.schema";
+import { customers } from "@/db/schema/customer.schema";
 import { familyGroups, familyMembers } from "@/db/schema/family.schema";
 import { inviteLinks } from "@/db/schema/invite-link.schema";
-import { orders, type OrderProductType } from "@/db/schema/order.schema";
+import { orderItems, orders, type OrderProductType } from "@/db/schema/order.schema";
+import { products } from "@/db/schema/product.schema";
+import { addCustomerInventoryItem } from "@/features/inventory/customer-inventory.repo";
 
 type AssignContext = {
   orderId: number;
@@ -14,7 +17,7 @@ type AssignContext = {
 
 type AssignedStock =
   | { kind: "individual"; email: string; password: string }
-  | { kind: "family"; familyGroupId: number; familyName: string }
+  | { kind: "family"; familyGroupId: number; familyName: string; email: string; password: string | null }
   | { kind: "invite"; link: string }
   | { kind: "customer_account"; message: string };
 
@@ -98,6 +101,8 @@ async function claimFamilySlot(conn: typeof db, ctx: AssignContext): Promise<Ass
       .select({
         id: familyGroups.id,
         name: familyGroups.name,
+        headEmail: familyGroups.headEmail,
+        headPassword: familyGroups.headPassword,
       })
       .from(familyGroups)
       .where(sql`${familyGroups.used} < ${familyGroups.limit}`)
@@ -120,7 +125,8 @@ async function claimFamilySlot(conn: typeof db, ctx: AssignContext): Promise<Ass
     await conn.insert(familyMembers).values({
       familyGroupId: family.id,
       customerId: ctx.customerId,
-      email: ctx.customerEmail,
+      email: family.headEmail ?? ctx.customerEmail,
+      memberPassword: family.headPassword ?? null,
       orderId: ctx.orderId,
       createdAt: new Date(),
     });
@@ -129,10 +135,101 @@ async function claimFamilySlot(conn: typeof db, ctx: AssignContext): Promise<Ass
       kind: "family",
       familyGroupId: family.id,
       familyName: family.name,
+      email: family.headEmail ?? ctx.customerEmail,
+      password: family.headPassword ?? null,
     };
   }
 
   throw new Error("NO_FAMILY_SLOT");
+}
+
+async function resolveCustomerId(conn: typeof db, ctx: AssignContext): Promise<number | null> {
+  if (ctx.customerId) return ctx.customerId;
+  const [customer] = await conn
+    .select({ id: customers.id })
+    .from(customers)
+    .where(eq(customers.email, ctx.customerEmail))
+    .limit(1);
+  return customer?.id ?? null;
+}
+
+async function resolveOrderDurationDays(conn: typeof db, orderId: number): Promise<number> {
+  try {
+    const [orderItem] = await conn
+      .select({ productId: orderItems.productId })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, orderId))
+      .limit(1);
+    if (!orderItem?.productId) return 30;
+    const [product] = await conn
+      .select({ durationDays: products.durationDays })
+      .from(products)
+      .where(eq(products.id, orderItem.productId))
+      .limit(1);
+    if (!product?.durationDays || product.durationDays < 1) return 30;
+    return product.durationDays;
+  } catch {
+    return 30;
+  }
+}
+
+async function writeInventoryForAssignedStock(conn: typeof db, ctx: AssignContext, stock: AssignedStock) {
+  const customerId = await resolveCustomerId(conn, ctx);
+  if (!customerId) return;
+  const durationDays = await resolveOrderDurationDays(conn, ctx.orderId);
+
+  if (stock.kind === "individual") {
+    await addCustomerInventoryItem({
+      customerId,
+      orderId: ctx.orderId,
+      itemType: "individual",
+      title: "Individual Account",
+      loginEmail: stock.email,
+      loginPassword: stock.password,
+      durationDays,
+      tx: conn,
+    });
+    return;
+  }
+
+  if (stock.kind === "family") {
+    await addCustomerInventoryItem({
+      customerId,
+      orderId: ctx.orderId,
+      itemType: "family",
+      title: `Family Group: ${stock.familyName}`,
+      loginEmail: stock.email,
+      loginPassword: stock.password,
+      durationDays,
+      note: `family_group_id=${stock.familyGroupId}`,
+      tx: conn,
+    });
+    return;
+  }
+
+  if (stock.kind === "invite") {
+    await addCustomerInventoryItem({
+      customerId,
+      orderId: ctx.orderId,
+      itemType: "invite",
+      title: "Invite Link",
+      inviteLink: stock.link,
+      durationDays,
+      tx: conn,
+    });
+    return;
+  }
+
+  await addCustomerInventoryItem({
+    customerId,
+    orderId: ctx.orderId,
+    itemType: "customer_account",
+    title: "Customer Account",
+    loginEmail: ctx.customerEmail,
+    durationDays,
+    note: stock.message,
+    tx: conn,
+  });
 }
 
 export async function assignStockForPaidOrder(input: {
@@ -150,19 +247,23 @@ export async function assignStockForPaidOrder(input: {
 
   const conn = input.tx ?? db;
 
+  let assigned: AssignedStock;
+
   if (input.productType === "individual") {
-    return claimIndividualStock(conn, ctx);
+    assigned = await claimIndividualStock(conn, ctx);
+  } else if (input.productType === "family") {
+    assigned = await claimFamilySlot(conn, ctx);
+  } else if (input.productType === "invite") {
+    assigned = await claimInviteLink(conn, ctx);
+  } else {
+    assigned = {
+      kind: "customer_account",
+      message: "waiting_for_customer_account",
+    };
   }
-  if (input.productType === "family") {
-    return claimFamilySlot(conn, ctx);
-  }
-  if (input.productType === "invite") {
-    return claimInviteLink(conn, ctx);
-  }
-  return {
-    kind: "customer_account",
-    message: "waiting_for_customer_account",
-  };
+
+  await writeInventoryForAssignedStock(conn, ctx, assigned);
+  return assigned;
 }
 
 /** ผูกบัญชีที่ลูกค้าส่งมาเข้ากับ order (manual processing) */
@@ -204,6 +305,18 @@ export async function createCustomerAccountForOrder(
       updatedAt: new Date(),
     })
     .returning();
+  if (row) {
+    await addCustomerInventoryItem({
+      customerId: order.customerId,
+      orderId: ctx.orderId,
+      itemType: "customer_account",
+      title: "Customer Account",
+      loginEmail: row.email,
+      loginPassword: row.password,
+      durationDays: await resolveOrderDurationDays(db, ctx.orderId),
+      note: "pending",
+    });
+  }
   return row;
 }
 

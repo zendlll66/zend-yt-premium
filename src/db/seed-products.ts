@@ -79,6 +79,7 @@ async function seedProducts() {
       if (existing) continue;
 
       const stockType = inferStockType(productName, catName);
+      const durationDays = inferDurationDays(productName);
       await db.insert(products).values({
         name: productName,
         categoryId,
@@ -89,6 +90,7 @@ async function seedProducts() {
         barcode: null,
         imageUrl: null,
         description: `แพ็กเกจในหมวด ${catName}`,
+        durationDays,
         stockType,
         isActive: true,
       });
@@ -106,6 +108,13 @@ function inferStockType(productName: string, categoryName: string): ProductStock
   if (text.includes("family") || text.includes("slot") || text.includes("shared")) return "family";
   if (text.includes("invite")) return "invite";
   return "individual";
+}
+
+function inferDurationDays(productName: string): number {
+  const text = productName.toLowerCase();
+  if (text.includes("1 ปี") || text.includes("12 เดือน")) return 365;
+  if (text.includes("3 เดือน")) return 90;
+  return 30;
 }
 
 seedProducts().catch((e) => {

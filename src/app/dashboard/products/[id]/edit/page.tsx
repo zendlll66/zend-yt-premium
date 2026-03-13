@@ -50,6 +50,7 @@ export default async function EditProductPage({
           barcode: product.barcode,
           imageUrl: product.imageUrl,
           description: product.description,
+          durationDays: product.durationDays ?? 30,
           stockType: product.stockType,
           isActive: product.isActive,
         }}

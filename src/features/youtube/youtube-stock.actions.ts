@@ -12,7 +12,13 @@ import {
   deleteInviteLinkById,
   removeFamilyMemberById,
   updateAccountStockStatus,
+  updateAccountStockById,
   updateCustomerAccountStatus,
+  updateCustomerAccountById,
+  updateFamilyGroupById,
+  updateFamilyMemberById,
+  updateFamilyGroupHeadAccount,
+  updateInviteLinkById,
   updateInviteLinkStatus,
 } from "./youtube-stock.repo";
 
@@ -37,6 +43,16 @@ export async function updateAccountStockStatusAction(formData: FormData) {
   refreshStocksPage();
 }
 
+export async function updateAccountStockAction(formData: FormData) {
+  const id = parseInt((formData.get("id") as string) ?? "0", 10);
+  const email = (formData.get("email") as string)?.trim() ?? "";
+  const password = (formData.get("password") as string)?.trim() ?? "";
+  const status = ((formData.get("status") as string) || "available") as "available" | "reserved" | "sold";
+  if (!id || !Number.isFinite(id) || !email || !password) return;
+  await updateAccountStockById({ id, email, password, status });
+  refreshStocksPage();
+}
+
 export async function deleteAccountStockAction(formData: FormData) {
   const id = parseInt((formData.get("id") as string) ?? "0", 10);
   if (!id || !Number.isFinite(id)) return;
@@ -48,8 +64,48 @@ export async function createFamilyGroupAction(formData: FormData) {
   const name = (formData.get("name") as string)?.trim() ?? "";
   const limit = parseInt((formData.get("limit") as string) ?? "0", 10);
   const notes = (formData.get("notes") as string)?.trim() ?? "";
+  const headEmail = (formData.get("head_email") as string)?.trim() ?? "";
+  const headPassword = (formData.get("head_password") as string)?.trim() ?? "";
   if (!name || !Number.isFinite(limit) || limit < 1) return;
-  await createFamilyGroup({ name, limit, notes: notes || null });
+  await createFamilyGroup({
+    name,
+    limit,
+    notes: notes || null,
+    headEmail: headEmail || null,
+    headPassword: headPassword || null,
+  });
+  refreshStocksPage();
+}
+
+export async function updateFamilyGroupHeadAccountAction(formData: FormData) {
+  const id = parseInt((formData.get("id") as string) ?? "0", 10);
+  const headEmail = (formData.get("head_email") as string)?.trim() ?? "";
+  const headPassword = (formData.get("head_password") as string)?.trim() ?? "";
+  if (!id || !Number.isFinite(id)) return;
+  await updateFamilyGroupHeadAccount({
+    id,
+    headEmail: headEmail || null,
+    headPassword: headPassword || null,
+  });
+  refreshStocksPage();
+}
+
+export async function updateFamilyGroupAction(formData: FormData) {
+  const id = parseInt((formData.get("id") as string) ?? "0", 10);
+  const name = (formData.get("name") as string)?.trim() ?? "";
+  const limit = parseInt((formData.get("limit") as string) ?? "0", 10);
+  const notes = (formData.get("notes") as string)?.trim() ?? "";
+  const headEmail = (formData.get("head_email") as string)?.trim() ?? "";
+  const headPassword = (formData.get("head_password") as string)?.trim() ?? "";
+  if (!id || !Number.isFinite(id) || !name || !Number.isFinite(limit) || limit < 1) return;
+  await updateFamilyGroupById({
+    id,
+    name,
+    limit,
+    notes: notes || null,
+    headEmail: headEmail || null,
+    headPassword: headPassword || null,
+  });
   refreshStocksPage();
 }
 
@@ -63,8 +119,9 @@ export async function deleteFamilyGroupAction(formData: FormData) {
 export async function addFamilyMemberAction(formData: FormData) {
   const familyGroupId = parseInt((formData.get("family_group_id") as string) ?? "0", 10);
   const email = (formData.get("email") as string)?.trim() ?? "";
-  if (!familyGroupId || !Number.isFinite(familyGroupId) || !email) return;
-  await addFamilyMember({ familyGroupId, email });
+  const memberPassword = (formData.get("member_password") as string)?.trim() ?? "";
+  if (!familyGroupId || !Number.isFinite(familyGroupId) || !email || !memberPassword) return;
+  await addFamilyMember({ familyGroupId, email, memberPassword });
   refreshStocksPage();
 }
 
@@ -72,6 +129,15 @@ export async function removeFamilyMemberAction(formData: FormData) {
   const id = parseInt((formData.get("id") as string) ?? "0", 10);
   if (!id || !Number.isFinite(id)) return;
   await removeFamilyMemberById(id);
+  refreshStocksPage();
+}
+
+export async function updateFamilyMemberAction(formData: FormData) {
+  const id = parseInt((formData.get("id") as string) ?? "0", 10);
+  const email = (formData.get("email") as string)?.trim() ?? "";
+  const memberPassword = (formData.get("member_password") as string)?.trim() ?? "";
+  if (!id || !Number.isFinite(id) || !email || !memberPassword) return;
+  await updateFamilyMemberById({ id, email, memberPassword });
   refreshStocksPage();
 }
 
@@ -91,6 +157,15 @@ export async function updateInviteLinkStatusAction(formData: FormData) {
   refreshStocksPage();
 }
 
+export async function updateInviteLinkAction(formData: FormData) {
+  const id = parseInt((formData.get("id") as string) ?? "0", 10);
+  const link = (formData.get("link") as string)?.trim() ?? "";
+  const status = ((formData.get("status") as string) || "available") as "available" | "reserved" | "used";
+  if (!id || !Number.isFinite(id) || !link) return;
+  await updateInviteLinkById({ id, link, status });
+  refreshStocksPage();
+}
+
 export async function deleteInviteLinkAction(formData: FormData) {
   const id = parseInt((formData.get("id") as string) ?? "0", 10);
   if (!id || !Number.isFinite(id)) return;
@@ -104,6 +179,17 @@ export async function updateCustomerAccountStatusAction(formData: FormData) {
   const notes = (formData.get("notes") as string)?.trim() ?? "";
   if (!id || !Number.isFinite(id)) return;
   await updateCustomerAccountStatus(id, status, notes || null);
+  refreshStocksPage();
+}
+
+export async function updateCustomerAccountAction(formData: FormData) {
+  const id = parseInt((formData.get("id") as string) ?? "0", 10);
+  const email = (formData.get("email") as string)?.trim() ?? "";
+  const password = (formData.get("password") as string)?.trim() ?? "";
+  const status = ((formData.get("status") as string) || "pending") as "pending" | "processing" | "done";
+  const notes = (formData.get("notes") as string)?.trim() ?? "";
+  if (!id || !Number.isFinite(id) || !email || !password) return;
+  await updateCustomerAccountById({ id, email, password, status, notes: notes || null });
   refreshStocksPage();
 }
 

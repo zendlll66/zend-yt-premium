@@ -17,6 +17,7 @@ export type ProductListItem = {
   barcode: string | null;
   imageUrl: string | null;
   description: string | null;
+  durationDays: number;
   stockType: ProductStockType;
   isActive: boolean;
   createdAt: Date | null;
@@ -34,6 +35,7 @@ const productListSelect = {
   barcode: products.barcode,
   imageUrl: products.imageUrl,
   description: products.description,
+  durationDays: products.durationDays,
   stockType: products.stockType,
   isActive: products.isActive,
   createdAt: products.createdAt,
@@ -54,12 +56,12 @@ const productsLegacy = sqliteTable("products", {
   createdAt: integer("created_at", { mode: "timestamp" }),
 });
 
-let productColumnSupportCache: { stockType: boolean } | null = null;
+let productColumnSupportCache: { stockType: boolean; durationDays: boolean } | null = null;
 
-async function getProductColumnSupport(): Promise<{ stockType: boolean }> {
+async function getProductColumnSupport(): Promise<{ stockType: boolean; durationDays: boolean }> {
   // Cache เฉพาะตอนที่ตรวจพบคอลัมน์แล้วเท่านั้น
   // เพื่อเลี่ยงเคส migrate เสร็จ แต่ dev server ยังถือค่า false ค้างอยู่
-  if (productColumnSupportCache?.stockType) return productColumnSupportCache;
+  if (productColumnSupportCache?.stockType && productColumnSupportCache.durationDays) return productColumnSupportCache;
   try {
     const client = db as unknown as {
       $client?: { execute?: (sql: string) => Promise<{ rows?: Array<Record<string, unknown>> }> };
@@ -67,17 +69,20 @@ async function getProductColumnSupport(): Promise<{ stockType: boolean }> {
     const result = await client.$client?.execute?.('PRAGMA table_info("products")');
     const rows = (result?.rows ?? []) as Array<Record<string, unknown>>;
     const names = new Set(rows.map((r) => String(r.name ?? "")));
-    productColumnSupportCache = { stockType: names.has("stock_type") };
+    productColumnSupportCache = {
+      stockType: names.has("stock_type"),
+      durationDays: names.has("duration_days"),
+    };
     return productColumnSupportCache;
   } catch {
-    return { stockType: false };
+    return { stockType: false, durationDays: false };
   }
 }
 
 /** รายการแพ็กเกจทั้งหมด */
 export async function findAllProducts(): Promise<ProductListItem[]> {
   const columnSupport = await getProductColumnSupport();
-  if (!columnSupport.stockType) {
+  if (!columnSupport.stockType || !columnSupport.durationDays) {
     const rows = await db
       .select({
         id: productsLegacy.id,
@@ -102,6 +107,7 @@ export async function findAllProducts(): Promise<ProductListItem[]> {
       categoryName: r.categoryName ?? null,
       deposit: r.deposit ?? null,
       description: r.description ?? null,
+      durationDays: 30,
       stockType: "individual" as ProductStockType,
     }));
   }
@@ -126,7 +132,7 @@ export async function findProductsLowStock(): Promise<ProductListItem[]> {
 
 export async function findProductById(id: number) {
   const columnSupport = await getProductColumnSupport();
-  if (!columnSupport.stockType) {
+  if (!columnSupport.stockType || !columnSupport.durationDays) {
     const [row] = await db
       .select({
         id: productsLegacy.id,
@@ -145,7 +151,13 @@ export async function findProductById(id: number) {
       .from(productsLegacy)
       .where(eq(productsLegacy.id, id))
       .limit(1);
-    return row ? { ...row, stockType: "individual" as ProductStockType } : null;
+    return row
+      ? {
+          ...row,
+          durationDays: 30,
+          stockType: "individual" as ProductStockType,
+        }
+      : null;
   }
 
   const [row] = await db.select().from(products).where(eq(products.id, id)).limit(1);
@@ -162,11 +174,12 @@ export async function createProduct(data: {
   barcode?: string | null;
   imageUrl?: string | null;
   description?: string | null;
+  durationDays?: number;
   stockType?: ProductStockType;
   isActive?: boolean;
 }) {
   const columnSupport = await getProductColumnSupport();
-  if (!columnSupport.stockType) {
+  if (!columnSupport.stockType || !columnSupport.durationDays) {
     const [legacy] = await db
       .insert(productsLegacy)
       .values({
@@ -182,7 +195,13 @@ export async function createProduct(data: {
         isActive: data.isActive ?? true,
       })
       .returning();
-    return legacy ? { ...legacy, stockType: "individual" as ProductStockType } : null;
+    return legacy
+      ? {
+          ...legacy,
+          durationDays: 30,
+          stockType: "individual" as ProductStockType,
+        }
+      : null;
   }
 
   const [row] = await db
@@ -197,6 +216,7 @@ export async function createProduct(data: {
       barcode: data.barcode ?? null,
       imageUrl: data.imageUrl ?? null,
       description: data.description ?? null,
+      durationDays: data.durationDays ?? 30,
       stockType: data.stockType ?? "individual",
       isActive: data.isActive ?? true,
     })
@@ -216,6 +236,7 @@ export async function updateProduct(
     barcode?: string | null;
     imageUrl?: string | null;
     description?: string | null;
+    durationDays?: number;
     stockType?: ProductStockType;
     isActive?: boolean;
   }
@@ -223,14 +244,21 @@ export async function updateProduct(
   const columnSupport = await getProductColumnSupport();
   const payload: Record<string, unknown> = { ...data };
   if (!columnSupport.stockType) delete payload.stockType;
+  if (!columnSupport.durationDays) delete payload.durationDays;
   if (Object.keys(payload).length === 0) return findProductById(id);
-  if (!columnSupport.stockType) {
+  if (!columnSupport.stockType || !columnSupport.durationDays) {
     const [legacy] = await db
       .update(productsLegacy)
       .set(payload as Partial<typeof productsLegacy.$inferInsert>)
       .where(eq(productsLegacy.id, id))
       .returning();
-    return legacy ? { ...legacy, stockType: "individual" as ProductStockType } : null;
+    return legacy
+      ? {
+          ...legacy,
+          durationDays: 30,
+          stockType: "individual" as ProductStockType,
+        }
+      : null;
   }
   const [row] = await db
     .update(products)
@@ -247,7 +275,7 @@ export async function deleteProductById(id: number): Promise<boolean> {
 
 export async function setProductActive(id: number, isActive: boolean) {
   const columnSupport = await getProductColumnSupport();
-  if (!columnSupport.stockType) {
+  if (!columnSupport.stockType || !columnSupport.durationDays) {
     const [row] = await db
       .update(productsLegacy)
       .set({ isActive })
