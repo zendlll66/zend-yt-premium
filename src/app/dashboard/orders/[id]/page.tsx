@@ -62,6 +62,24 @@ export default async function OrderDetailPage({
         <OrderStatusActions orderId={order.id} currentStatus={order.status} />
       </div>
 
+      {order.paymentSlipImageUrl && (
+        <div className="rounded-xl border bg-card p-4">
+          <h2 className="mb-3 font-medium">สลิปการชำระเงิน</h2>
+          <a
+            href={`/api/r2-url?key=${encodeURIComponent(order.paymentSlipImageUrl)}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-block"
+          >
+            <img
+              src={`/api/r2-url?key=${encodeURIComponent(order.paymentSlipImageUrl)}`}
+              alt="สลิปการชำระเงิน"
+              className="max-h-[420px] rounded-lg border object-contain"
+            />
+          </a>
+        </div>
+      )}
+
       <div className="rounded-xl border bg-card p-4">
         <h2 className="mb-3 font-medium">ข้อมูลลูกค้า</h2>
         <div className="text-sm">

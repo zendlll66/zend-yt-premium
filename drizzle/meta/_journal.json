@@ -232,6 +232,13 @@
       "when": 1773080012000,
       "tag": "0034_customer_inventories_expires_at",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1773445000000,
+      "tag": "0035_orders_payment_slip_image",
+      "breakpoints": true
     }
   ]
 }

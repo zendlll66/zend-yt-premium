@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { createRentalOrderAction } from "@/features/order/order.actions";
+import { submitOrderBankSlipAction } from "@/features/order/order.actions";
 import type { MenuProduct } from "@/features/modifier/modifier.repo";
 import {
   type CartItem,
@@ -30,9 +31,11 @@ import {
 } from "@/lib/cart-storage";
 import {
   addToCartAction,
+  clearCartAction,
   updateCartItemAction,
   removeCartItemAction,
 } from "@/features/cart/cart.actions";
+import { ImageUpload } from "@/components/image-upload";
 import {
   appendCustomerAccountCredentialsModifiers,
   getVisibleModifiers,
@@ -171,6 +174,7 @@ export function RentClient({
     paymentOptions.bankEnabled ? "bank" : "stripe"
   );
   const [bankCheckoutData, setBankCheckoutData] = useState<{
+    orderId: number;
     amount: number;
     qrImageUrl: string | null;
     bankName?: string;
@@ -178,6 +182,7 @@ export function RentClient({
     bankAccountNumber?: string;
     promptPayId?: string;
   } | null>(null);
+  const [bankSlipImageKey, setBankSlipImageKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -193,6 +198,7 @@ export function RentClient({
       setCheckoutStep(1);
       setSelectedPaymentMethod(paymentOptions.bankEnabled ? "bank" : "stripe");
       setBankCheckoutData(null);
+      setBankSlipImageKey("");
       setCartOpen(false);
       router.replace("/rent", { scroll: false });
     }
@@ -286,6 +292,7 @@ export function RentClient({
     }
     setSubmitting(true);
     setBankCheckoutData(null);
+    setBankSlipImageKey("");
     const items = cart.map((item) => ({
       productId: item.productId,
       productName: item.productName,
@@ -321,6 +328,7 @@ export function RentClient({
         body: JSON.stringify({ orderId: result.orderId, paymentMethod: selectedPaymentMethod }),
       });
       const data = (await res.json()) as {
+        orderId?: number;
         url?: string;
         error?: string;
         paymentMethod?: "stripe" | "bank";
@@ -346,6 +354,7 @@ export function RentClient({
         return;
       }
       setBankCheckoutData({
+        orderId: data.orderId ?? result.orderId,
         amount: data.amount ?? cartTotal,
         qrImageUrl: data.qrImageUrl ?? null,
         bankName: data.bankName,
@@ -358,6 +367,33 @@ export function RentClient({
       setError("เชื่อมต่อไม่สำเร็จ");
       setSubmitting(false);
     }
+  }
+
+  async function handleSubmitBankSlip() {
+    if (!bankCheckoutData?.orderId) {
+      setError("ไม่พบคำสั่งซื้อสำหรับอัปโหลดสลิป");
+      return;
+    }
+    if (!bankSlipImageKey.trim()) {
+      setError("กรุณาอัปโหลดสลิปก่อนแจ้งชำระเงิน");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const result = await submitOrderBankSlipAction(bankCheckoutData.orderId, bankSlipImageKey);
+    if (result.error) {
+      setError(result.error);
+      setSubmitting(false);
+      return;
+    }
+    await clearCartAction();
+    setCart([]);
+    setCheckoutOpen(false);
+    setBankCheckoutData(null);
+    setBankSlipImageKey("");
+    setSubmitting(false);
+    router.push(`/account/orders/${bankCheckoutData.orderId}`);
+    router.refresh();
   }
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
@@ -633,6 +669,7 @@ export function RentClient({
                     setCartOpen(false);
                     setCheckoutStep(1);
                     setBankCheckoutData(null);
+                    setBankSlipImageKey("");
                     setCheckoutOpen(true);
                   }}
                   disabled={cart.length === 0}
@@ -746,6 +783,7 @@ export function RentClient({
                           onChange={() => {
                             setSelectedPaymentMethod("stripe");
                             setBankCheckoutData(null);
+                            setBankSlipImageKey("");
                           }}
                         />
                         <span>Stripe (บัตรเครดิต/เดบิต)</span>
@@ -762,6 +800,7 @@ export function RentClient({
                           onChange={() => {
                             setSelectedPaymentMethod("bank");
                             setBankCheckoutData(null);
+                            setBankSlipImageKey("");
                           }}
                         />
                         <span>โอนธนาคาร / QR</span>
@@ -803,6 +842,18 @@ export function RentClient({
                           ยอดที่ต้องชำระ: {formatMoney(bankCheckoutData.amount)} ฿
                         </p>
                       </div>
+                      <div className="mt-4 border-t border-neutral-200 pt-3 dark:border-neutral-700">
+                        <p className="mb-2 font-medium text-foreground">อัปโหลดสลิปการโอน</p>
+                        <ImageUpload
+                          folder="payment-slips"
+                          value={bankSlipImageKey}
+                          onChange={setBankSlipImageKey}
+                          disabled={submitting}
+                        />
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          หลังอัปโหลดสลิป ระบบจะส่งคำสั่งซื้อไปสถานะรอตรวจสอบ (wait)
+                        </p>
+                      </div>
                     </div>
                   )}
                   <div className="mt-8 flex gap-3">
@@ -816,9 +867,16 @@ export function RentClient({
                     </button>
                     <button
                       type="button"
-                      onClick={handleCheckout}
+                      onClick={
+                        selectedPaymentMethod === "bank" && bankCheckoutData
+                          ? handleSubmitBankSlip
+                          : handleCheckout
+                      }
                       disabled={
                         submitting ||
+                        (selectedPaymentMethod === "bank" &&
+                          bankCheckoutData != null &&
+                          !bankSlipImageKey.trim()) ||
                         (!paymentOptions.stripeEnabled && !paymentOptions.bankEnabled)
                       }
                       className="flex-1 rounded-2xl bg-neutral-900 py-3.5 font-semibold text-white hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
@@ -827,6 +885,8 @@ export function RentClient({
                         ? "กำลังดำเนินการ…"
                         : selectedPaymentMethod === "stripe"
                           ? "ไปหน้าชำระเงิน Stripe"
+                          : bankCheckoutData
+                            ? "ส่งสลิปเพื่อรอตรวจสอบ"
                           : "สร้าง QR ชำระเงิน"}
                     </button>
                   </div>

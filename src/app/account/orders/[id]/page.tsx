@@ -15,6 +15,8 @@ function formatMoney(amount: number) {
 
 function orderStatusLabel(status: string): { label: string; className: string } {
   switch (status) {
+    case "wait":
+      return { label: "รอตรวจสอบสลิป", className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" };
     case "paid":
       return { label: "ชำระเงินแล้ว", className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" };
     case "fulfilled":

@@ -98,6 +98,7 @@ export type OrderDetail = {
   customerLinePictureUrl?: string | null;
   stripePaymentIntentId: string | null;
   stripePaymentStatus: string | null;
+  paymentSlipImageUrl: string | null;
   createdBy: number | null;
   createdAt: Date | null;
   items: OrderItemWithModifiers[];
@@ -125,6 +126,7 @@ type OrderColumnSupport = {
   productType: boolean;
   customerId: boolean;
   updatedAt: boolean;
+  paymentSlipImageUrl: boolean;
 };
 
 let orderColumnSupportCache: OrderColumnSupport | null = null;
@@ -142,6 +144,7 @@ async function getOrderColumnSupport(): Promise<OrderColumnSupport> {
       productType: names.has("product_type"),
       customerId: names.has("customer_id"),
       updatedAt: names.has("updated_at"),
+      paymentSlipImageUrl: names.has("payment_slip_image_url"),
     };
     // Cache only when modern columns exist to avoid stale false after migrations.
     if (support.productType) {
@@ -153,6 +156,7 @@ async function getOrderColumnSupport(): Promise<OrderColumnSupport> {
       productType: false,
       customerId: false,
       updatedAt: false,
+      paymentSlipImageUrl: false,
     };
     return fallback;
   }
@@ -552,6 +556,7 @@ export async function findOrdersForDashboard(limit = 50): Promise<DashboardOrder
           customerName: orders.customerName,
           customerEmail: orders.customerEmail,
           customerId: columnSupport.customerId ? orders.customerId : sql<number | null>`null`,
+          paymentSlipImageUrl: columnSupport.paymentSlipImageUrl ? orders.paymentSlipImageUrl : sql<string | null>`null`,
           createdAt: orders.createdAt,
         })
         .from(orders)
@@ -569,6 +574,7 @@ export async function findOrdersForDashboard(limit = 50): Promise<DashboardOrder
           customerName: orders.customerName,
           customerEmail: orders.customerEmail,
           customerId: sql<number | null>`null`,
+          paymentSlipImageUrl: columnSupport.paymentSlipImageUrl ? orders.paymentSlipImageUrl : sql<string | null>`null`,
           createdAt: orders.createdAt,
         })
         .from(orders)
@@ -641,6 +647,7 @@ export async function findOrdersForDashboard(limit = 50): Promise<DashboardOrder
       customerIdResolved: customer?.id ?? null,
       customerLineDisplayName: customer?.lineDisplayName ?? null,
       customerLinePictureUrl: customer?.linePictureUrl ?? null,
+      paymentSlipImageUrl: (columnSupport.paymentSlipImageUrl && (r as { paymentSlipImageUrl?: string | null }).paymentSlipImageUrl) ?? null,
       createdAt: r.createdAt,
       items: itemsByOrder[r.id] ?? [],
     };
@@ -754,6 +761,9 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
           customerId: columnSupport.customerId ? orders.customerId : sql<number | null>`null`,
           stripePaymentIntentId: orders.stripePaymentIntentId,
           stripePaymentStatus: orders.stripePaymentStatus,
+          paymentSlipImageUrl: columnSupport.paymentSlipImageUrl
+            ? orders.paymentSlipImageUrl
+            : sql<string | null>`null`,
           createdBy: orders.createdBy,
           createdAt: orders.createdAt,
         })
@@ -775,6 +785,7 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
           customerId: sql<number | null>`null`,
           stripePaymentIntentId: orders.stripePaymentIntentId,
           stripePaymentStatus: orders.stripePaymentStatus,
+          paymentSlipImageUrl: sql<string | null>`null`,
           createdBy: orders.createdBy,
           createdAt: orders.createdAt,
         })
@@ -840,6 +851,7 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
     customerLinePictureUrl: resolvedCustomer?.linePictureUrl ?? null,
     stripePaymentIntentId: row.stripePaymentIntentId,
     stripePaymentStatus: row.stripePaymentStatus,
+    paymentSlipImageUrl: row.paymentSlipImageUrl ?? null,
     createdBy: row.createdBy,
     createdAt: row.createdAt,
     items: itemRows.map((i) => ({
@@ -992,6 +1004,53 @@ export async function updateOrderStatus(id: number, status: OrderStatus) {
         tx,
       });
     }
+
+    return updated;
+  });
+}
+
+export async function submitOrderBankSlip(orderId: number, paymentSlipImageUrl: string) {
+  const columnSupport = await getOrderColumnSupport();
+  return db.transaction(async (tx) => {
+    const [current] = await tx
+      .select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        status: orders.status,
+      })
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+    if (!current) return null;
+    if (!["pending", "wait"].includes(current.status)) {
+      throw new Error("ORDER_BANK_SLIP_INVALID_STATUS");
+    }
+
+    const [updated] = columnSupport.paymentSlipImageUrl
+      ? await tx
+          .update(orders)
+          .set({
+            status: "wait",
+            paymentSlipImageUrl,
+            updatedAt: columnSupport.updatedAt ? new Date() : undefined,
+          })
+          .where(and(eq(orders.id, orderId), inArray(orders.status, ["pending", "wait"])))
+          .returning({ id: orders.id, orderNumber: orders.orderNumber, status: orders.status })
+      : await tx
+          .update(orders)
+          .set({
+            status: "wait",
+            updatedAt: columnSupport.updatedAt ? new Date() : undefined,
+          })
+          .where(and(eq(orders.id, orderId), inArray(orders.status, ["pending", "wait"])))
+          .returning({ id: orders.id, orderNumber: orders.orderNumber, status: orders.status });
+
+    if (!updated) return null;
+
+    await tx
+      .update(payments)
+      .set({ status: "pending" })
+      .where(and(eq(payments.orderId, orderId), eq(payments.provider, "bank_transfer")));
 
     return updated;
   });

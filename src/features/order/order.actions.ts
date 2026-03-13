@@ -7,6 +7,7 @@ import {
   createRentalOrder,
   updateOrderStatus,
   checkStockForItems,
+  submitOrderBankSlip,
 } from "./order.repo";
 import type { OrderItemInput } from "./order.repo";
 import type { OrderStatus } from "@/db/schema/order.schema";
@@ -104,4 +105,35 @@ export async function updateOrderStatusAction(orderId: number, status: OrderStat
   revalidatePath("/dashboard/orders");
   revalidatePath(`/dashboard/orders/${orderId}`);
   return order ? {} : { error: "ไม่พบคำสั่ง" };
+}
+
+export async function submitOrderBankSlipAction(orderId: number, slipImageKey: string) {
+  if (!orderId || !Number.isFinite(orderId)) return { error: "ไม่พบคำสั่งซื้อ" };
+  if (!slipImageKey?.trim()) return { error: "กรุณาอัปโหลดสลิปก่อน" };
+
+  let order: { id: number; orderNumber: string; status: string } | null = null;
+  try {
+    order = await submitOrderBankSlip(orderId, slipImageKey.trim());
+  } catch (error) {
+    if (error instanceof Error && error.message === "ORDER_BANK_SLIP_INVALID_STATUS") {
+      return { error: "คำสั่งซื้อนี้ไม่สามารถแจ้งสลิปได้ในสถานะปัจจุบัน" };
+    }
+    throw error;
+  }
+
+  if (!order) return { error: "ไม่พบคำสั่งซื้อ" };
+  const user = await getSessionUser();
+  await createAuditLog({
+    adminUserId: user?.id ?? null,
+    action: "order.bank_slip.submitted",
+    entityType: "order",
+    entityId: String(orderId),
+    details: `ออเดอร์ ${order.orderNumber} → wait`,
+  });
+
+  revalidatePath("/dashboard/orders");
+  revalidatePath(`/dashboard/orders/${orderId}`);
+  revalidatePath("/account/orders");
+  revalidatePath(`/account/orders/${orderId}`);
+  return {};
 }

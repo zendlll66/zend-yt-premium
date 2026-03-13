@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "รอชำระเงิน",
+  wait: "รอตรวจสอบสลิป",
   paid: "ชำระแล้ว",
   fulfilled: "จัดส่งสำเร็จ",
   completed: "เสร็จสิ้น",
@@ -15,13 +16,14 @@ const STATUS_LABELS: Record<string, string> = {
 /** คำสั่งซื้อ: ชำระผ่าน Stripe; แอดมินเปลี่ยนได้เฉพาะ ยกเลิก / fulfilled */
 const NEXT_STATUS: Record<string, string[] | null> = {
   pending: ["cancelled"],
+  wait: ["paid", "cancelled"],
   paid: ["fulfilled", "cancelled"],
   fulfilled: null,
   completed: null,
   cancelled: null,
 };
 
-type Status = "pending" | "paid" | "fulfilled" | "completed" | "cancelled";
+type Status = "pending" | "wait" | "paid" | "fulfilled" | "completed" | "cancelled";
 
 export function OrderStatusActions({
   orderId,
@@ -60,7 +62,13 @@ export function OrderStatusActions({
               : ""
           }
         >
-          {s === "cancelled" ? "ยกเลิกคำสั่ง" : s === "fulfilled" ? "บันทึกว่าส่งสำเร็จ" : STATUS_LABELS[s]}
+          {s === "cancelled"
+            ? "ยกเลิกคำสั่ง"
+            : s === "fulfilled"
+              ? "บันทึกว่าส่งสำเร็จ"
+              : s === "paid" && currentStatus === "wait"
+                ? "Approve"
+                : STATUS_LABELS[s]}
         </Button>
       ))}
     </div>

@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { updateOrderStatusAction } from "@/features/order/order.actions";
 import type { DashboardOrderListItem } from "@/features/order/order.repo";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "รอชำระเงิน",
+  wait: "รอตรวจสอบสลิป",
   paid: "ชำระแล้ว",
   fulfilled: "จัดส่งสำเร็จ",
   completed: "เสร็จสิ้น",
@@ -34,9 +37,15 @@ type Props = {
 };
 
 export function OrdersTableClient({ orders }: Props) {
+  const router = useRouter();
   const [selectedProduct, setSelectedProduct] = useState<string>("all");
   const [selectedProductType, setSelectedProductType] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+
+  async function handleApprove(orderId: number) {
+    await updateOrderStatusAction(orderId, "paid");
+    router.refresh();
+  }
 
   const productOptions = useMemo(() => {
     const names = new Set<string>();
@@ -127,6 +136,7 @@ export function OrdersTableClient({ orders }: Props) {
                 <th className="px-4 py-3 font-medium">สินค้า</th>
                 <th className="px-4 py-3 font-medium">ประเภทสินค้า</th>
                 <th className="px-4 py-3 font-medium">สถานะ</th>
+                <th className="px-4 py-3 font-medium">สลิป</th>
                 <th className="px-4 py-3 font-medium">ยอดรวม</th>
                 <th className="px-4 py-3 text-right font-medium">จัดการ</th>
               </tr>
@@ -134,7 +144,7 @@ export function OrdersTableClient({ orders }: Props) {
             <tbody>
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                     ไม่พบรายการตามเงื่อนไขที่เลือก
                   </td>
                 </tr>
@@ -198,11 +208,40 @@ export function OrdersTableClient({ orders }: Props) {
                         {STATUS_LABELS[o.status] ?? o.status}
                       </span>
                     </td>
+                    <td className="px-4 py-3">
+                      {o.paymentSlipImageUrl ? (
+                        <a
+                          href={`/api/r2-url?key=${encodeURIComponent(o.paymentSlipImageUrl)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-block"
+                        >
+                          <img
+                            src={`/api/r2-url?key=${encodeURIComponent(o.paymentSlipImageUrl)}`}
+                            alt="สลิป"
+                            className="h-12 w-12 rounded border object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">{formatMoney(o.totalPrice)} ฿</td>
                     <td className="px-4 py-3 text-right">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/dashboard/orders/${o.id}`}>รายละเอียด</Link>
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        {o.status === "wait" && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleApprove(o.id)}
+                          >
+                            Approve
+                          </Button>
+                        )}
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/dashboard/orders/${o.id}`}>รายละเอียด</Link>
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))

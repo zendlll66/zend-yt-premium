@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
       });
 
       return NextResponse.json({
+        orderId: order.id,
         paymentMethod: "bank",
         bankName: shop.bankName,
         bankAccountName: shop.bankAccountName,

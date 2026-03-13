@@ -6,6 +6,7 @@ import { customers } from "./customer.schema";
 /** สถานะคำสั่งซื้อ/เช่า */
 export const ORDER_STATUSES = [
   "pending",
+  "wait",
   "paid",
   "fulfilled",
   "completed",
@@ -41,6 +42,8 @@ export const orders = sqliteTable("orders", {
   /** Stripe Payment Intent ID หลังชำระสำเร็จ */
   stripePaymentIntentId: text("stripe_payment_intent_id"),
   stripePaymentStatus: text("stripe_payment_status"),
+  /** สลิปชำระเงิน (กรณีโอนธนาคาร/QR) */
+  paymentSlipImageUrl: text("payment_slip_image_url"),
   createdBy: integer("created_by").references(() => adminUsers.id, { onDelete: "set null" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .$defaultFn(() => new Date())
