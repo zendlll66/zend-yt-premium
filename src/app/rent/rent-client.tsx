@@ -40,10 +40,13 @@ import {
   appendCustomerAccountCredentialsModifiers,
   getVisibleModifiers,
 } from "@/lib/customer-account-credentials";
+import type { StockTypeDescription } from "@/features/stock-type-descriptions/stock-type-descriptions.repo";
 
 type Props = {
   menu: MenuProduct[];
   shopDescription?: string | null;
+  /** คำอธิบายแต่ละประเภท stock — ใช้แสดงใน Stepper step 1 ของ modal เลือกแพ็กเกจ */
+  stockTypeDescriptions?: StockTypeDescription[];
   customer?: { name: string; email: string; phone: string | null } | null;
   /** สิทธิ์สมาชิก (วันเช่าฟรี + ส่วนลด) — ถ้ามีจะแสดงราคาขีดและฟรี/ราคาหลังลด */
   membership?: MembershipBenefit | null;
@@ -155,6 +158,7 @@ function Stepper({
 export function RentClient({
   menu,
   shopDescription,
+  stockTypeDescriptions = [],
   customer,
   membership = null,
   productDiscountMap = {},
@@ -524,6 +528,7 @@ export function RentClient({
           <BookingModal
             product={bookingProduct}
             cart={cart}
+            stockTypeDescription={stockTypeDescriptions.find((d) => d.slug === bookingProduct.stockType) ?? null}
             onClose={() => setBookingProduct(null)}
             onAdd={(qty, mods) => {
               addToCart(bookingProduct, qty, mods);
@@ -919,10 +924,11 @@ export function RentClient({
   );
 }
 
-/** Modal เลือกแพ็กเกจ — แสดงรายละเอียดสินค้า, ตัวเลือก, จำนวน แล้วเพิ่มลงตะกร้า */
+/** Modal เลือกแพ็กเกจ — Step 1: คำอธิบายประเภท, Step 2: รายละเอียดสินค้า, Step 3: ตัวเลือกและจำนวน */
 function BookingModal({
   product,
   cart,
+  stockTypeDescription,
   onClose,
   onAdd,
   formatMoney,
@@ -930,6 +936,7 @@ function BookingModal({
 }: {
   product: MenuProduct;
   cart: CartItem[];
+  stockTypeDescription: StockTypeDescription | null;
   onClose: () => void;
   onAdd: (quantity: number, modifiers: { modifierName: string; price: number }[]) => void;
   formatMoney: (n: number) => string;
@@ -937,7 +944,7 @@ function BookingModal({
 }) {
   const [qty, setQty] = useState(1);
   const [selected, setSelected] = useState<Record<number, { id: number; name: string; price: number }>>({});
-  const [bookingStep, setBookingStep] = useState<1 | 2>(1);
+  const [bookingStep, setBookingStep] = useState<1 | 2 | 3>(1);
   const [customerAccountEmail, setCustomerAccountEmail] = useState("");
   const [customerAccountPassword, setCustomerAccountPassword] = useState("");
   const [customerAccountPasswordConfirm, setCustomerAccountPasswordConfirm] = useState("");
@@ -1018,12 +1025,50 @@ function BookingModal({
             <Stepper
               currentStep={bookingStep}
               steps={[
-                { id: 1, label: "เลือกแพ็กเกจ" },
-                { id: 2, label: "ตัวเลือกและจำนวน" },
+                { id: 1, label: "คำอธิบายประเภท" },
+                { id: 2, label: "เลือกแพ็กเกจ" },
+                { id: 3, label: "ตัวเลือกและจำนวน" },
               ]}
             />
 
             {bookingStep === 1 && (
+              <div className="space-y-4">
+                {stockTypeDescription ? (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <span className={`rounded-full px-2.5 py-1.5 text-xs font-semibold ${stockTypeTone}`}>
+                        {stockTypeDescription.name}
+                      </span>
+                    </div>
+                    {stockTypeDescription.imageKey && (
+                      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800/50">
+                        <img
+                          src={`/api/r2-url?key=${encodeURIComponent(stockTypeDescription.imageKey)}`}
+                          alt=""
+                          className="h-auto w-full max-h-48 object-contain"
+                        />
+                      </div>
+                    )}
+                    {stockTypeDescription.description ? (
+                      <div
+                        className="prose prose-sm max-w-none rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-3 text-muted-foreground dark:border-neutral-700 dark:bg-neutral-800/50 dark:prose-invert prose-p:my-1.5 prose-ul:my-1.5 prose-li:my-0"
+                        dangerouslySetInnerHTML={{ __html: stockTypeDescription.description }}
+                      />
+                    ) : (
+                      <p className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-muted-foreground dark:border-neutral-700 dark:bg-neutral-800/50">
+                        ประเภทนี้ใช้กับสินค้าที่คุณเลือก — กดถัดไปเพื่อดูรายละเอียดแพ็กเกจ
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-muted-foreground dark:border-neutral-700 dark:bg-neutral-800/50">
+                    ประเภท: {stockTypeLabel} — กดถัดไปเพื่อดูรายละเอียดแพ็กเกจ
+                  </p>
+                )}
+              </div>
+            )}
+
+            {bookingStep === 2 && (
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-neutral-100 dark:bg-neutral-800">
@@ -1070,7 +1115,7 @@ function BookingModal({
               </div>
             )}
 
-            {bookingStep === 2 && (
+            {bookingStep === 3 && (
               <div className="space-y-4">
                 {product.modifierGroups.length > 0 && (
                   <div className="space-y-3 border-t border-neutral-100 pt-4 dark:border-neutral-800">
@@ -1188,8 +1233,7 @@ function BookingModal({
                 <button
                   type="button"
                   onClick={() => setBookingStep(2)}
-                  disabled={availableStock < 1}
-                  className="flex-1 rounded-2xl bg-neutral-900 py-3.5 font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                  className="flex-1 rounded-2xl bg-neutral-900 py-3.5 font-semibold text-white transition hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
                 >
                   ถัดไป
                 </button>
@@ -1200,6 +1244,25 @@ function BookingModal({
                 <button
                   type="button"
                   onClick={() => setBookingStep(1)}
+                  className="flex-1 rounded-2xl border border-neutral-200 py-3.5 font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                >
+                  ย้อนกลับ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBookingStep(3)}
+                  disabled={availableStock < 1}
+                  className="flex-1 rounded-2xl bg-neutral-900 py-3.5 font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                >
+                  ถัดไป
+                </button>
+              </div>
+            )}
+            {bookingStep === 3 && (
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setBookingStep(2)}
                   className="flex-1 rounded-2xl border border-neutral-200 py-3.5 font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
                 >
                   ย้อนกลับ

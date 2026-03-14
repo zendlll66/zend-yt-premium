@@ -1,5 +1,6 @@
 import { getMenuForOrder } from "@/features/modifier/modifier.repo";
 import { getShopSettings } from "@/features/settings/settings.repo";
+import { getStockTypeDescriptions } from "@/features/stock-type-descriptions/stock-type-descriptions.repo";
 import { getCustomerSession } from "@/lib/auth-customer-server";
 import { findActiveMembershipByCustomerId } from "@/features/membership/membership.repo";
 import { getActivePromotionDiscountMap } from "@/features/promotion/promotion.repo";
@@ -7,9 +8,10 @@ import { getCartByCustomerId } from "@/features/cart/cart.repo";
 import { RentClient } from "./rent-client";
 
 export default async function RentPage() {
-  const [menu, shop, customer, productDiscountMap] = await Promise.all([
+  const [menu, shop, stockTypeDescriptions, customer, productDiscountMap] = await Promise.all([
     getMenuForOrder(),
     getShopSettings(),
+    getStockTypeDescriptions(),
     getCustomerSession(),
     getActivePromotionDiscountMap(),
   ]);
@@ -29,6 +31,7 @@ export default async function RentPage() {
     <RentClient
       menu={menu}
       shopDescription={shop.shopDescription}
+      stockTypeDescriptions={stockTypeDescriptions}
       customer={customer ? { name: customer.name, email: customer.email, phone: customer.phone } : null}
       membership={membership}
       productDiscountMap={productDiscountMap}

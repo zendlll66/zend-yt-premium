@@ -10,8 +10,9 @@ import { seedPromotions } from "./seed-promotions";
 import { seedStocks } from "./seed-stocks";
 import { seedOrders } from "./seed-orders";
 import { seedSettings } from "./seed-settings";
+import { seedStockTypeDescriptions } from "./seed-stock-type-descriptions";
 
-/** รัน seed ทั้งหมดตามลำดับที่ถูกต้อง (admin → roles → pages → … → settings) */
+/** รัน seed ทั้งหมดตามลำดับที่ถูกต้อง (admin → roles → pages → … → settings → stock-type-descriptions) */
 async function seedAll(): Promise<void> {
   console.log("=== Seed All ===\n");
 
@@ -26,6 +27,7 @@ async function seedAll(): Promise<void> {
   await seedStocks();
   await seedOrders();
   await seedSettings();
+  await seedStockTypeDescriptions();
 
   console.log("\n=== Seed All Done ===");
 }

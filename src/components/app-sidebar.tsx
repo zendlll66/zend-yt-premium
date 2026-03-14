@@ -34,17 +34,11 @@ const NAV_MAIN = [
     isActive: true,
   },
   {
-    title: "รายการคำสั่งเช่า",
+    title: "คำสั่งซื้อ",
     url: "/dashboard/orders",
     icon: <HugeiconsIcon icon={ReceiptTextIcon} strokeWidth={2} />,
     isActive: true,
-  },
-  {
-    title: "Export รายงาน",
-    url: "/dashboard/reports",
-    icon: <HugeiconsIcon icon={CommandIcon} strokeWidth={2} />,
-    isActive: true,
-  },
+  }, 
   {
     title: "จัดการสินค้า",
     url: "#",
@@ -64,6 +58,7 @@ const NAV_MAIN = [
     isActive: true,
     items: [
       { title: "ภาพรวม Stock", url: "/dashboard/stocks" },
+      { title: "คำอธิบายประเภท Stock", url: "/dashboard/stock-types" },
       { title: "Individual Accounts", url: "/dashboard/stocks/account-stock" },
       { title: "Family Groups", url: "/dashboard/stocks/family-groups" },
       { title: "Invite Links", url: "/dashboard/stocks/invite-links" },

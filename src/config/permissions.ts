@@ -13,6 +13,7 @@ export type PagePermission = {
 export const PAGE_PERMISSIONS: PagePermission[] = [
   { path: "/dashboard/reports", label: "Export รายงาน", roles: ["super_admin", "admin", "cashier"] },
   { path: "/dashboard/orders", label: "รายการคำสั่งเช่า", roles: ["super_admin", "admin", "cashier", "chef"] },
+  { path: "/dashboard/stock-types", label: "คำอธิบายประเภท Stock", roles: ["super_admin", "admin"] },
   { path: "/dashboard/stocks", label: "Manage Stock", roles: ["super_admin", "admin"] },
   { path: "/dashboard/modifiers/add", label: "เพิ่มกลุ่มตัวเลือก", roles: ["super_admin", "admin"] },
   { path: "/dashboard/modifiers", label: "ตัวเลือกสินค้า", roles: ["super_admin", "admin"] },
