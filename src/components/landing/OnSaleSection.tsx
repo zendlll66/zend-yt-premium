@@ -23,7 +23,7 @@ function ProductSaleCard({ product }: { product: MenuProductWithDiscount }) {
   return (
     <Link
       href="/rent"
-      className="group flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition hover:border-violet-300/50 hover:shadow-lg hover:shadow-violet-500/5 dark:hover:border-violet-500/30"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition hover:border-brand-accent/30 hover:shadow-lg hover:shadow-brand-accent/5 dark:hover:border-brand-accent/50"
     >
       <div className="relative aspect-square overflow-hidden bg-muted">
         {imageSrc ? (
@@ -37,7 +37,7 @@ function ProductSaleCard({ product }: { product: MenuProductWithDiscount }) {
             <Package className="h-14 w-14" />
           </div>
         )}
-        <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-violet-600 px-2.5 py-0.5 text-xs font-semibold text-white dark:bg-violet-500">
+        <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-brand-accent px-2.5 py-0.5 text-xs font-semibold text-white">
           <Tag className="h-3 w-3" />
           ลด {product.discountPercent}%
         </span>
@@ -45,14 +45,14 @@ function ProductSaleCard({ product }: { product: MenuProductWithDiscount }) {
           <span className="text-muted-foreground line-through text-xs tabular-nums">
             {formatMoney(product.price)} ฿
           </span>
-          <span className="rounded-full bg-violet-600 px-2.5 py-0.5 text-xs font-medium text-white tabular-nums dark:bg-violet-500">
+          <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-medium text-white tabular-nums dark:bg-red-500">
                 {formatMoney(roundedPrice)} ฿
           </span>
         </div>
       </div>
       <div className="flex flex-1 flex-col p-4">
         <h3 className="font-semibold tracking-tight line-clamp-2">{product.name}</h3>
-        <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-violet-600 dark:text-violet-400">
+        <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand-accent">
           ดูรายการ
           <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
         </span>
@@ -75,7 +75,7 @@ export function OnSaleSection({ products }: OnSaleSectionProps) {
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mb-12 text-center">
-          <p className="text-xs font-medium uppercase tracking-widest text-violet-600 dark:text-violet-400">
+          <p className="text-xs font-medium uppercase tracking-widest text-brand-accent">
             โปรโมชัน
           </p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -96,7 +96,7 @@ export function OnSaleSection({ products }: OnSaleSectionProps) {
           <Button
             asChild
             size="lg"
-            className="rounded-full bg-violet-600 px-8 hover:bg-violet-700 dark:bg-violet-500 dark:hover:bg-violet-600"
+            className="rounded-full bg-brand-accent px-8 text-white hover:bg-brand-accent-hover"
           >
             <Link href="/rent">
               ไปหน้ารายการแพ็กเกจ

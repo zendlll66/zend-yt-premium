@@ -6,7 +6,7 @@ import { ShoppingBag } from "lucide-react";
 import { CART_STORAGE_KEY, CART_UPDATED_EVENT } from "@/lib/cart-storage";
 
 const navLink =
-  "rounded-lg px-3 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10 hover:text-white";
+  "rounded-lg px-3 py-2 text-sm font-medium text-brand-fg/85 transition hover:bg-white/10 hover:text-brand-fg";
 
 function getCartCount(): number {
   if (typeof window === "undefined") return 0;
@@ -38,7 +38,7 @@ export function CartNavLink() {
       <ShoppingBag className="h-4 w-4" />
       {mounted && count > 0 && (
         <span
-          className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-violet-500 px-1 text-[10px] font-bold text-white"
+          className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-accent px-1 text-[10px] font-bold text-white"
           aria-label={`ตะกร้ามี ${count} รายการ`}
         >
           {count > 99 ? "99+" : count}

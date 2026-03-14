@@ -33,7 +33,7 @@ export function LandingPage({ products = [], onSaleProducts = [], membershipPlan
         <section id="membership" className="border-t border-border bg-muted/20 py-20 md:py-28">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="mb-12 text-center">
-              <p className="text-xs font-medium uppercase tracking-widest text-violet-600 dark:text-violet-400">
+              <p className="text-xs font-medium uppercase tracking-widest text-brand-accent">
                 สมาชิก
               </p>
               <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">

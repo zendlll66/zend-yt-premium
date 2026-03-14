@@ -29,7 +29,7 @@ export function FeaturesSection() {
           viewport={{ once: true }}
           className="mb-14 text-center"
         >
-          <p className="text-xs font-medium uppercase tracking-widest text-violet-600 dark:text-violet-400">
+          <p className="text-xs font-medium uppercase tracking-widest text-brand-accent">
             จุดเด่น
           </p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -47,10 +47,10 @@ export function FeaturesSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-8 shadow-sm transition hover:border-violet-200 hover:shadow-lg hover:shadow-violet-500/5 dark:hover:border-violet-800"
+              className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-8 shadow-sm transition hover:border-brand-accent/30 hover:shadow-lg hover:shadow-brand-accent/5 dark:hover:border-brand-accent/50"
             >
-              <div className="absolute right-0 top-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-violet-500/5 transition group-hover:bg-violet-500/10" />
-              <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 transition group-hover:bg-violet-500/20 dark:text-violet-400">
+              <div className="absolute right-0 top-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-brand-accent/5 transition group-hover:bg-brand-accent/10" />
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-brand-accent/10 text-brand-accent transition group-hover:bg-brand-accent/20">
                 <f.icon className="h-6 w-6" />
               </div>
               <h3 className="relative mt-5 text-xl font-semibold tracking-tight">{f.title}</h3>

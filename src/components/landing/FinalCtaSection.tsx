@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 
 export function FinalCtaSection() {
   return (
-    <section id="contact" className="relative overflow-hidden border-t border-white/10 bg-neutral-950 py-20 text-white md:py-28">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(120,80,200,0.2),transparent)]" />
+    <section id="contact" className="relative overflow-hidden border-t border-brand-border bg-brand-bg py-20 text-brand-fg md:py-28">
+      <div className="absolute inset-0 brand-gradient-bottom" />
       <div className="relative z-10 mx-auto max-w-3xl px-4 text-center sm:px-6">
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-xs font-medium uppercase tracking-widest text-violet-300"
+          className="text-xs font-medium uppercase tracking-widest text-brand-accent-muted"
         >
           เริ่มต้น
         </motion.p>
@@ -29,7 +29,7 @@ export function FinalCtaSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
-          className="mt-4 text-white/70"
+          className="mt-4 text-brand-fg-muted"
         >
           ซื้อแพ็กเกจที่ต้องการวันนี้ แล้วรับข้อมูลใช้งานพร้อมบันทึกใน Inventory ทันที
         </motion.p>
@@ -40,13 +40,13 @@ export function FinalCtaSection() {
           transition={{ delay: 0.1 }}
           className="mt-10 flex flex-wrap items-center justify-center gap-4"
         >
-          <Button size="lg" className="rounded-full bg-violet-500 px-8 hover:bg-violet-600" asChild>
+          <Button size="lg" className="rounded-full bg-brand-accent px-8 text-white hover:bg-brand-accent-hover" asChild>
             <Link href="/rent">ไปหน้ารายการแพ็กเกจ</Link>
           </Button>
           <Button
             size="lg"
             variant="outline"
-            className="rounded-full border-white/30 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="rounded-full border-brand-border bg-brand-bg-subtle text-brand-fg hover:bg-white/10 hover:text-brand-fg"
             asChild
           >
             <Link href="/register">สมัครสมาชิก</Link>

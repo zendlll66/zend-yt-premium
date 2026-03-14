@@ -106,6 +106,7 @@ export type OrderDetail = {
 
 export type DashboardOrderListItem = OrderListItem & {
   items: Array<{ productName: string; quantity: number }>;
+  paymentSlipImageUrl: string | null;
 };
 
 async function reserveOrderNumber(): Promise<string> {
@@ -220,11 +221,14 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
 
   for (const item of data.items) {
     const hasRentalDates = isDate(item.rentalStart) && isDate(item.rentalEnd);
-    const days = hasRentalDates ? getRentalDays(item.rentalStart, item.rentalEnd) : 1;
+    const days =
+      hasRentalDates && item.rentalStart != null && item.rentalEnd != null
+        ? getRentalDays(item.rentalStart, item.rentalEnd)
+        : 1;
     const chargeableDays = Math.max(0, days - freeRentalDays);
     const modifierTotal = item.modifiers.reduce((s, m) => s + m.price, 0);
     orderTotal += (item.price + modifierTotal) * item.quantity * chargeableDays;
-    if (hasRentalDates) {
+    if (hasRentalDates && item.rentalStart != null && item.rentalEnd != null) {
       const start = new Date(item.rentalStart);
       const end = new Date(item.rentalEnd);
       if (orderRentalStart == null || start < orderRentalStart) orderRentalStart = start;
@@ -268,7 +272,10 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
 
     for (const item of data.items) {
       const hasRentalDates = isDate(item.rentalStart) && isDate(item.rentalEnd);
-      const days = hasRentalDates ? getRentalDays(item.rentalStart, item.rentalEnd) : 1;
+      const days =
+        hasRentalDates && item.rentalStart != null && item.rentalEnd != null
+          ? getRentalDays(item.rentalStart, item.rentalEnd)
+          : 1;
       const chargeableDays = Math.max(0, days - freeRentalDays);
       const modifierTotal = item.modifiers.reduce((s, m) => s + m.price, 0);
       let lineTotal = (item.price + modifierTotal) * item.quantity * chargeableDays;
@@ -637,7 +644,7 @@ export async function findOrdersForDashboard(limit = 50): Promise<DashboardOrder
       id: r.id,
       orderNumber: r.orderNumber,
       status: r.status,
-      productType: columnSupport.productType ? r.productType : "individual",
+      productType: columnSupport.productType ? ((r as { productType?: string }).productType ?? "individual") : "individual",
       totalPrice: r.totalPrice,
       depositAmount: r.depositAmount,
       rentalStart: r.rentalStart,
@@ -647,7 +654,9 @@ export async function findOrdersForDashboard(limit = 50): Promise<DashboardOrder
       customerIdResolved: customer?.id ?? null,
       customerLineDisplayName: customer?.lineDisplayName ?? null,
       customerLinePictureUrl: customer?.linePictureUrl ?? null,
-      paymentSlipImageUrl: (columnSupport.paymentSlipImageUrl && (r as { paymentSlipImageUrl?: string | null }).paymentSlipImageUrl) ?? null,
+      paymentSlipImageUrl: columnSupport.paymentSlipImageUrl
+        ? ((r as { paymentSlipImageUrl?: string | null }).paymentSlipImageUrl ?? null)
+        : null,
       createdAt: r.createdAt,
       items: itemsByOrder[r.id] ?? [],
     };
@@ -838,7 +847,7 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
     id: row.id,
     orderNumber: row.orderNumber,
     status: row.status,
-    productType: columnSupport.productType ? row.productType : "individual",
+    productType: columnSupport.productType ? ((row as { productType?: string }).productType ?? "individual") : "individual",
     totalPrice: row.totalPrice,
     depositAmount: row.depositAmount,
     rentalStart: row.rentalStart,
@@ -997,11 +1006,11 @@ export async function updateOrderStatus(id: number, status: OrderStatus) {
       await assignStockForPaidOrder({
         orderId: id,
         productType: columnSupport.productType
-          ? (current.productType as OrderProductType)
+          ? ((current as { productType?: string }).productType as OrderProductType) ?? "individual"
           : "individual",
-        customerId: columnSupport.customerId ? (current.customerId ?? null) : null,
+        customerId: columnSupport.customerId ? ((current as { customerId?: number | null }).customerId ?? null) : null,
         customerEmail: current.customerEmail,
-        tx,
+        tx: tx as unknown as typeof db,
       });
     }
 
@@ -1178,9 +1187,9 @@ export async function setOrderStripePayment(
     await assignStockForPaidOrder({
       orderId: updated.id,
       productType: updated.productType,
-      customerId: updated.customerId,
+      customerId: (updated.customerId ?? null) as number | null,
       customerEmail: updated.customerEmail,
-      tx,
+      tx: tx as unknown as typeof db,
     });
 
     return updated;

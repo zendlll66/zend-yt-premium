@@ -20,6 +20,23 @@ const familyGroupsLegacy = sqliteTable("family_groups", {
 
 let familyGroupColumnSupportCache: { headAccount: boolean } | null = null;
 
+export type FamilyMemberWithStatus = {
+  id: number;
+  familyGroupId: number;
+  customerId: number | null;
+  email: string;
+  memberPassword: string | null;
+  orderId: number | null;
+  createdAt: Date;
+  memberStatus: "available" | "released" | "in_use";
+  orderStatus: string | null;
+  customerIdResolved: number | null;
+  customerName: string | null;
+  customerEmail: string | null;
+  customerLineDisplayName: string | null;
+  customerLinePictureUrl: string | null;
+};
+
 async function getFamilyGroupColumnSupport(): Promise<{ headAccount: boolean }> {
   if (familyGroupColumnSupportCache?.headAccount) return familyGroupColumnSupportCache;
   try {
@@ -133,7 +150,7 @@ export async function findFamilyGroupsWithMembers() {
         .from(familyGroupsLegacy)
         .orderBy(desc(familyGroupsLegacy.createdAt))
         .then((rows) => rows.map((r) => ({ ...r, headEmail: null, headPassword: null })));
-  if (groups.length === 0) return { groups: [], membersByGroup: {} as Record<number, typeof familyMembers.$inferSelect[]> };
+  if (groups.length === 0) return { groups: [], membersByGroup: {} as Record<number, FamilyMemberWithStatus[]> };
 
   const ids = groups.map((g) => g.id);
   const membersBase = await db
@@ -205,7 +222,7 @@ export async function findFamilyGroupsWithMembers() {
           .where(inArray(customers.email, orderCustomerEmails));
   const customersByEmail = new Map(customersByEmailRows.map((c) => [c.email, c]));
 
-  const members = membersBase.map((m) => {
+  const members: FamilyMemberWithStatus[] = membersBase.map((m) => {
     const linkedOrder = m.orderId ? orderById.get(m.orderId) : undefined;
     const fromMemberId = m.customerId ? customersById.get(m.customerId) : undefined;
     const fromOrderId = linkedOrder?.customerId ? customersById.get(linkedOrder.customerId) : undefined;
@@ -230,10 +247,10 @@ export async function findFamilyGroupsWithMembers() {
       customerEmail: customer?.email ?? null,
       customerLineDisplayName: customer?.lineDisplayName ?? null,
       customerLinePictureUrl: customer?.linePictureUrl ?? null,
-    };
+    } as FamilyMemberWithStatus;
   });
 
-  const membersByGroup: Record<number, typeof members> = {};
+  const membersByGroup: Record<number, FamilyMemberWithStatus[]> = {};
   for (const g of groups) membersByGroup[g.id] = [];
   for (const m of members) membersByGroup[m.familyGroupId].push(m);
   return { groups, membersByGroup };

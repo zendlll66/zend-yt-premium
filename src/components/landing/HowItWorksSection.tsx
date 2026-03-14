@@ -32,7 +32,7 @@ export function HowItWorksSection() {
           viewport={{ once: true }}
           className="mb-14 text-center"
         >
-          <p className="text-xs font-medium uppercase tracking-widest text-violet-600 dark:text-violet-400">
+          <p className="text-xs font-medium uppercase tracking-widest text-brand-accent">
             ขั้นตอน
           </p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -44,7 +44,7 @@ export function HowItWorksSection() {
         </motion.div>
         <div className="relative grid gap-8 md:grid-cols-3">
           {/* เส้นเชื่อมระหว่างขั้น (แสดงบน desktop) */}
-          <div className="absolute left-1/2 top-12 hidden h-0.5 w-[calc(100%-8rem)] -translate-x-1/2 bg-gradient-to-r from-transparent via-violet-400/40 to-transparent md:block" />
+          <div className="absolute left-1/2 top-12 hidden h-0.5 w-[calc(100%-8rem)] -translate-x-1/2 bg-gradient-to-r from-transparent via-brand-accent-muted/40 to-transparent md:block" />
           {STEPS.map((s, i) => (
             <motion.div
               key={s.step}
@@ -54,10 +54,10 @@ export function HowItWorksSection() {
               transition={{ delay: i * 0.12 }}
               className="relative flex flex-col items-center text-center"
             >
-              <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-500/25">
+              <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-accent text-white shadow-lg shadow-brand-accent/25">
                 <s.icon className="h-8 w-8" />
               </div>
-              <span className="relative z-10 mt-4 flex h-7 w-7 items-center justify-center rounded-full bg-background text-sm font-bold text-violet-600 ring-2 ring-violet-200 dark:ring-violet-800 dark:text-violet-400">
+              <span className="relative z-10 mt-4 flex h-7 w-7 items-center justify-center rounded-full bg-background text-sm font-bold text-brand-accent ring-2 ring-brand-accent/30 dark:ring-brand-accent/50">
                 {s.step}
               </span>
               <h3 className="mt-3 text-lg font-semibold">{s.title}</h3>

@@ -36,7 +36,7 @@ export async function createRentalOrderAction(input: {
       item.rentalEnd != null &&
       Number.isFinite(new Date(item.rentalStart).getTime()) &&
       Number.isFinite(new Date(item.rentalEnd).getTime());
-    if (hasRentalDates) {
+    if (hasRentalDates && item.rentalStart != null && item.rentalEnd != null) {
       const start = item.rentalStart instanceof Date ? item.rentalStart : new Date(item.rentalStart);
       const end = item.rentalEnd instanceof Date ? item.rentalEnd : new Date(item.rentalEnd);
       if (end <= start) return { error: `วันที่คืนต้องอยู่หลังวันที่รับ (${item.productName})` };

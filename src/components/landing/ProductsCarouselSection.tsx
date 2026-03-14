@@ -38,7 +38,7 @@ function ProductCard({ product }: { product: ProductWithOptionalDiscount }) {
   return (
     <Link
       href="/rent"
-      className="group flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition hover:border-violet-300/50 hover:shadow-lg hover:shadow-violet-500/5 dark:hover:border-violet-500/30"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition hover:border-brand-accent/30 hover:shadow-lg hover:shadow-brand-accent/5 dark:hover:border-brand-accent/50"
     >
       <div className="relative aspect-square overflow-hidden bg-muted">
         {imageSrc ? (
@@ -54,7 +54,7 @@ function ProductCard({ product }: { product: ProductWithOptionalDiscount }) {
         )}
         <span className="absolute bottom-2 right-2 flex flex-col items-end gap-0.5">
           {hasPromo && (
-            <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-medium text-white">
+            <span className="rounded-full bg-brand-accent px-2 py-0.5 text-xs font-medium text-white">
               ลด {discountPercent}%
             </span>
           )}
@@ -63,12 +63,12 @@ function ProductCard({ product }: { product: ProductWithOptionalDiscount }) {
               <span className="text-muted-foreground line-through text-xs tabular-nums">
                 {formatMoney(product.price)} ฿
               </span>
-              <span className="rounded-full bg-violet-600 px-2.5 py-0.5 text-xs font-medium text-white tabular-nums">
+              <span className="rounded-full bg-brand-accent px-2.5 py-0.5 text-xs font-medium text-white tabular-nums">
                 {formatMoney(discountedPrice)} ฿
               </span>
             </>
           ) : (
-            <span className="rounded-full bg-violet-600 px-2.5 py-0.5 text-xs font-medium text-white">
+            <span className="rounded-full bg-brand-accent px-2.5 py-0.5 text-xs font-medium text-white">
               {formatMoney(product.price)} ฿
             </span>
           )}
@@ -76,7 +76,7 @@ function ProductCard({ product }: { product: ProductWithOptionalDiscount }) {
       </div>
       <div className="flex flex-1 flex-col p-4">
         <h3 className="font-semibold tracking-tight line-clamp-2">{product.name}</h3>
-        <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-violet-600 dark:text-violet-400">
+        <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand-accent">
           ดูรายการ
           <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
         </span>
@@ -113,7 +113,7 @@ export function ProductsCarouselSection({ products }: ProductsCarouselSectionPro
     <section id="products" className="border-t border-border bg-background py-20 md:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mb-12 text-center">
-          <p className="text-xs font-medium uppercase tracking-widest text-violet-600 dark:text-violet-400">
+          <p className="text-xs font-medium uppercase tracking-widest text-brand-accent">
             รายการทั้งหมด
           </p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -150,14 +150,14 @@ export function ProductsCarouselSection({ products }: ProductsCarouselSectionPro
             <CarouselNext className="right-0 border-border bg-background/90 hover:bg-background" />
           </Carousel>
           {!isPaused && (
-            <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-white/90">
+            <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-brand-bg/80 px-3 py-1 text-xs text-brand-fg/90">
               เลื่อนอัตโนมัติ
             </span>
           )}
         </div>
 
         <div className="mt-12 text-center">
-          <Button asChild size="lg" className="rounded-full bg-violet-600 px-8 hover:bg-violet-700">
+          <Button asChild size="lg" className="rounded-full bg-brand-accent px-8 text-white hover:bg-brand-accent-hover">
             <Link href="/rent">
               ไปหน้ารายการแพ็กเกจ
               <ArrowRight className="ml-2 h-4 w-4" />

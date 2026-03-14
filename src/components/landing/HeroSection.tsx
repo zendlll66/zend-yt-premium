@@ -24,8 +24,8 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
   ];
 
   return (
-    <section className="relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden bg-neutral-950 px-4 pt-20 text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(120,80,200,0.25),transparent)]" />
+    <section className="relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden bg-brand-bg px-4 pt-20 text-brand-fg">
+      <div className="absolute inset-0 brand-gradient-hero" />
       <div className="relative z-10 flex w-full max-w-5xl flex-col items-center">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -33,22 +33,22 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="max-w-4xl text-center"
         >
-          <p className="mb-4 flex items-center justify-center gap-2 text-sm font-medium tracking-widest text-white/70">
+          <p className="mb-4 flex items-center justify-center gap-2 text-sm font-medium tracking-widest text-brand-fg-muted">
             <Sparkles className="h-4 w-4" />
             บริการแพ็กเกจ Premium และบัญชีดิจิทัล
           </p>
           <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
             ซื้อแพ็กเกจพรีเมียม
             <br />
-            <span className="bg-gradient-to-r from-violet-300 via-purple-300 to-fuchsia-300 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-brand-accent-muted to-brand-accent-muted/90 bg-clip-text text-transparent">
               รับรหัสใช้งานได้ทันที
             </span>
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-balance text-lg text-white/70 sm:text-xl">
+          <p className="mx-auto mt-6 max-w-xl text-balance text-lg text-brand-fg-muted sm:text-xl">
             รองรับ Individual, Family, Invite Link และแบบลูกค้าส่งบัญชีมาให้ร้าน พร้อมระบบ Inventory เช็กวันคงเหลือ
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Button size="lg" className="rounded-full bg-violet-500 px-8 text-base hover:bg-violet-600" asChild>
+            <Button size="lg" className="rounded-full bg-brand-accent px-8 text-base text-white hover:bg-brand-accent-hover" asChild>
               <Link href="/rent">
                 เลือกแพ็กเกจตอนนี้
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -57,7 +57,7 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
             <Button
               size="lg"
               variant="outline"
-              className="rounded-full border-white/30 bg-white/5 px-8 text-base text-white hover:bg-white/15 hover:text-white"
+              className="rounded-full border-brand-border bg-brand-bg-subtle px-8 text-base text-brand-fg hover:bg-white/15 hover:text-brand-fg"
               asChild
             >
               <Link href="/register">สมัครสมาชิก</Link>
@@ -65,7 +65,7 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
             <Button
               size="lg"
               variant="ghost"
-              className="rounded-full px-8 text-base text-white/80 hover:bg-white/10 hover:text-white"
+              className="rounded-full px-8 text-base text-brand-fg-muted hover:bg-white/10 hover:text-brand-fg"
               asChild
             >
               <Link href="/#membership">ดูโปรและสิทธิพิเศษ</Link>
@@ -81,13 +81,13 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
           className="mt-14 flex w-full max-w-2xl flex-wrap items-center justify-center gap-8 sm:gap-12"
         >
           {stats.map((s) => (
-            <div key={s.label} className="flex items-center gap-3 text-white/80">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                <s.icon className="h-5 w-5 text-violet-300" />
+            <div key={s.label} className="flex items-center gap-3 text-brand-fg-muted">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-bg-subtle">
+                <s.icon className="h-5 w-5 text-brand-accent-muted" />
               </div>
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-white/50">{s.label}</p>
-                <p className="font-semibold text-white">{s.value}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-brand-fg-subtle">{s.label}</p>
+                <p className="font-semibold text-brand-fg">{s.value}</p>
               </div>
             </div>
           ))}
@@ -101,7 +101,7 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
             transition={{ duration: 0.5, delay: 0.5, ease: "easeOut" }}
             className="mt-16 w-full"
           >
-            <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-white/50">
+            <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-brand-fg-subtle">
               แพ็กเกจแนะนำ
             </p>
             <div className="flex flex-wrap items-stretch justify-center gap-4">
@@ -113,9 +113,9 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
                   <Link
                     key={product.id}
                     href="/rent"
-                    className="group flex w-[140px] flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5 transition hover:border-violet-400/40 hover:bg-white/10 sm:w-[160px]"
+                    className="group flex w-[140px] flex-col overflow-hidden rounded-xl border border-brand-border bg-brand-bg-subtle transition hover:border-brand-accent/40 hover:bg-white/10 sm:w-[160px]"
                   >
-                    <div className="aspect-square overflow-hidden bg-white/5">
+                    <div className="aspect-square overflow-hidden bg-brand-bg-subtle">
                       {imageSrc ? (
                         <img
                           src={imageSrc}
@@ -124,15 +124,15 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">
-                          <Package className="h-10 w-10 text-white/30" />
+                          <Package className="h-10 w-10 text-brand-fg-subtle" />
                         </div>
                       )}
                     </div>
                     <div className="flex flex-1 flex-col justify-between p-3">
-                      <p className="line-clamp-2 text-sm font-medium text-white">
+                      <p className="line-clamp-2 text-sm font-medium text-brand-fg">
                         {product.name}
                       </p>
-                      <p className="mt-2 text-xs font-semibold text-violet-300">
+                      <p className="mt-2 text-xs font-semibold text-brand-accent-muted">
                         {formatMoney(product.price)} ฿
                       </p>
                     </div>
@@ -143,7 +143,7 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
             <p className="mt-4 text-center">
               <Link
                 href="#products"
-                className="text-sm font-medium text-white/60 underline-offset-4 hover:text-violet-300 hover:underline"
+                className="text-sm font-medium text-brand-fg-subtle underline-offset-4 hover:text-brand-accent-muted hover:underline"
               >
                 เลื่อนลงดูแพ็กเกจทั้งหมด
               </Link>

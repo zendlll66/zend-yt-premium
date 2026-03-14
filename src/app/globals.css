@@ -5,6 +5,16 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Brand / Landing theme — เปลี่ยนสีที่เดียวใน :root */
+  --color-brand-bg: var(--brand-bg);
+  --color-brand-bg-subtle: var(--brand-bg-subtle);
+  --color-brand-fg: var(--brand-fg);
+  --color-brand-fg-muted: var(--brand-fg-muted);
+  --color-brand-fg-subtle: var(--brand-fg-subtle);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-hover: var(--brand-accent-hover);
+  --color-brand-accent-muted: var(--brand-accent-muted);
+  --color-brand-border: var(--brand-border);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -48,6 +58,23 @@
 }
 
 :root {
+  /*
+   * ตรีม Landing — เปลี่ยนสีทั้งไซต์ได้ที่เดียว
+   * ปัจจุบัน: ดำ-แดง-ขาว
+   * ตัวอย่างตรีมอื่น: เปลี่ยน --brand-accent, --brand-accent-hover, --brand-accent-muted, --brand-gradient
+   * เช่น ตรีมเขียว: --brand-accent: #16a34a; --brand-accent-hover: #15803d; --brand-accent-muted: #4ade80; --brand-gradient: rgba(22,163,74,0.2);
+   */
+  --brand-bg: #0a0a0a;
+  --brand-bg-subtle: rgba(255, 255, 255, 0.03);
+  --brand-fg: #ffffff;
+  --brand-fg-muted: rgba(255, 255, 255, 0.7);
+  --brand-fg-subtle: rgba(255, 255, 255, 0.5);
+  --brand-accent: #dc2626;
+  --brand-accent-hover: #b91c1c;
+  --brand-accent-muted: #f87171;
+  --brand-border: rgba(255, 255, 255, 0.1);
+  --brand-gradient: rgba(185, 28, 28, 0.2);
+
   --radius: 0.65rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -157,6 +184,22 @@
   --primary-foreground: oklch(0.99 0 0);
 }
 
+
+/* พื้นหลัง gradient สำหรับ Hero / CTA (ใช้ตัวแปร --brand-gradient) */
+.brand-gradient-hero {
+  background: radial-gradient(
+    ellipse 80% 60% at 50% -20%,
+    var(--brand-gradient),
+    transparent
+  );
+}
+.brand-gradient-bottom {
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 100%,
+    var(--brand-gradient),
+    transparent
+  );
+}
 
 @layer base {
   * {
