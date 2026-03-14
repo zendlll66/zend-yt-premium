@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 export function CustomerLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get("from") || "/account";
+  const fromParam = searchParams.get("from");
+  const from = fromParam && fromParam.startsWith("/") && !fromParam.startsWith("//") ? fromParam : "/";
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 

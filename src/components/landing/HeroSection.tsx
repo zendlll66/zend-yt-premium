@@ -20,7 +20,6 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
   const stats = [
     { icon: Package, label: "แพ็กเกจพร้อมขาย", value: productCount > 0 ? `${productCount}+` : "หลากหลาย" },
     { icon: CreditCard, label: "ชำระบัตร", value: "Stripe" },
-    { icon: Shield, label: "จัดส่งรหัสทันที", value: "Auto Delivery" },
   ];
 
   return (
@@ -73,20 +72,22 @@ export function HeroSection({ featuredProducts = [], productCount = 0 }: HeroSec
           </div>
         </motion.div>
 
-        {/* สถิติสั้น ๆ */}
+        {/* สถิติสั้น ๆ — ขึ้นหลายแถวได้เมื่อจอแคบ */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
-          className="mt-14 flex w-full max-w-2xl flex-wrap items-center justify-center gap-8 sm:gap-12"
+          className="mt-14 flex w-full max-w-2xl flex-wrap items-center justify-center gap-6 sm:gap-10"
         >
           {stats.map((s) => (
             <div key={s.label} className="flex items-center gap-3 text-brand-fg-muted">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-bg-subtle">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-bg-subtle">
                 <s.icon className="h-5 w-5 text-brand-accent-muted" />
               </div>
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-brand-fg-subtle">{s.label}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-brand-fg-subtle">
+                  {s.label}
+                </p>
                 <p className="font-semibold text-brand-fg">{s.value}</p>
               </div>
             </div>

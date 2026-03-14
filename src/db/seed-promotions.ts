@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { products } from "@/db/schema/product.schema";
 import { findPromotions, upsertPromotion } from "@/features/promotion/promotion.repo";
 
-/** โปรโมชันเริ่มต้น: ชื่อ, ส่วนลด %, ชื่อสินค้าที่ร่วมโปร (ต้องมีใน products แล้ว) */
+/** โปรโมชันเริ่มต้น: ชื่อ, ส่วนลด %, ชื่อสินค้าที่ร่วมโปร (ต้องมีใน products แล้ว — ใช้ชื่อจาก seed-products) */
 const DEFAULT_PROMOTIONS: {
   name: string;
   discountPercent: number;
@@ -17,14 +17,24 @@ const DEFAULT_PROMOTIONS: {
     discountPercent: 10,
     startAt: new Date(),
     endAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    productNames: ["Canon EOS R5", "Sony A7 IV", "Toyota Camry", "Honda City"],
+    productNames: [
+      "YouTube Premium Individual 1 เดือน",
+      "YouTube Premium Individual 3 เดือน",
+      "Netflix Premium 1 เดือน",
+      "Disney+ Standard 1 เดือน",
+    ],
   },
   {
-    name: "โปรกล้อง",
+    name: "โปร YouTube Premium",
     discountPercent: 15,
     startAt: new Date(),
     endAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-    productNames: ["Canon EOS R5", "Sony A7 IV", "กล้องวิดีโอ Sony FX3", "เลนส์ 24-70mm f/2.8"],
+    productNames: [
+      "YouTube Premium Individual 1 เดือน",
+      "YouTube Premium Individual 3 เดือน",
+      "YouTube Premium Family Slot 1 เดือน",
+      "YouTube Premium Invite Link 1 เดือน",
+    ],
   },
 ];
 
@@ -37,7 +47,7 @@ async function getProductIdsByNames(names: string[]): Promise<number[]> {
   return rows.map((r) => r.id);
 }
 
-async function seedPromotions() {
+export async function seedPromotions(): Promise<void> {
   const existing = await findPromotions(false);
   const byName = new Map(existing.map((p) => [p.name, p]));
 
@@ -62,7 +72,10 @@ async function seedPromotions() {
   console.log("Seed promotions done.");
 }
 
-seedPromotions().catch((e) => {
-  console.error("Seed promotions failed:", e);
-  process.exit(1);
-});
+const isMain = process.argv[1]?.replace(/\\/g, "/").endsWith("seed-promotions.ts");
+if (isMain) {
+  seedPromotions().catch((e) => {
+    console.error("Seed promotions failed:", e);
+    process.exit(1);
+  });
+}

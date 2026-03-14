@@ -68,7 +68,7 @@ async function getCategoryColumnSupport(): Promise<CategoryColumnSupport> {
   }
 }
 
-async function seedCategories() {
+export async function seedCategories(): Promise<void> {
   const columnSupport = await getCategoryColumnSupport();
 
   for (const item of PREMIUM_CATEGORIES) {
@@ -127,7 +127,10 @@ async function seedCategories() {
   console.log("Seed categories done.");
 }
 
-seedCategories().catch((e) => {
-  console.error("Seed categories failed:", e);
-  process.exit(1);
-});
+const isMain = process.argv[1]?.replace(/\\/g, "/").endsWith("seed-categories.ts");
+if (isMain) {
+  seedCategories().catch((e) => {
+    console.error("Seed categories failed:", e);
+    process.exit(1);
+  });
+}

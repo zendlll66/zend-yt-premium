@@ -10,7 +10,7 @@ import {
  * Sync หน้าจาก config เข้า DB: ไม่มีก็สร้าง มีอยู่แล้วก็อัปเดต label + roles ให้ตรง config
  * role ใช้ slug จากตาราง roles (ควรรัน seed-roles ก่อน: npm run db:seed-roles)
  */
-async function seedPages() {
+export async function seedPages(): Promise<void> {
   console.log("Seeding pages (role slugs from config)...");
   for (const p of PAGE_PERMISSIONS) {
     const existing = await findPageByPath(p.path);
@@ -33,7 +33,10 @@ async function seedPages() {
   console.log("Seed pages done.");
 }
 
-seedPages().catch((e) => {
-  console.error("Seed pages failed:", e);
-  process.exit(1);
-});
+const isMain = process.argv[1]?.replace(/\\/g, "/").endsWith("seed-pages.ts");
+if (isMain) {
+  seedPages().catch((e) => {
+    console.error("Seed pages failed:", e);
+    process.exit(1);
+  });
+}

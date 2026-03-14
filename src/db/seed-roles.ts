@@ -42,7 +42,7 @@ async function ensureRolesTable() {
   await db.run(sql.raw(`CREATE UNIQUE INDEX IF NOT EXISTS "roles_slug_unique" ON "roles" ("slug")`));
 }
 
-async function seedRoles() {
+export async function seedRoles(): Promise<void> {
   console.log("Seeding roles for rental shop...");
   try {
     await findRoleBySlug("super_admin");
@@ -74,7 +74,10 @@ async function seedRoles() {
   console.log("Seed roles done.");
 }
 
-seedRoles().catch((e) => {
-  console.error("Seed roles failed:", e);
-  process.exit(1);
-});
+const isMain = process.argv[1]?.replace(/\\/g, "/").endsWith("seed-roles.ts");
+if (isMain) {
+  seedRoles().catch((e) => {
+    console.error("Seed roles failed:", e);
+    process.exit(1);
+  });
+}

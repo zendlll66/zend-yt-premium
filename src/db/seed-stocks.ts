@@ -289,7 +289,7 @@ async function seedCustomerAccounts(seedOrderIds: { caPending: number; caProcess
   console.log("  + customer_accounts:", added, "rows");
 }
 
-async function seedStocks() {
+export async function seedStocks(): Promise<void> {
   console.log("Seeding stock tables...");
 
   const individualCustomerId = await ensureCustomer({
@@ -403,7 +403,10 @@ async function seedStocks() {
   console.log("Seed stocks done.");
 }
 
-seedStocks().catch((e) => {
-  console.error("Seed stocks failed:", e);
-  process.exit(1);
-});
+const isMain = process.argv[1]?.replace(/\\/g, "/").endsWith("seed-stocks.ts");
+if (isMain) {
+  seedStocks().catch((e) => {
+    console.error("Seed stocks failed:", e);
+    process.exit(1);
+  });
+}

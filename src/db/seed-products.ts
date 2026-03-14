@@ -59,7 +59,7 @@ async function getOrCreateCategoryId(name: string): Promise<number> {
   return row.id;
 }
 
-async function seedProducts() {
+export async function seedProducts(): Promise<void> {
   console.log("Seeding categories...");
   const categoryIds: Record<string, number> = {};
   for (const name of PREMIUM_PRODUCTS.map(([catName]) => catName)) {
@@ -117,7 +117,10 @@ function inferDurationDays(productName: string): number {
   return 30;
 }
 
-seedProducts().catch((e) => {
-  console.error("Seed products failed:", e);
-  process.exit(1);
-});
+const isMain = process.argv[1]?.replace(/\\/g, "/").endsWith("seed-products.ts");
+if (isMain) {
+  seedProducts().catch((e) => {
+    console.error("Seed products failed:", e);
+    process.exit(1);
+  });
+}

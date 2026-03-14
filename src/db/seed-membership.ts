@@ -27,7 +27,7 @@ const DEFAULT_PLANS = [
   },
 ];
 
-async function seedMembership() {
+export async function seedMembership(): Promise<void> {
   const existingPlans = await findMembershipPlans(false);
   const byName = new Map(existingPlans.map((p) => [p.name, p]));
 
@@ -49,7 +49,10 @@ async function seedMembership() {
   console.log("Seed membership done.");
 }
 
-seedMembership().catch((e) => {
-  console.error("Seed membership failed:", e);
-  process.exit(1);
-});
+const isMain = process.argv[1]?.replace(/\\/g, "/").endsWith("seed-membership.ts");
+if (isMain) {
+  seedMembership().catch((e) => {
+    console.error("Seed membership failed:", e);
+    process.exit(1);
+  });
+}

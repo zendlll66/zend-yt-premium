@@ -20,7 +20,8 @@
     "db:seed-orders": "tsx src/db/seed-orders.ts",
     "db:seed-membership": "tsx src/db/seed-membership.ts",
     "db:seed-promotions": "tsx src/db/seed-promotions.ts",
-    "db:seed-all": "tsx src/db/seed.ts && tsx src/db/seed-roles.ts && tsx src/db/seed-pages.ts && tsx src/db/seed-categories.ts && tsx src/db/seed-products.ts && tsx src/db/seed-modifiers.ts && tsx src/db/seed-stocks.ts && tsx src/db/seed-orders.ts && tsx src/db/seed-membership.ts && tsx src/db/seed-promotions.ts"
+    "db:seed-settings": "tsx src/db/seed-settings.ts",
+    "db:seed-all": "tsx src/db/seed-all.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1004.0",

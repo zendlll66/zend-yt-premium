@@ -71,7 +71,8 @@ export function LineLoginClient() {
             const data = (await res.json()) as { ok?: boolean; error?: string };
             if (res.ok) {
               setStatus("success");
-              const fromUrl = new URLSearchParams(window.location.search).get("from") || "/account";
+              const fromParam = new URLSearchParams(window.location.search).get("from");
+              const fromUrl = fromParam && fromParam.startsWith("/") && !fromParam.startsWith("//") ? fromParam : "/";
               window.location.href = fromUrl;
               return;
             }

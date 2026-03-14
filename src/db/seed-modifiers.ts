@@ -36,7 +36,7 @@ async function modifierExists(groupId: number, name: string): Promise<boolean> {
   return !!row;
 }
 
-async function seedModifiers() {
+export async function seedModifiers(): Promise<void> {
   console.log("Seeding modifier groups and options...");
 
   for (const [groupName, required, options] of SEED_MODIFIERS) {
@@ -53,7 +53,10 @@ async function seedModifiers() {
   console.log("Seed modifiers done.");
 }
 
-seedModifiers().catch((e) => {
-  console.error("Seed modifiers failed:", e);
-  process.exit(1);
-});
+const isMain = process.argv[1]?.replace(/\\/g, "/").endsWith("seed-modifiers.ts");
+if (isMain) {
+  seedModifiers().catch((e) => {
+    console.error("Seed modifiers failed:", e);
+    process.exit(1);
+  });
+}
