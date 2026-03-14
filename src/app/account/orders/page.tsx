@@ -91,12 +91,7 @@ export default async function AccountOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/account">← บัญชี</Link>
-        </Button>
-        <h1 className="mt-2 text-xl font-semibold">ประวัติคำสั่งซื้อ</h1>
-      </div>
+      
 
       <div className="rounded-xl border bg-card p-6">
         <p className="mb-4 text-sm text-muted-foreground">

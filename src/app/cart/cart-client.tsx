@@ -101,6 +101,13 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
           <ul className="space-y-4">
             {cart.map((item, i) => {
               const product = menu.find((p) => p.id === item.productId);
+              const totalInCartForProduct = cart
+                .filter((c) => c.productId === item.productId)
+                .reduce((s, c) => s + c.quantity, 0);
+              const maxQtyForLine = product
+                ? Math.max(0, product.stock - totalInCartForProduct + item.quantity)
+                : item.quantity;
+              const canIncrease = item.quantity < maxQtyForLine;
               const imageSrc = product?.imageUrl
                 ? `/api/r2-url?key=${encodeURIComponent(product.imageUrl)}`
                 : null;
@@ -136,6 +143,12 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
                             .join(", ")}
                         </p>
                       )}
+                      {product != null && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          สต็อกคงเหลือ {product.stock}
+                          {!canIncrease && " · ถึงจำนวนสูงสุดแล้ว"}
+                        </p>
+                      )}
                       <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                         <span>
                           รับ {formatDateShort(item.rentalStart)} – คืน{" "}
@@ -169,8 +182,9 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
                         </span>
                         <button
                           type="button"
-                          onClick={() => updateQty(i, 1)}
-                          className="flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground"
+                          onClick={() => canIncrease && updateQty(i, 1)}
+                          disabled={!canIncrease}
+                          className="flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           +
                         </button>
@@ -225,7 +239,7 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
             >
               <Link href="/rent?checkout=1">
                 <CreditCard className="h-5 w-5" />
-                ดำเนินการชำระเงิน (Stripe)
+                ดำเนินการชำระเงิน
               </Link>
             </Button>
             <p className="mt-3 text-center text-xs text-muted-foreground">

@@ -27,12 +27,12 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-8">
-      <div>
+      {/* <div>
         <Button variant="ghost" size="sm" asChild>
           <Link href="/account">← บัญชี</Link>
         </Button>
         <h1 className="mt-2 text-xl font-semibold">โปรไฟล์</h1>
-      </div>
+      </div> */}
 
       <ProfileTabs
         profileDefaultValues={{

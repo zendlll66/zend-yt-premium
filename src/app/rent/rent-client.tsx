@@ -551,8 +551,8 @@ export function RentClient({
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-neutral-200 bg-white shadow-2xl dark:border-neutral-800 dark:bg-neutral-900 md:max-w-lg"
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-6 py-4 dark:border-neutral-800">
-                <h2 className="text-lg font-semibold">
+              <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-4 py-3 dark:border-neutral-800 sm:px-6 sm:py-4">
+                <h2 className="text-base font-semibold sm:text-lg">
                   ตะกร้า {cartCount > 0 && `(${cartCount})`}
                 </h2>
                 <button
@@ -564,78 +564,95 @@ export function RentClient({
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto p-6">
+              <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
                 {cart.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <ShoppingCart className="mb-4 h-12 w-12 text-muted-foreground/40" />
-                    <p className="text-muted-foreground">ตะกร้าว่าง</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center py-12 text-center sm:py-16">
+                    <ShoppingCart className="mb-3 h-10 w-10 text-muted-foreground/40 sm:mb-4 sm:h-12 sm:w-12" />
+                    <p className="text-sm text-muted-foreground sm:text-base">ตะกร้าว่าง</p>
+                    <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
                       กดที่สินค้าเพื่อเลือกแพ็กเกจและเพิ่มลงตะกร้า
                     </p>
                   </div>
                 ) : (
-                  <ul className="space-y-4">
+                  <ul className="space-y-3 sm:space-y-4">
                     {cart.map((item, i) => {
                       const promo = productDiscountMap[item.productId ?? 0] ?? 0;
                       const line = getLineTotalWithMembership(item, membership, promo);
                       const showLineDiscount = line.original !== line.afterDiscount;
+                      const product = menu.find((p) => p.id === item.productId);
+                      const totalInCartForProduct = cart
+                        .filter((c) => c.productId === item.productId)
+                        .reduce((s, c) => s + c.quantity, 0);
+                      const maxQtyForLine = product
+                        ? Math.max(0, product.stock - totalInCartForProduct + item.quantity)
+                        : item.quantity;
+                      const canIncrease = item.quantity < maxQtyForLine;
                       return (
                         <li
                           key={i}
-                          className="rounded-2xl border border-neutral-200/80 bg-neutral-50/50 p-4 dark:border-neutral-700 dark:bg-neutral-800/50"
+                          className="rounded-xl border border-neutral-200/80 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-800/50 sm:rounded-2xl"
                         >
-                          <div className="flex items-start justify-between gap-3">
+                          <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
                             <div className="min-w-0 flex-1">
-                              <p className="font-semibold">{item.productName}</p>
+                              <p className="line-clamp-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100 sm:text-base">
+                                {item.productName}
+                              </p>
                               {item.modifiers.length > 0 && (
-                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
                                   {getVisibleModifiers(item.modifiers)
                                     .map((m) => m.modifierName)
                                     .join(", ")}
                                 </p>
                               )}
-                              <p className="mt-2 text-xs text-muted-foreground">
+                              {product != null && (
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  สต็อกคงเหลือ {product.stock}
+                                  {!canIncrease && " · ถึงจำนวนสูงสุดแล้ว"}
+                                </p>
+                              )}
+                              <p className="mt-1 hidden text-xs text-muted-foreground sm:block">
                                 แพ็กเกจดิจิทัลพร้อมส่งเข้าบัญชีลูกค้า
                               </p>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center rounded-xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-800">
+                            <div className="flex flex-wrap items-center justify-end gap-3 sm:shrink-0 sm:justify-end">
+                              <div className="flex items-center overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 shadow-inner dark:border-neutral-600 dark:bg-neutral-800/80">
                                 <button
                                   type="button"
                                   onClick={() => updateQty(i, -1)}
-                                  className="flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground"
+                                  className="flex h-9 w-9 items-center justify-center text-muted-foreground transition hover:bg-neutral-200 hover:text-foreground dark:hover:bg-neutral-700"
                                 >
                                   −
                                 </button>
-                                <span className="flex h-9 min-w-8 items-center justify-center border-x border-neutral-200 px-2 text-sm font-medium dark:border-neutral-700">
+                                <span className="flex h-9 min-w-9 items-center justify-center border-x border-neutral-200 bg-white px-2 text-sm font-semibold tabular-nums dark:border-neutral-600 dark:bg-neutral-900/50">
                                   {item.quantity}
                                 </span>
                                 <button
                                   type="button"
-                                  onClick={() => updateQty(i, 1)}
-                                  className="flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground"
+                                  onClick={() => canIncrease && updateQty(i, 1)}
+                                  disabled={!canIncrease}
+                                  className="flex h-9 w-9 items-center justify-center text-muted-foreground transition hover:bg-neutral-200 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-neutral-700"
                                 >
                                   +
                                 </button>
                               </div>
-                              <div className="w-24 text-right text-sm">
-                                {showLineDiscount ? (
-                                  <>
-                                    <span className="block text-muted-foreground line-through tabular-nums">{formatMoney(line.original)} ฿</span>
-                                    {line.isFree ? (
-                                      <span className="font-semibold text-green-600">ฟรี</span>
-                                    ) : (
-                                      <span className="font-semibold tabular-nums">{formatMoney(line.afterDiscount)} ฿</span>
-                                    )}
-                                  </>
-                                ) : (
-                                  <span className="font-semibold tabular-nums">{formatMoney(line.original)} ฿</span>
+                              <div className="flex min-w-20 items-center justify-end gap-2 sm:w-28 sm:flex-col sm:items-end sm:gap-0.5">
+                                {showLineDiscount && (
+                                  <span className="text-xs text-muted-foreground line-through tabular-nums">
+                                    {formatMoney(line.original)} ฿
+                                  </span>
                                 )}
+                                <span className="text-sm font-semibold tabular-nums sm:text-base">
+                                  {line.isFree ? (
+                                    <span className="text-emerald-600 dark:text-emerald-400">ฟรี</span>
+                                  ) : (
+                                    formatMoney(line.afterDiscount) + " ฿"
+                                  )}
+                                </span>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => removeFromCart(i)}
-                                className="rounded-lg px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                                className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
                               >
                                 ลบ
                               </button>
@@ -647,7 +664,7 @@ export function RentClient({
                   </ul>
                 )}
               </div>
-              <div className="shrink-0 border-t border-neutral-200 p-6 dark:border-neutral-800">
+              <div className="shrink-0 border-t border-neutral-200 p-4 dark:border-neutral-800 sm:p-6">
                 <div className="mb-4 flex items-center justify-between rounded-2xl bg-neutral-100 px-4 py-3 dark:bg-neutral-800">
                   <span className="text-sm text-muted-foreground">รวม</span>
                   {showDiscountTotal ? (
@@ -702,9 +719,10 @@ export function RentClient({
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
-              className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-neutral-200 bg-white p-8 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900"
+              className="fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xl dark:border-neutral-800 dark:bg-neutral-900 sm:rounded-3xl"
             >
-              <h3 className="mb-6 text-xl font-semibold">ดำเนินการชำระเงิน</h3>
+              <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+              <h3 className="mb-4 text-lg font-semibold sm:mb-6 sm:text-xl">ดำเนินการชำระเงิน</h3>
               <Stepper
                 currentStep={checkoutStep}
                 steps={[
@@ -714,16 +732,16 @@ export function RentClient({
               />
               {error && (
                 <div
-                  className="mb-4 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200"
+                  className="mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200 sm:mb-4 sm:rounded-2xl sm:gap-3 sm:px-4 sm:py-3"
                   role="alert"
                 >
-                  <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
-                  <p>{error}</p>
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 sm:h-5 sm:w-5" />
+                  <p className="min-w-0">{error}</p>
                 </div>
               )}
               {checkoutStep === 1 ? (
                 <>
-                  <div className="mb-4 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm dark:border-neutral-700 dark:bg-neutral-800/50">
+                  <div className="mb-3 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm dark:border-neutral-700 dark:bg-neutral-800/50 sm:mb-4 sm:rounded-2xl sm:px-4 sm:py-3">
                     <p className="font-medium">สรุปรายการในตะกร้า ({cartCount} ชิ้น)</p>
                     <ul className="mt-2 space-y-1 text-muted-foreground">
                       {cart.slice(0, 4).map((item, idx) => (
@@ -736,7 +754,7 @@ export function RentClient({
                     </ul>
                     <p className="mt-3 text-right font-semibold text-foreground">รวม {formatMoney(cartTotal)} ฿</p>
                   </div>
-                  <div className="mt-8 flex gap-3">
+                  <div className="mt-6 flex gap-2 sm:mt-8 sm:gap-3">
                     <button
                       type="button"
                       onClick={() => {
@@ -744,7 +762,7 @@ export function RentClient({
                         setCheckoutOpen(false);
                       }}
                       disabled={submitting}
-                      className="flex-1 rounded-2xl border border-neutral-200 py-3.5 font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                      className="flex-1 rounded-xl border border-neutral-200 py-3 font-medium hover:bg-neutral-50 disabled:opacity-50 sm:rounded-2xl sm:py-3.5 dark:border-neutral-700 dark:hover:bg-neutral-800"
                     >
                       ยกเลิก
                     </button>
@@ -752,7 +770,7 @@ export function RentClient({
                       type="button"
                       onClick={() => setCheckoutStep(2)}
                       disabled={cart.length === 0}
-                      className="flex-1 rounded-2xl bg-neutral-900 py-3.5 font-semibold text-white hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                      className="flex-1 rounded-xl bg-neutral-900 py-3 font-semibold text-white hover:bg-neutral-800 disabled:opacity-50 sm:rounded-2xl sm:py-3.5 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
                     >
                       ถัดไป
                     </button>
@@ -760,7 +778,7 @@ export function RentClient({
                 </>
               ) : (
                 <>
-                  <p className="mb-4 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm dark:border-neutral-700 dark:bg-neutral-800/50">
+                  <p className="mb-3 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm dark:border-neutral-700 dark:bg-neutral-800/50 sm:mb-4 sm:rounded-2xl sm:px-4 sm:py-3">
                     <span className="font-medium">{customer.name}</span>
                     <br />
                     <span className="text-muted-foreground">{customer.email}</span>
@@ -771,7 +789,7 @@ export function RentClient({
                       </>
                     )}
                   </p>
-                  <div className="mb-4 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm dark:border-neutral-700 dark:bg-neutral-800/50">
+                  <div className="mb-3 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm dark:border-neutral-700 dark:bg-neutral-800/50 sm:mb-4 sm:rounded-2xl sm:px-4 sm:py-3">
                     <p className="mb-2 font-medium">เลือกวิธีชำระเงิน</p>
                     <div className="space-y-2">
                       <label className={`flex items-center gap-2 ${paymentOptions.stripeEnabled ? "cursor-pointer" : "opacity-60"}`}>
@@ -817,13 +835,13 @@ export function RentClient({
                   </div>
 
                   {selectedPaymentMethod === "bank" && bankCheckoutData && (
-                    <div className="mb-4 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm dark:border-neutral-700 dark:bg-neutral-800/50">
+                    <div className="mb-4 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-3 text-sm dark:border-neutral-700 dark:bg-neutral-800/50 sm:rounded-2xl sm:px-4">
                       <p className="font-medium">สแกน QR เพื่อชำระเงิน</p>
                       {bankCheckoutData.qrImageUrl ? (
                         <img
                           src={bankCheckoutData.qrImageUrl}
                           alt="QR พร้อมเพย์"
-                          className="mx-auto mt-3 h-52 w-52 rounded-lg border bg-white p-2"
+                          className="mx-auto mt-2 h-40 w-40 rounded-lg border bg-white p-2 sm:mt-3 sm:h-52 sm:w-52"
                         />
                       ) : (
                         <p className="mt-2 text-xs text-muted-foreground">
@@ -856,12 +874,12 @@ export function RentClient({
                       </div>
                     </div>
                   )}
-                  <div className="mt-8 flex gap-3">
+                  <div className="mt-6 flex gap-2 sm:mt-8 sm:gap-3">
                     <button
                       type="button"
                       onClick={() => setCheckoutStep(1)}
                       disabled={submitting}
-                      className="flex-1 rounded-2xl border border-neutral-200 py-3.5 font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                      className="flex-1 rounded-xl border border-neutral-200 py-3 font-medium hover:bg-neutral-50 disabled:opacity-50 sm:rounded-2xl sm:py-3.5 dark:border-neutral-700 dark:hover:bg-neutral-800"
                     >
                       ย้อนกลับ
                     </button>
@@ -879,7 +897,7 @@ export function RentClient({
                           !bankSlipImageKey.trim()) ||
                         (!paymentOptions.stripeEnabled && !paymentOptions.bankEnabled)
                       }
-                      className="flex-1 rounded-2xl bg-neutral-900 py-3.5 font-semibold text-white hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                      className="flex-1 rounded-xl bg-neutral-900 py-3 font-semibold text-white hover:bg-neutral-800 disabled:opacity-50 sm:rounded-2xl sm:py-3.5 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
                     >
                       {submitting
                         ? "กำลังดำเนินการ…"
@@ -892,6 +910,7 @@ export function RentClient({
                   </div>
                 </>
               )}
+              </div>
             </motion.div>
           </>
         )}
@@ -1104,8 +1123,8 @@ function BookingModal({
                     <button
                       type="button"
                       onClick={() => setQty((n) => Math.min(availableStock, n + 1))}
-                      disabled={availableStock < 1}
-                      className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-50"
+                      disabled={availableStock < 1 || qty >= availableStock}
+                      className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       +
                     </button>
