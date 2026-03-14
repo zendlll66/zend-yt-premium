@@ -12,6 +12,7 @@ declare global {
       init: (config: { liffId: string }) => Promise<void>;
       isLoggedIn: () => boolean;
       login: (params?: { redirectUri?: string }) => void;
+      logout: () => void;
       getIDToken: () => string | null;
       isInClient: () => boolean;
     };
@@ -76,7 +77,15 @@ export function LineLoginClient() {
               window.location.href = fromUrl;
               return;
             }
-            setError(data.error || "เข้าสู่ระบบไม่สำเร็จ");
+            const errMsg = data.error || "เข้าสู่ระบบไม่สำเร็จ";
+            setError(errMsg);
+            if (/expired|หมดอายุ/i.test(errMsg)) {
+              try {
+                window.liff?.logout();
+              } catch {
+                /* ignore */
+              }
+            }
           } catch {
             setError("เกิดข้อผิดพลาด");
           }
@@ -101,6 +110,23 @@ export function LineLoginClient() {
     const liff = window.liff;
     const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
     if (!liff || !liffId) return;
+
+    // ถ้าเคยได้ error ว่า token หมดอายุ — ล็อกเอาท์แล้วล็อกอินใหม่เพื่อรับ token ใหม่
+    if (error && /expired|หมดอายุ/i.test(error)) {
+      setError(null);
+      try {
+        liff.logout();
+      } catch {
+        /* ignore */
+      }
+      const base =
+        typeof process.env.NEXT_PUBLIC_LIFF_REDIRECT_URI !== "undefined"
+          ? process.env.NEXT_PUBLIC_LIFF_REDIRECT_URI
+          : process.env.NEXT_PUBLIC_APP_URL || "";
+      const redirectUri = `${base.replace(/\/$/, "")}/customer-login${window.location.search || ""}`;
+      liff.login({ redirectUri });
+      return;
+    }
 
     if (!liff.isLoggedIn()) {
       // ต้องตรงกับ Endpoint URL ใน LIFF (ถ้าใช้ https บน localhost ต้องใส่ NEXT_PUBLIC_LIFF_REDIRECT_URI=https://localhost:3000)
@@ -129,7 +155,15 @@ export function LineLoginClient() {
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok) {
-        setError(data.error || "เข้าสู่ระบบไม่สำเร็จ");
+        const errMsg = data.error || "เข้าสู่ระบบไม่สำเร็จ";
+        setError(errMsg);
+        if (/expired|หมดอายุ/i.test(errMsg)) {
+          try {
+            window.liff?.logout();
+          } catch {
+            /* ignore */
+          }
+        }
         setStatus("ready");
         return;
       }
@@ -173,15 +207,22 @@ export function LineLoginClient() {
       {status === "ready" && (
         <>
           {error && (
-            <p className="mb-4 text-center text-sm text-destructive" role="alert">
-              {error}
-            </p>
+            <div className="mb-4 text-center text-sm" role="alert">
+              <p className="text-destructive">{error}</p>
+              {/expired|หมดอายุ/i.test(error) && (
+                <p className="mt-2 text-muted-foreground">
+                  กดปุ่มด้านล่างเพื่อเข้าสู่ระบบด้วย LINE อีกครั้ง
+                </p>
+              )}
+            </div>
           )}
           <Button
             className="w-full bg-[#06C755] hover:bg-[#05b34b]"
             onClick={handleLogin}
           >
-            เข้าสู่ระบบด้วย LINE
+            {error && /expired|หมดอายุ/i.test(error)
+              ? "เข้าสู่ระบบด้วย LINE อีกครั้ง"
+              : "เข้าสู่ระบบด้วย LINE"}
           </Button>
         </>
       )}

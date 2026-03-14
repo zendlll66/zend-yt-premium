@@ -27,13 +27,15 @@ export async function POST(req: Request) {
       );
     }
 
-    const payload = await verifyLineIdToken(idToken);
-    if (!payload) {
+    const result = await verifyLineIdToken(idToken);
+    if (!result.ok) {
+      const isConfigError = result.error.includes("LINE_CHANNEL_ID");
       return NextResponse.json(
-        { error: "ยืนยันตัวตนกับ LINE ไม่สำเร็จ" },
-        { status: 401 }
+        { error: result.error },
+        { status: isConfigError ? 500 : 401 }
       );
     }
+    const payload = result.payload;
 
     const { sub: lineUserId, name: lineName, picture: linePicture } = payload;
     const displayName = (typeof lineName === "string" ? lineName.trim() : "") || "ผู้ใช้ LINE";
