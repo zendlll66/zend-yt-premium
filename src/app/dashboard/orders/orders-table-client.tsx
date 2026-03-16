@@ -132,7 +132,7 @@ export function OrdersTableClient({ orders }: Props) {
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 font-medium">เลขที่</th>
-                <th className="px-4 py-3 font-medium">ลูกค้า</th>
+                <th className="px-4 py-3 font-medium">ลูกค้าที่ใช้</th>
                 <th className="px-4 py-3 font-medium">สินค้า</th>
                 <th className="px-4 py-3 font-medium">ประเภทสินค้า</th>
                 <th className="px-4 py-3 font-medium">สถานะ</th>
@@ -160,7 +160,7 @@ export function OrdersTableClient({ orders }: Props) {
                         >
                           {o.customerLinePictureUrl ? (
                             <img
-                              src={o.customerLinePictureUrl}
+                              src={o.customerLinePictureUrl.startsWith("http") ? o.customerLinePictureUrl : `/api/r2-url?key=${encodeURIComponent(o.customerLinePictureUrl)}`}
                               alt=""
                               className="h-6 w-6 rounded-full object-cover"
                             />
@@ -172,6 +172,11 @@ export function OrdersTableClient({ orders }: Props) {
                           <span className="max-w-[180px] truncate">
                             {o.customerLineDisplayName ?? o.customerName}
                           </span>
+                          {(o.customerLineDisplayName ?? o.customerLinePictureUrl) && (
+                            <span className="shrink-0 rounded bg-[#06C755]/15 px-1.5 py-0.5 text-[10px] font-medium text-[#06C755]">
+                              LINE
+                            </span>
+                          )}
                         </Link>
                       ) : (
                         <span className="font-medium">{o.customerName}</span>

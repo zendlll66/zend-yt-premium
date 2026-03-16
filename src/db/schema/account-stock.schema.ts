@@ -1,4 +1,5 @@
 import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
+import { customers } from "./customer.schema";
 
 /** สต็อกรหัสแบบ Individual (1 account ต่อ 1 ลูกค้า) */
 export const accountStock = sqliteTable("account_stock", {
@@ -11,6 +12,8 @@ export const accountStock = sqliteTable("account_stock", {
   status: text("status").notNull().default("available"),
   /** ผูกกับออเดอร์ที่ขายแล้ว (ถ้ามี) */
   orderId: integer("order_id"),
+  /** ลูกค้าที่ได้รับรหัสนี้ (เก็บตอนจ่ายเงินแล้ว assign stock ให้) */
+  customerId: integer("customer_id").references(() => customers.id, { onDelete: "set null" }),
   /** เวลาเริ่มจอง (ใช้ป้องกันจองค้าง) */
   reservedAt: integer("reserved_at", { mode: "timestamp" }),
   /** เวลาที่ขายแล้ว */

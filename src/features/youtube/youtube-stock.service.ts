@@ -26,6 +26,8 @@ type AssignedStock =
 const MAX_RETRIES = 5;
 
 async function claimIndividualStock(conn: typeof db, ctx: AssignContext): Promise<AssignedStock> {
+  const customerId = await resolveCustomerId(conn, ctx);
+
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const [candidate] = await conn
       .select({ id: accountStock.id })
@@ -41,6 +43,7 @@ async function claimIndividualStock(conn: typeof db, ctx: AssignContext): Promis
       .set({
         status: "sold",
         orderId: ctx.orderId,
+        customerId,
         soldAt: now,
         updatedAt: now,
       })

@@ -18,7 +18,11 @@ export async function createRentalOrderAction(input: {
   customerName: string;
   customerEmail: string;
   customerPhone?: string | null;
+  /** ลูกค้าในระบบ (เมื่อสร้าง order จากแดชบอร์ดให้เลือกลูกค้า) */
+  customerId?: number | null;
   items: OrderItemInput[];
+  /** สร้างจากแดชบอร์ด = ถือว่าจ่ายแล้ว อัปเดตเป็น paid ทันที (ไม่ยิง flow ชำระเงินลูกค้า) */
+  markAsPaid?: boolean;
 }): Promise<CreateRentalOrderState> {
   if (!input.items?.length) {
     return { error: "ไม่มีรายการสินค้า" };
@@ -72,6 +76,7 @@ export async function createRentalOrderAction(input: {
       customerName: input.customerName.trim(),
       customerEmail: input.customerEmail.trim(),
       customerPhone: input.customerPhone?.trim() || null,
+      customerId: input.customerId ?? null,
       items: itemsWithDates,
     });
   } catch (error) {
@@ -85,6 +90,10 @@ export async function createRentalOrderAction(input: {
   }
 
   if (!order) return { error: "สร้างคำสั่งเช่าไม่สำเร็จ" };
+
+  if (input.markAsPaid) {
+    await updateOrderStatusAction(order.id, "paid");
+  }
 
   revalidatePath("/dashboard/orders");
   return { orderId: order.id, orderNumber: order.orderNumber };

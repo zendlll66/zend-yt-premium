@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import {
   addFamilyMember,
   createAccountStock,
@@ -34,7 +35,9 @@ export async function createAccountStockAction(formData: FormData) {
   const status = ((formData.get("status") as string) || "available") as "available" | "reserved" | "sold";
   if (!email || !password) return;
   await createAccountStock({ email, password, status });
+  revalidatePath("/dashboard/stocks/account-stock");
   refreshStocksPage();
+  redirect("/dashboard/stocks/account-stock");
 }
 
 export async function updateAccountStockStatusAction(formData: FormData) {
@@ -45,14 +48,45 @@ export async function updateAccountStockStatusAction(formData: FormData) {
   refreshStocksPage();
 }
 
+function parseOptionalInt(value: string | null): number | null {
+  if (value == null || value === "") return null;
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseOptionalDate(value: string | null): Date | null {
+  if (value == null || value === "") return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 export async function updateAccountStockAction(formData: FormData) {
   const id = parseInt((formData.get("id") as string) ?? "0", 10);
   const email = (formData.get("email") as string)?.trim() ?? "";
   const password = (formData.get("password") as string)?.trim() ?? "";
   const status = ((formData.get("status") as string) || "available") as "available" | "reserved" | "sold";
+  const orderId = parseOptionalInt((formData.get("orderId") as string) ?? null);
+  const customerId = parseOptionalInt((formData.get("customerId") as string) ?? null);
+  const reservedAt = parseOptionalDate((formData.get("reservedAt") as string) ?? null);
+  const soldAt = parseOptionalDate((formData.get("soldAt") as string) ?? null);
+  const createdAt = parseOptionalDate((formData.get("createdAt") as string) ?? null);
+  const updatedAt = parseOptionalDate((formData.get("updatedAt") as string) ?? null);
   if (!id || !Number.isFinite(id) || !email || !password) return;
-  await updateAccountStockById({ id, email, password, status });
+  await updateAccountStockById({
+    id,
+    email,
+    password,
+    status,
+    orderId,
+    customerId,
+    reservedAt,
+    soldAt,
+    createdAt,
+    updatedAt,
+  });
+  revalidatePath("/dashboard/stocks/account-stock");
   refreshStocksPage();
+  redirect("/dashboard/stocks/account-stock");
 }
 
 export async function deleteAccountStockAction(formData: FormData) {

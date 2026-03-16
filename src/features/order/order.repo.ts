@@ -35,6 +35,8 @@ export type CreateRentalOrderInput = {
   customerName: string;
   customerEmail: string;
   customerPhone?: string | null;
+  /** ลูกค้าในระบบ (ผูกกับ order เมื่อสร้างจากแดชบอร์ด) */
+  customerId?: number | null;
   createdBy?: number | null;
   items: OrderItemInput[];
 };
@@ -265,6 +267,7 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
         customerName: data.customerName,
         customerEmail: data.customerEmail,
         customerPhone: data.customerPhone ?? null,
+        customerId: columnSupport.customerId ? (data.customerId ?? null) : undefined,
         createdBy: data.createdBy ?? null,
       })
       .returning({ id: orders.id });

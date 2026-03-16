@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, like, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { customers } from "@/db/schema/customer.schema";
 
@@ -29,6 +29,37 @@ export async function findAllCustomers(limit = 200): Promise<CustomerProfile[]> 
       updatedAt: customers.updatedAt,
     })
     .from(customers)
+    .orderBy(desc(customers.createdAt))
+    .limit(limit);
+  return rows;
+}
+
+/** ค้นหาลูกค้าจากชื่อ อีเมล หรือ LINE display name (สำหรับเลือกลูกค้าตอนสร้าง order) */
+export async function searchCustomers(query: string, limit = 50): Promise<CustomerProfile[]> {
+  if (!query?.trim()) {
+    return findAllCustomers(limit);
+  }
+  const pattern = `%${query.trim()}%`;
+  const rows = await db
+    .select({
+      id: customers.id,
+      name: customers.name,
+      email: customers.email,
+      phone: customers.phone,
+      lineUserId: customers.lineUserId,
+      lineDisplayName: customers.lineDisplayName,
+      linePictureUrl: customers.linePictureUrl,
+      createdAt: customers.createdAt,
+      updatedAt: customers.updatedAt,
+    })
+    .from(customers)
+    .where(
+      or(
+        like(customers.name, pattern),
+        like(customers.email, pattern),
+        like(customers.lineDisplayName, pattern)
+      )
+    )
     .orderBy(desc(customers.createdAt))
     .limit(limit);
   return rows;

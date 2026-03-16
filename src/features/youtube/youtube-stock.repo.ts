@@ -1,4 +1,4 @@
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
 import { db } from "@/db";
 import { accountStock } from "@/db/schema/account-stock.schema";
@@ -74,9 +74,35 @@ export async function findAccountStocks(limit = 100) {
     })
     .from(accountStock)
     .leftJoin(orders, eq(accountStock.orderId, orders.id))
-    .leftJoin(customers, eq(orders.customerId, customers.id))
+    .leftJoin(
+      customers,
+      or(
+        eq(accountStock.customerId, customers.id),
+        and(isNull(accountStock.customerId), eq(orders.customerId, customers.id))
+      )
+    )
     .orderBy(desc(accountStock.createdAt))
     .limit(limit);
+}
+
+export async function findAccountStockById(id: number) {
+  const [row] = await db
+    .select({
+      id: accountStock.id,
+      email: accountStock.email,
+      password: accountStock.password,
+      status: accountStock.status,
+      orderId: accountStock.orderId,
+      customerId: accountStock.customerId,
+      reservedAt: accountStock.reservedAt,
+      soldAt: accountStock.soldAt,
+      createdAt: accountStock.createdAt,
+      updatedAt: accountStock.updatedAt,
+    })
+    .from(accountStock)
+    .where(eq(accountStock.id, id))
+    .limit(1);
+  return row ?? null;
 }
 
 export async function createAccountStock(data: {
@@ -119,6 +145,12 @@ export async function updateAccountStockById(data: {
   email: string;
   password: string;
   status: "available" | "reserved" | "sold";
+  orderId?: number | null;
+  customerId?: number | null;
+  reservedAt?: Date | null;
+  soldAt?: Date | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
 }) {
   const now = new Date();
   const [row] = await db
@@ -127,9 +159,12 @@ export async function updateAccountStockById(data: {
       email: data.email,
       password: data.password,
       status: data.status,
-      reservedAt: data.status === "reserved" ? now : null,
-      soldAt: data.status === "sold" ? now : null,
-      updatedAt: now,
+      orderId: data.orderId !== undefined ? data.orderId : undefined,
+      customerId: data.customerId !== undefined ? data.customerId : undefined,
+      reservedAt: data.reservedAt !== undefined ? data.reservedAt : undefined,
+      soldAt: data.soldAt !== undefined ? data.soldAt : undefined,
+      createdAt: data.createdAt != null ? data.createdAt : undefined,
+      updatedAt: data.updatedAt != null ? data.updatedAt : now,
     })
     .where(eq(accountStock.id, data.id))
     .returning();

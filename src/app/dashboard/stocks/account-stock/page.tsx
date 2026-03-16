@@ -1,12 +1,7 @@
 import Link from "next/link";
-import {
-  createAccountStockAction,
-  deleteAccountStockAction,
-  updateAccountStockAction,
-} from "@/features/youtube/youtube-stock.actions";
+import { deleteAccountStockAction } from "@/features/youtube/youtube-stock.actions";
 import { findAccountStocks } from "@/features/youtube/youtube-stock.repo";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 function formatDate(d: Date | null) {
   if (!d) return "-";
@@ -27,25 +22,19 @@ export default async function AccountStockPage() {
         </Button>
       </div>
       <h1 className="text-xl font-semibold">Individual Account Stock</h1>
-      <div className="grid gap-2 md:grid-cols-3">
-        <div className="rounded-lg border bg-card p-3 text-sm">คงเหลือในคลัง: <b>{availableCount}</b></div>
-        <div className="rounded-lg border bg-card p-3 text-sm">กำลังจอง: <b>{reservedCount}</b></div>
-        <div className="rounded-lg border bg-card p-3 text-sm">ส่งให้ลูกค้าแล้ว: <b>{soldCount}</b></div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="grid gap-2 md:grid-cols-3">
+          <div className="rounded-lg border bg-card p-3 text-sm">คงเหลือในคลัง: <b>{availableCount}</b></div>
+          <div className="rounded-lg border bg-card p-3 text-sm">กำลังจอง: <b>{reservedCount}</b></div>
+          <div className="rounded-lg border bg-card p-3 text-sm">ส่งให้ลูกค้าแล้ว: <b>{soldCount}</b></div>
+        </div>
+        <Button asChild>
+          <Link href="/dashboard/stocks/account-stock/add">เพิ่ม stock</Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/dashboard/orders/add">สร้าง order ให้ลูกค้า</Link>
+        </Button>
       </div>
-      <form action={createAccountStockAction} className="grid gap-2 rounded-xl border bg-card p-4 md:grid-cols-4">
-        <Input name="email" placeholder="email / username" required />
-        <Input name="password" placeholder="password" required />
-        <select
-          name="status"
-          className="h-9 rounded-4xl border border-input bg-input/30 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          defaultValue="available"
-        >
-          <option value="available">available</option>
-          <option value="reserved">reserved</option>
-          <option value="sold">sold</option>
-        </select>
-        <Button type="submit">เพิ่ม stock</Button>
-      </form>
       <div className="rounded-xl border bg-card">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -63,27 +52,14 @@ export default async function AccountStockPage() {
               {accounts.map((row) => (
                 <tr key={row.id} className="border-b last:border-0">
                   <td className="px-3 py-2">
-                    <form action={updateAccountStockAction} className="grid gap-2 md:grid-cols-4">
-                      <input type="hidden" name="id" value={row.id} />
-                      <Input name="email" defaultValue={row.email} className="h-8" />
-                      <Input name="password" defaultValue={row.password} className="h-8" />
-                      <select
-                        name="status"
-                        defaultValue={row.status}
-                        className="h-8 rounded-lg border border-input bg-background px-2 text-xs"
-                      >
-                        <option value="available">available</option>
-                        <option value="reserved">reserved</option>
-                        <option value="sold">sold</option>
-                      </select>
-                      <Button size="sm" variant="outline" type="submit">
-                        บันทึก
-                      </Button>
-                    </form>
+                    <Link
+                      href={`/dashboard/stocks/account-stock/${row.id}/edit`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {row.email}
+                    </Link>
                   </td>
-                  <td className="px-3 py-2">
-                    {row.status}
-                  </td>
+                  <td className="px-3 py-2">{row.status}</td>
                   <td className="px-3 py-2">{row.orderId ?? "-"}</td>
                   <td className="px-3 py-2">
                     {row.customerId ? (
@@ -92,11 +68,20 @@ export default async function AccountStockPage() {
                         className="inline-flex items-center gap-2 rounded-full border px-2 py-1 text-xs hover:bg-muted"
                       >
                         {row.customerLinePictureUrl ? (
-                          <img src={row.customerLinePictureUrl} alt="" className="h-5 w-5 rounded-full object-cover" />
+                          <img
+                            src={row.customerLinePictureUrl.startsWith("http") ? row.customerLinePictureUrl : `/api/r2-url?key=${encodeURIComponent(row.customerLinePictureUrl)}`}
+                            alt=""
+                            className="h-5 w-5 rounded-full object-cover"
+                          />
                         ) : (
                           <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px]">U</span>
                         )}
-                        <span>{row.customerLineDisplayName ?? row.customerName ?? row.customerEmail}</span>
+                        <span className="max-w-[160px] truncate">{row.customerLineDisplayName ?? row.customerName ?? row.customerEmail}</span>
+                        {(row.customerLineDisplayName ?? row.customerLinePictureUrl) && (
+                          <span className="shrink-0 rounded bg-[#06C755]/15 px-1.5 py-0.5 text-[10px] font-medium text-[#06C755]">
+                            LINE
+                          </span>
+                        )}
                       </Link>
                     ) : (
                       <span className="text-muted-foreground">-</span>
@@ -104,16 +89,22 @@ export default async function AccountStockPage() {
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">{formatDate(row.soldAt ?? null)}</td>
                   <td className="px-3 py-2 text-right">
-                    <form action={deleteAccountStockAction}>
-                      <input type="hidden" name="id" value={row.id} />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        ลบ
+                    <div className="flex items-center justify-end gap-1">
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href={`/dashboard/stocks/account-stock/${row.id}/edit`}>แก้ไข</Link>
                       </Button>
-                    </form>
+                      <form action={deleteAccountStockAction} className="inline">
+                        <input type="hidden" name="id" value={row.id} />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          type="submit"
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          ลบ
+                        </Button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               ))}

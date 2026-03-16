@@ -81,16 +81,16 @@ export default async function OrderDetailPage({
       )}
 
       <div className="rounded-xl border bg-card p-4">
-        <h2 className="mb-3 font-medium">ข้อมูลลูกค้า</h2>
+        <h2 className="mb-3 font-medium">ลูกค้าที่ใช้</h2>
         <div className="text-sm">
           {order.customerIdResolved ? (
             <Link
               href={`/dashboard/customers/${order.customerIdResolved}`}
-              className="mb-2 inline-flex items-center gap-2 rounded-full border px-2 py-1 text-xs hover:bg-muted"
+              className="mb-2 inline-flex items-center gap-2 rounded-full border px-2 py-1.5 text-xs hover:bg-muted"
             >
               {order.customerLinePictureUrl ? (
                 <img
-                  src={order.customerLinePictureUrl}
+                  src={order.customerLinePictureUrl.startsWith("http") ? order.customerLinePictureUrl : `/api/r2-url?key=${encodeURIComponent(order.customerLinePictureUrl)}`}
                   alt=""
                   className="h-6 w-6 rounded-full object-cover"
                 />
@@ -100,16 +100,21 @@ export default async function OrderDetailPage({
                 </span>
               )}
               <span>{order.customerLineDisplayName ?? order.customerName}</span>
+              {(order.customerLineDisplayName ?? order.customerLinePictureUrl) && (
+                <span className="shrink-0 rounded bg-[#06C755]/15 px-1.5 py-0.5 text-[10px] font-medium text-[#06C755]">
+                  LINE
+                </span>
+              )}
             </Link>
           ) : null}
           <p>
             <span className="font-medium">{order.customerName}</span>
             <br />
-            {order.customerEmail}
+            <span className="text-muted-foreground">{order.customerEmail}</span>
             {order.customerPhone && (
               <>
                 <br />
-                {order.customerPhone}
+                <span className="text-muted-foreground">{order.customerPhone}</span>
               </>
             )}
           </p>

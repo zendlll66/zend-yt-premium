@@ -239,6 +239,13 @@
       "when": 1773445000000,
       "tag": "0035_orders_payment_slip_image",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1773445100000,
+      "tag": "0036_account_stock_customer_id",
+      "breakpoints": true
     }
   ]
 }
