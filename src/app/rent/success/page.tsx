@@ -10,20 +10,36 @@ async function confirmPaymentFromSession(sessionId: string, orderId: string) {
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) return;
   const stripe = new Stripe(secret);
+  const id = parseInt(orderId, 10);
+  if (Number.isNaN(id)) return;
+
+  let session: Stripe.Checkout.Session | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session.payment_status === "paid") break;
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 1500));
+    } catch (e) {
+      if (attempt === 1) {
+        console.error("[rent/success] Stripe session retrieve failed:", e);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+  }
+  if (!session || session.payment_status !== "paid") return;
+  const metaOrderId = session.metadata?.orderId;
+  if (String(metaOrderId ?? "") !== String(orderId)) return;
+
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    if (session.payment_status !== "paid") return;
-    const metaOrderId = session.metadata?.orderId;
-    if (metaOrderId !== orderId) return;
-    const id = parseInt(orderId, 10);
-    if (Number.isNaN(id)) return;
     await setOrderStripePayment(
       id,
       (session.payment_intent as string) || session.id,
       session.payment_status || "paid"
     );
-  } catch {
-    // session invalid or already updated
+  } catch (e) {
+    console.error("[rent/success] setOrderStripePayment failed for order", id, e);
+    throw e;
   }
 }
 

@@ -162,6 +162,16 @@ async function resolveCustomerId(conn: typeof db, ctx: AssignContext): Promise<n
   return customer?.id ?? null;
 }
 
+/** ผลรวม quantity ของ order_items ในออเดอร์ (ใช้กำหนดจำนวนรหัส stock ที่จะส่ง) — ถ้าไม่มีหรือเป็น 0 คืน 1 */
+export async function getOrderTotalQuantity(conn: typeof db, orderId: number): Promise<number> {
+  const [row] = await conn
+    .select({ total: sql<number>`coalesce(sum(${orderItems.quantity}), 0)` })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId));
+  const n = Number(row?.total ?? 0) || 0;
+  return n < 1 ? 1 : n;
+}
+
 async function sendLineInventoryMessage(
   conn: typeof db,
   customerId: number,
@@ -364,8 +374,41 @@ export async function assignStockForPaidOrder(input: {
   let assigned: AssignedStock;
 
   if (input.productType === "individual") {
-    assigned = await claimIndividualStock(conn, ctx);
-  } else if (input.productType === "family") {
+    const totalQty = await getOrderTotalQuantity(conn, input.orderId);
+    const stocks: { email: string; password: string }[] = [];
+    for (let i = 0; i < totalQty; i++) {
+      const s = await claimIndividualStock(conn, ctx);
+      if (s.kind === "individual") stocks.push({ email: s.email, password: s.password });
+    }
+    const customerId = await resolveCustomerId(conn, ctx);
+    if (customerId && stocks.length > 0) {
+      const durationDays = await resolveOrderDurationDays(conn, ctx.orderId);
+      for (let idx = 0; idx < stocks.length; idx++) {
+        const stock = stocks[idx];
+        await addCustomerInventoryItem({
+          customerId,
+          orderId: ctx.orderId,
+          itemType: "individual",
+          title: stocks.length > 1 ? `Individual Account (${idx + 1}/${stocks.length})` : "Individual Account",
+          loginEmail: stock.email,
+          loginPassword: stock.password,
+          durationDays,
+          insertOnly: idx > 0,
+          tx: conn,
+        });
+      }
+      const lines = stocks.map((s, i) => `รหัส ${i + 1}: ${s.email} / ${s.password}`);
+      await sendLineInventoryMessage(
+        conn,
+        customerId,
+        `ออเดอร์ #${ctx.orderId} ชำระเงินสำเร็จ\nประเภท: Individual (${stocks.length} รหัส)\n${lines.join("\n")}`
+      );
+    }
+    assigned = { kind: "individual", email: stocks[0].email, password: stocks[0].password };
+    return assigned;
+  }
+
+  if (input.productType === "family") {
     assigned = await claimFamilySlot(conn, ctx);
   } else if (input.productType === "invite") {
     assigned = await claimInviteLink(conn, ctx);

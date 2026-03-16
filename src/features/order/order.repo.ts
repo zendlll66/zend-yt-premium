@@ -1123,8 +1123,8 @@ export async function setOrderStripePayment(
     return current ?? null;
   }
 
-  return db.transaction(async (tx) => {
-    const [updated] = columnSupport.updatedAt
+  const updated = await db.transaction(async (tx) => {
+    const [row] = columnSupport.updatedAt
       ? await tx
           .update(orders)
           .set({
@@ -1159,7 +1159,7 @@ export async function setOrderStripePayment(
             totalPrice: orders.totalPrice,
           });
 
-    if (!updated) {
+    if (!row) {
       const [current] = await tx
         .select({
           id: orders.id,
@@ -1177,26 +1177,34 @@ export async function setOrderStripePayment(
     }
 
     await tx.insert(payments).values({
-      orderId: updated.id,
+      orderId: row.id,
       provider: "stripe",
       transactionId: stripePaymentIntentId,
-      amount: updated.totalPrice,
+      amount: row.totalPrice,
       currency: "THB",
       status: stripePaymentStatus === "paid" ? "paid" : "pending",
       paidAt: stripePaymentStatus === "paid" ? new Date() : null,
       createdAt: new Date(),
     });
 
+    return row;
+  });
+
+  if (!updated) return null;
+
+  // Assign stock หลัง commit paid แล้ว — ถ้า stock ไม่พอออเดอร์ยังเป็น paid อยู่ (แอดมินส่งรหัสทีหลังได้)
+  try {
     await assignStockForPaidOrder({
       orderId: updated.id,
       productType: updated.productType,
       customerId: (updated.customerId ?? null) as number | null,
       customerEmail: updated.customerEmail,
-      tx: tx as unknown as typeof db,
     });
+  } catch (err) {
+    console.error("[setOrderStripePayment] assignStockForPaidOrder failed for order", updated.id, err);
+  }
 
-    return updated;
-  });
+  return updated;
 }
 
 export async function findOrderByStripePaymentIntentId(

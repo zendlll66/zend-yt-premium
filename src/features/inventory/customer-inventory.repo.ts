@@ -16,6 +16,8 @@ export async function addCustomerInventoryItem(data: {
   activatedAt?: Date | null;
   expiresAt?: Date | null;
   note?: string | null;
+  /** เมื่อ true จะ insert เสมอ (ใช้เมื่อออเดอร์มีหลายรหัส เช่น หลาย individual ต่อออเดอร์) */
+  insertOnly?: boolean;
   tx?: typeof db;
 }) {
   const conn = data.tx ?? db;
@@ -24,19 +26,20 @@ export async function addCustomerInventoryItem(data: {
   const expiresAt =
     data.expiresAt ?? new Date(activatedAt.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
-  const [existing] = await conn
-    .select({ id: customerInventories.id })
-    .from(customerInventories)
-    .where(
-      and(
-        eq(customerInventories.customerId, data.customerId),
-        eq(customerInventories.orderId, data.orderId),
-        eq(customerInventories.itemType, data.itemType)
+  if (!data.insertOnly) {
+    const [existing] = await conn
+      .select({ id: customerInventories.id })
+      .from(customerInventories)
+      .where(
+        and(
+          eq(customerInventories.customerId, data.customerId),
+          eq(customerInventories.orderId, data.orderId),
+          eq(customerInventories.itemType, data.itemType)
+        )
       )
-    )
-    .limit(1);
+      .limit(1);
 
-  if (existing) {
+    if (existing) {
     const [updated] = await conn
       .update(customerInventories)
       .set({
@@ -51,7 +54,8 @@ export async function addCustomerInventoryItem(data: {
       })
       .where(eq(customerInventories.id, existing.id))
       .returning();
-    return updated ?? null;
+      return updated ?? null;
+    }
   }
 
   const [created] = await conn
