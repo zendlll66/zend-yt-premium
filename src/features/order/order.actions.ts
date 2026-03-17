@@ -8,9 +8,10 @@ import {
   updateOrderStatus,
   checkStockForItems,
   submitOrderBankSlip,
+  updateOrderByAdmin,
 } from "./order.repo";
 import type { OrderItemInput } from "./order.repo";
-import type { OrderStatus } from "@/db/schema/order.schema";
+import type { OrderStatus, OrderProductType } from "@/db/schema/order.schema";
 
 export type CreateRentalOrderState = { orderId?: number; orderNumber?: string; error?: string };
 
@@ -145,4 +146,78 @@ export async function submitOrderBankSlipAction(orderId: number, slipImageKey: s
   revalidatePath("/account/orders");
   revalidatePath(`/account/orders/${orderId}`);
   return {};
+}
+
+function parseDate(value: string | null): Date | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+type OrderAdminUpdatePayload = {
+  status?: OrderStatus;
+  productType?: OrderProductType;
+  totalPrice?: number;
+  depositAmount?: number;
+  rentalStart?: Date | null;
+  rentalEnd?: Date | null;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string | null;
+  customerId?: number | null;
+};
+
+export async function updateOrderAdminAction(formData: FormData) {
+  const id = parseInt((formData.get("id") as string) ?? "0", 10);
+  if (!id || !Number.isFinite(id)) return;
+  const status = (formData.get("status") as string) || undefined;
+  const productType = (formData.get("productType") as string) || undefined;
+  const totalPriceRaw = (formData.get("totalPrice") as string) ?? "";
+  const depositAmountRaw = (formData.get("depositAmount") as string) ?? "";
+  const rentalStart = parseDate((formData.get("rentalStart") as string) ?? null);
+  const rentalEnd = parseDate((formData.get("rentalEnd") as string) ?? null);
+  const customerName = (formData.get("customerName") as string)?.trim() ?? "";
+  const customerEmail = (formData.get("customerEmail") as string)?.trim() ?? "";
+  const customerPhone = (formData.get("customerPhone") as string)?.trim() ?? "";
+  const customerIdRaw = (formData.get("customerId") as string) ?? "";
+
+  const totalPrice =
+    totalPriceRaw.trim() === "" ? undefined : Number.parseFloat(totalPriceRaw.replace(/,/g, ""));
+  const depositAmount =
+    depositAmountRaw.trim() === ""
+      ? undefined
+      : Number.parseFloat(depositAmountRaw.replace(/,/g, ""));
+
+  const payload: OrderAdminUpdatePayload = {};
+  if (status) payload.status = status as OrderStatus;
+  if (productType) payload.productType = productType as OrderProductType;
+  if (totalPrice !== undefined && !Number.isNaN(totalPrice)) payload.totalPrice = totalPrice;
+  if (depositAmount !== undefined && !Number.isNaN(depositAmount)) {
+    payload.depositAmount = depositAmount;
+  }
+  payload.rentalStart = rentalStart;
+  payload.rentalEnd = rentalEnd;
+  if (customerName) payload.customerName = customerName;
+  if (customerEmail) payload.customerEmail = customerEmail;
+  payload.customerPhone = customerPhone || null;
+  if (customerIdRaw.trim() !== "") {
+    const cid = Number.parseInt(customerIdRaw, 10);
+    if (Number.isFinite(cid)) payload.customerId = cid;
+  } else {
+    payload.customerId = null;
+  }
+
+  const updated = await updateOrderByAdmin(id, payload);
+  if (updated) {
+    const user = await getSessionUser();
+    await createAuditLog({
+      adminUserId: user?.id ?? null,
+      action: "order.admin.update",
+      entityType: "order",
+      entityId: String(id),
+      details: `ปรับข้อมูลคำสั่งซื้อ ${updated.orderNumber}`,
+    });
+  }
+  revalidatePath("/dashboard/orders");
+  revalidatePath(`/dashboard/orders/${id}`);
 }

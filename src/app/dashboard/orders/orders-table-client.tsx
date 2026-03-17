@@ -246,6 +246,9 @@ export function OrdersTableClient({ orders }: Props) {
                         <Button variant="outline" size="sm" asChild>
                           <Link href={`/dashboard/orders/${o.id}`}>รายละเอียด</Link>
                         </Button>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/dashboard/orders/${o.id}/edit`}>แก้ไข</Link>
+                        </Button>
                       </div>
                     </td>
                   </tr>

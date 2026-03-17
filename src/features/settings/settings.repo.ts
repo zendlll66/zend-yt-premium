@@ -26,6 +26,7 @@ export const SETTING_KEYS = {
   bankAccountName: "bank_account_name",
   bankAccountNumber: "bank_account_number",
   bankPromptpayId: "bank_promptpay_id",
+  inventoryExpiryWarningDays: "inventory_expiry_warning_days",
 } as const;
 
 /** ค่าที่ใช้ได้สำหรับ theme (ต้องตรงกับ [data-theme] ใน globals.css) */
@@ -54,6 +55,7 @@ const DEFAULTS: Record<string, string> = {
   [SETTING_KEYS.bankAccountName]: "",
   [SETTING_KEYS.bankAccountNumber]: "",
   [SETTING_KEYS.bankPromptpayId]: "",
+  [SETTING_KEYS.inventoryExpiryWarningDays]: "5",
 };
 
 export type ShopSettings = {
@@ -82,6 +84,8 @@ export type ShopSettings = {
   bankAccountNumber: string;
   /** พร้อมเพย์สำหรับสร้าง QR แบบระบุยอด */
   bankPromptpayId: string;
+  /** แสดงคำเตือน order ใกล้หมดอายุก่อนหมดกี่วัน (inventory) */
+  inventoryExpiryWarningDays: string;
 };
 
 export async function getShopSettings(): Promise<ShopSettings> {
@@ -112,6 +116,8 @@ export async function getShopSettings(): Promise<ShopSettings> {
     bankAccountNumber:
       map.get(SETTING_KEYS.bankAccountNumber) ?? DEFAULTS[SETTING_KEYS.bankAccountNumber],
     bankPromptpayId: map.get(SETTING_KEYS.bankPromptpayId) ?? DEFAULTS[SETTING_KEYS.bankPromptpayId],
+    inventoryExpiryWarningDays:
+      map.get(SETTING_KEYS.inventoryExpiryWarningDays) ?? DEFAULTS[SETTING_KEYS.inventoryExpiryWarningDays],
   };
 }
 
@@ -143,6 +149,11 @@ export async function saveShopSettings(data: Partial<ShopSettings>): Promise<voi
     entries.push([SETTING_KEYS.bankAccountNumber, String(data.bankAccountNumber)]);
   if (data.bankPromptpayId !== undefined)
     entries.push([SETTING_KEYS.bankPromptpayId, String(data.bankPromptpayId)]);
+  if (data.inventoryExpiryWarningDays !== undefined)
+    entries.push([
+      SETTING_KEYS.inventoryExpiryWarningDays,
+      String(data.inventoryExpiryWarningDays),
+    ]);
 
   for (const [key, value] of entries) {
     await db

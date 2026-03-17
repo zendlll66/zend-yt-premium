@@ -60,6 +60,9 @@ export default async function OrderDetailPage({
           </p>
         </div>
         <OrderStatusActions orderId={order.id} currentStatus={order.status} />
+        <Button variant="outline" size="sm" asChild>
+          <Link href={`/dashboard/orders/${order.id}/edit`}>แก้ไขคำสั่งซื้อ</Link>
+        </Button>
       </div>
 
       {order.paymentSlipImageUrl && (

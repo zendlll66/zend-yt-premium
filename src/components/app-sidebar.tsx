@@ -23,6 +23,7 @@ import {
   Settings05Icon,
   SecurityIcon,
   DatabaseIcon,
+  Timer01Icon,
 } from "@hugeicons/core-free-icons";
 import { canAccess, type PermissionRule } from "@/config/permissions";
 
@@ -38,7 +39,19 @@ const NAV_MAIN = [
     url: "/dashboard/orders",
     icon: <HugeiconsIcon icon={ReceiptTextIcon} strokeWidth={2} />,
     isActive: true,
-  }, 
+  },
+  {
+    title: "Inventory Orders",
+    url: "#",
+    icon: <HugeiconsIcon icon={Timer01Icon} strokeWidth={2} />,
+    isActive: true,
+    items: [
+      { title: "Order ที่ยังใช้งาน", url: "/dashboard/inventory/orders/active" },
+      { title: "Order ใกล้หมดอายุ", url: "/dashboard/inventory/orders/expiring" },
+      { title: "Order หมดอายุแล้ว", url: "/dashboard/inventory/orders/expired" },
+      { title: "เพิ่ม Inventory Order", url: "/dashboard/inventory/orders/add" },
+    ],
+  },
   {
     title: "จัดการสินค้า",
     url: "#",

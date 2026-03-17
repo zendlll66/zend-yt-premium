@@ -111,6 +111,59 @@ export type DashboardOrderListItem = OrderListItem & {
   paymentSlipImageUrl: string | null;
 };
 
+type UpdateOrderAdminInput = {
+  status?: OrderStatus;
+  productType?: OrderProductType;
+  totalPrice?: number;
+  depositAmount?: number;
+  rentalStart?: Date | null;
+  rentalEnd?: Date | null;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string | null;
+  customerId?: number | null;
+};
+
+export async function updateOrderByAdmin(id: number, data: UpdateOrderAdminInput) {
+  const columnSupport = await getOrderColumnSupport();
+  const set: {
+    status?: OrderStatus;
+    productType?: OrderProductType;
+    totalPrice?: number;
+    depositAmount?: number;
+    rentalStart?: Date | null;
+    rentalEnd?: Date | null;
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string | null;
+    updatedAt?: Date;
+  } = {};
+  if (data.status !== undefined) set.status = data.status;
+  if (data.productType !== undefined && columnSupport.productType) {
+    set.productType = data.productType;
+  }
+  if (data.totalPrice !== undefined) set.totalPrice = data.totalPrice;
+  if (data.depositAmount !== undefined) set.depositAmount = data.depositAmount;
+  if (data.rentalStart !== undefined) set.rentalStart = data.rentalStart;
+  if (data.rentalEnd !== undefined) set.rentalEnd = data.rentalEnd;
+  if (data.customerName !== undefined) set.customerName = data.customerName;
+  if (data.customerEmail !== undefined) set.customerEmail = data.customerEmail;
+  if (data.customerPhone !== undefined) set.customerPhone = data.customerPhone;
+   if (data.customerId !== undefined && columnSupport.customerId) {
+    set.customerId = data.customerId;
+  }
+  if (Object.keys(set).length === 0) return null;
+  if (columnSupport.updatedAt) {
+    set.updatedAt = new Date();
+  }
+  const [updated] = await db
+    .update(orders)
+    .set(set)
+    .where(eq(orders.id, id))
+    .returning();
+  return updated ?? null;
+}
+
 async function reserveOrderNumber(): Promise<string> {
   const maxAttempts = 5;
   for (let i = 0; i < maxAttempts; i++) {

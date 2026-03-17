@@ -258,6 +258,26 @@ export function SettingsForm({ initial }: Props) {
             />
           </div>
           <div>
+            <label
+              htmlFor="inventoryExpiryWarningDays"
+              className="mb-1.5 block text-sm font-medium"
+            >
+              เตือน order ใกล้หมดอายุก่อน (วัน)
+            </label>
+            <Input
+              id="inventoryExpiryWarningDays"
+              name="inventoryExpiryWarningDays"
+              type="number"
+              min={1}
+              max={365}
+              defaultValue={initial.inventoryExpiryWarningDays}
+              disabled={isPending}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              ใช้กำหนดคิวรี order ที่ใกล้หมดอายุ เช่น แสดงในหน้า “ใกล้หมดอายุ” ภายใน X วัน
+            </p>
+          </div>
+          <div>
             <label htmlFor="serviceChargePercent" className="mb-1.5 block text-sm font-medium">
               ค่าบริการ (Service charge) %
             </label>
