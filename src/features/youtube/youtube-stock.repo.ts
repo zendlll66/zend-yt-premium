@@ -456,15 +456,35 @@ export async function updateFamilyMemberById(data: {
   id: number;
   email: string;
   memberPassword: string;
+  orderId?: number | null;
+  customerId?: number | null;
 }) {
   const [row] = await db
     .update(familyMembers)
     .set({
       email: data.email,
       memberPassword: data.memberPassword,
+      ...(data.orderId !== undefined && { orderId: data.orderId }),
+      ...(data.customerId !== undefined && { customerId: data.customerId }),
     })
     .where(eq(familyMembers.id, data.id))
     .returning();
+  return row ?? null;
+}
+
+export async function findFamilyMemberById(id: number) {
+  const [row] = await db
+    .select({
+      id: familyMembers.id,
+      familyGroupId: familyMembers.familyGroupId,
+      email: familyMembers.email,
+      memberPassword: familyMembers.memberPassword,
+      orderId: familyMembers.orderId,
+      customerId: familyMembers.customerId,
+    })
+    .from(familyMembers)
+    .where(eq(familyMembers.id, id))
+    .limit(1);
   return row ?? null;
 }
 

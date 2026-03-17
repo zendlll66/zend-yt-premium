@@ -173,8 +173,16 @@ export async function updateFamilyMemberAction(formData: FormData) {
   const id = parseInt((formData.get("id") as string) ?? "0", 10);
   const email = (formData.get("email") as string)?.trim() ?? "";
   const memberPassword = (formData.get("member_password") as string)?.trim() ?? "";
+  const orderId = parseOptionalInt((formData.get("orderId") as string) ?? null);
+  const customerId = parseOptionalInt((formData.get("customerId") as string) ?? null);
   if (!id || !Number.isFinite(id) || !email || !memberPassword) return;
-  await updateFamilyMemberById({ id, email, memberPassword });
+  await updateFamilyMemberById({
+    id,
+    email,
+    memberPassword,
+    orderId,
+    customerId,
+  });
   refreshStocksPage();
 }
 

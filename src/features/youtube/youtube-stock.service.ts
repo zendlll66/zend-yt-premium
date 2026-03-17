@@ -445,7 +445,53 @@ export async function assignStockForPaidOrder(input: {
   }
 
   if (input.productType === "family") {
-    assigned = await claimFamilySlot(conn, ctx);
+    const totalQty = await getOrderTotalQuantity(conn, input.orderId);
+    const slots: { email: string; password: string | null; familyName: string }[] = [];
+    for (let i = 0; i < totalQty; i++) {
+      const s = await claimFamilySlot(conn, ctx);
+      if (s.kind === "family") {
+        slots.push({ email: s.email, password: s.password, familyName: s.familyName });
+      }
+    }
+    const customerId = await resolveCustomerId(conn, ctx);
+    if (customerId && slots.length > 0) {
+      const durationDays = await resolveOrderDurationDays(conn, ctx.orderId);
+      for (let idx = 0; idx < slots.length; idx++) {
+        const slot = slots[idx];
+        await addCustomerInventoryItem({
+          customerId,
+          orderId: ctx.orderId,
+          itemType: "family",
+          title:
+            slots.length > 1
+              ? `${slot.familyName} (${idx + 1}/${slots.length})`
+              : slot.familyName,
+          loginEmail: slot.email,
+          loginPassword: slot.password ?? undefined,
+          durationDays,
+          insertOnly: idx > 0,
+          tx: conn,
+        });
+      }
+      const lines = slots.map(
+        (s, i) => `สมาชิก ${i + 1}: ${s.email}${s.password ? ` / ${s.password}` : ""}`
+      );
+      await sendLineInventoryMessage(
+        conn,
+        customerId,
+        `ออเดอร์ #${ctx.orderId} ชำระเงินสำเร็จ\nประเภท: Family (${slots[0]?.familyName}) (${slots.length} ช่อง)\n${lines.join(
+          "\n"
+        )}`
+      );
+    }
+    if (slots.length === 0) throw new Error("NO_FAMILY_SLOT");
+    assigned = {
+      kind: "family",
+      familyGroupId: 0,
+      familyName: slots[0].familyName,
+      email: slots[0].email,
+      password: slots[0].password,
+    };
   } else {
     assigned = {
       kind: "customer_account",
