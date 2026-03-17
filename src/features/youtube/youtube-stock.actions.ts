@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import {
   addFamilyMember,
   createAccountStock,
+  createCustomerAccount,
   createFamilyGroup,
   createInviteLink,
   deleteAccountStockById,
@@ -251,15 +252,47 @@ export async function updateCustomerAccountStatusAction(formData: FormData) {
   refreshStocksPage();
 }
 
+export async function createCustomerAccountAction(formData: FormData) {
+  const customerId = parseOptionalInt((formData.get("customerId") as string) ?? null);
+  const orderId = parseOptionalInt((formData.get("orderId") as string) ?? null);
+  const email = (formData.get("email") as string)?.trim() ?? "";
+  const password = (formData.get("password") as string)?.trim() ?? "";
+  const status = ((formData.get("status") as string) || "pending") as "pending" | "processing" | "done";
+  const notes = (formData.get("notes") as string)?.trim() ?? "";
+  if (!customerId || !orderId || !Number.isFinite(customerId) || !Number.isFinite(orderId) || !email || !password)
+    return;
+  await createCustomerAccount({
+    customerId,
+    orderId,
+    email,
+    password,
+    status,
+    notes: notes || null,
+  });
+  revalidatePath("/dashboard/stocks/customer-accounts");
+  refreshStocksPage();
+  redirect("/dashboard/stocks/customer-accounts");
+}
+
 export async function updateCustomerAccountAction(formData: FormData) {
   const id = parseInt((formData.get("id") as string) ?? "0", 10);
   const email = (formData.get("email") as string)?.trim() ?? "";
   const password = (formData.get("password") as string)?.trim() ?? "";
   const status = ((formData.get("status") as string) || "pending") as "pending" | "processing" | "done";
   const notes = (formData.get("notes") as string)?.trim() ?? "";
+  const orderId = parseOptionalInt((formData.get("orderId") as string) ?? null);
+  const customerId = parseOptionalInt((formData.get("customerId") as string) ?? null);
   if (!id || !Number.isFinite(id) || !email || !password) return;
   const before = await findCustomerAccountNotifyTarget(id);
-  await updateCustomerAccountById({ id, email, password, status, notes: notes || null });
+  await updateCustomerAccountById({
+    id,
+    email,
+    password,
+    status,
+    notes: notes || null,
+    ...(orderId != null && { orderId }),
+    ...(customerId != null && { customerId }),
+  });
   const after = await findCustomerAccountNotifyTarget(id);
   if (
     before &&
@@ -274,13 +307,16 @@ export async function updateCustomerAccountAction(formData: FormData) {
       `บัญชีนี้ใช้งานได้แล้ว\nบัญชี: ${after.email}${noteLine}`
     );
   }
+  revalidatePath("/dashboard/stocks/customer-accounts");
   refreshStocksPage();
+  redirect("/dashboard/stocks/customer-accounts");
 }
 
 export async function deleteCustomerAccountAction(formData: FormData) {
   const id = parseInt((formData.get("id") as string) ?? "0", 10);
   if (!id || !Number.isFinite(id)) return;
   await deleteCustomerAccountById(id);
+  revalidatePath("/dashboard/stocks/customer-accounts");
   refreshStocksPage();
 }
 

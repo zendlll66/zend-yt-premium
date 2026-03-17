@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { createUserAction } from "@/features/admin/admin.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 
 type RoleOption = { slug: string; name: string };
 
@@ -40,13 +41,10 @@ export function AddUserForm({ roles }: { roles: RoleOption[] }) {
         />
       </div>
       <div>
-        <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
-          รหัสผ่าน
-        </label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
+          label="รหัสผ่าน"
           placeholder="อย่างน้อย 6 ตัวอักษร"
           required
           minLength={6}

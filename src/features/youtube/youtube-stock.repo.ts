@@ -579,7 +579,69 @@ export async function deleteInviteLinkById(id: number) {
 }
 
 export async function findCustomerAccounts(limit = 200) {
-  return db.select().from(customerAccounts).orderBy(desc(customerAccounts.createdAt)).limit(limit);
+  return db
+    .select({
+      id: customerAccounts.id,
+      customerId: customerAccounts.customerId,
+      email: customerAccounts.email,
+      password: customerAccounts.password,
+      orderId: customerAccounts.orderId,
+      status: customerAccounts.status,
+      notes: customerAccounts.notes,
+      createdAt: customerAccounts.createdAt,
+      updatedAt: customerAccounts.updatedAt,
+      customerName: customers.name,
+      customerEmail: customers.email,
+      customerLineDisplayName: customers.lineDisplayName,
+      customerLinePictureUrl: customers.linePictureUrl,
+    })
+    .from(customerAccounts)
+    .leftJoin(customers, eq(customerAccounts.customerId, customers.id))
+    .orderBy(desc(customerAccounts.createdAt))
+    .limit(limit);
+}
+
+export async function findCustomerAccountById(id: number) {
+  const [row] = await db
+    .select({
+      id: customerAccounts.id,
+      customerId: customerAccounts.customerId,
+      email: customerAccounts.email,
+      password: customerAccounts.password,
+      orderId: customerAccounts.orderId,
+      status: customerAccounts.status,
+      notes: customerAccounts.notes,
+      createdAt: customerAccounts.createdAt,
+      updatedAt: customerAccounts.updatedAt,
+    })
+    .from(customerAccounts)
+    .where(eq(customerAccounts.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function createCustomerAccount(data: {
+  customerId: number;
+  orderId: number;
+  email: string;
+  password: string;
+  status?: "pending" | "processing" | "done";
+  notes?: string | null;
+}) {
+  const [row] = await db
+    .insert(customerAccounts)
+    .values({
+      customerId: data.customerId,
+      orderId: data.orderId,
+      email: data.email,
+      password: data.password,
+      status: data.status ?? "pending",
+      notes: data.notes ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .returning();
+  return row ?? null;
 }
 
 export async function findCustomerAccountNotifyTarget(id: number) {
@@ -658,6 +720,8 @@ export async function updateCustomerAccountById(data: {
   password: string;
   status: "pending" | "processing" | "done";
   notes?: string | null;
+  orderId?: number;
+  customerId?: number;
 }) {
   const [row] = await db
     .update(customerAccounts)
@@ -666,6 +730,8 @@ export async function updateCustomerAccountById(data: {
       password: data.password,
       status: data.status,
       notes: data.notes ?? null,
+      ...(data.orderId !== undefined && { orderId: data.orderId }),
+      ...(data.customerId !== undefined && { customerId: data.customerId }),
       updatedAt: new Date(),
     })
     .where(eq(customerAccounts.id, data.id))

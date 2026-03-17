@@ -3,6 +3,7 @@ import { createAccountStockAction } from "@/features/youtube/youtube-stock.actio
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export default function AddAccountStockPage() {
   return (
@@ -30,16 +31,12 @@ export default function AddAccountStockPage() {
           />
         </div>
         <div>
-          <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
-            Password *
-          </label>
-          <Input
+          <PasswordInput
             id="password"
             name="password"
-            type="password"
+            label="Password *"
             placeholder="รหัสผ่าน"
             required
-            className="w-full"
           />
         </div>
         <div>

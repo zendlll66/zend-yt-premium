@@ -6,6 +6,7 @@ import { updateUserAction } from "@/features/admin/admin.actions";
 import { SUPER_ADMIN_ROLE } from "@/features/admin/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 
 type User = {
   id: number;
@@ -52,13 +53,10 @@ export function EditUserForm({ user, roles = [] }: { user: User; roles?: RoleOpt
         />
       </div>
       <div>
-        <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
-          รหัสผ่านใหม่
-        </label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
+          label="รหัสผ่านใหม่"
           placeholder="เว้นว่างถ้าไม่ต้องการเปลี่ยน"
           minLength={6}
           disabled={isPending}

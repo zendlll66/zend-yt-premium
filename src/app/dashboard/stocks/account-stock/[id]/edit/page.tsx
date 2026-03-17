@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { CustomerSelectField } from "./customer-select-field";
+import { PasswordInput } from "@/components/ui/password-input";
 
 function toDatetimeLocal(d: Date | null): string {
   if (!d) return "";
@@ -61,17 +62,13 @@ export default async function EditAccountStockPage({
           />
         </div>
         <div>
-          <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
-            Password *
-          </label>
-          <Input
+          <PasswordInput
             id="password"
             name="password"
-            type="password"
+            label="Password *"
             defaultValue={stock.password}
             placeholder="รหัสผ่าน"
             required
-            className="w-full"
           />
         </div>
         <div>
