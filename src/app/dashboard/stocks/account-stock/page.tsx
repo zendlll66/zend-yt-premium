@@ -2,6 +2,7 @@ import Link from "next/link";
 import { deleteAccountStockAction } from "@/features/youtube/youtube-stock.actions";
 import { findAccountStocks } from "@/features/youtube/youtube-stock.repo";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 
 function formatDate(d: Date | null) {
   if (!d) return "-";
@@ -95,14 +96,14 @@ export default async function AccountStockPage() {
                       </Button>
                       <form action={deleteAccountStockAction} className="inline">
                         <input type="hidden" name="id" value={row.id} />
-                        <Button
+                        <FormSubmitButton
                           size="sm"
                           variant="outline"
-                          type="submit"
+                          loadingText="กำลังลบ…"
                           className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         >
                           ลบ
-                        </Button>
+                        </FormSubmitButton>
                       </form>
                     </div>
                   </td>

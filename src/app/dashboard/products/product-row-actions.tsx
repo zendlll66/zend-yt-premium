@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import {
   deleteProductAction,
   toggleProductActiveAction,
@@ -18,18 +20,30 @@ export function ProductRowActions({
   imageUrl: string | null;
 }) {
   const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
   async function handleDelete() {
     if (!confirm("ต้องการลบสินค้านี้ใช่หรือไม่?")) return;
-    const result = await deleteProductAction(id);
-    if (result?.error) alert(result.error);
-    router.refresh();
+    setDeleting(true);
+    try {
+      const result = await deleteProductAction(id);
+      if (result?.error) alert(result.error);
+      router.refresh();
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function handleToggle() {
-    const result = await toggleProductActiveAction(id, !isActive);
-    if (result?.error) alert(result.error);
-    router.refresh();
+    setToggling(true);
+    try {
+      const result = await toggleProductActiveAction(id, !isActive);
+      if (result?.error) alert(result.error);
+      router.refresh();
+    } finally {
+      setToggling(false);
+    }
   }
 
   return (
@@ -41,17 +55,33 @@ export function ProductRowActions({
         variant="outline"
         size="sm"
         onClick={handleToggle}
+        disabled={toggling}
         title={isActive ? "ปิดการให้เช่า" : "เปิดการให้เช่า"}
       >
-        {isActive ? "ปิด" : "เปิดให้เช่า"}
+        {toggling ? (
+          <>
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin shrink-0" aria-hidden />
+            กำลังอัปเดต…
+          </>
+        ) : (
+          isActive ? "ปิด" : "เปิดให้เช่า"
+        )}
       </Button>
       <Button
         variant="outline"
         size="sm"
         onClick={handleDelete}
+        disabled={deleting}
         className="text-destructive hover:bg-destructive/10 hover:text-destructive"
       >
-        ลบ
+        {deleting ? (
+          <>
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin shrink-0" aria-hidden />
+            กำลังลบ…
+          </>
+        ) : (
+          "ลบ"
+        )}
       </Button>
     </div>
   );

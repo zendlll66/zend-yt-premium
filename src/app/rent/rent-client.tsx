@@ -241,8 +241,8 @@ export function RentClient({
     }
     setError(null);
     const inCart = cart.filter((i) => i.productId === product.id).reduce((s, i) => s + i.quantity, 0);
-    const available = Math.max(0, product.stock - inCart);
-    const qty = Math.min(quantity, available);
+    const maxCanAdd = Math.max(0, product.stock - inCart);
+    const qty = Math.min(quantity, maxCanAdd);
     if (qty < 1) return;
     const result = await addToCartAction({
       productId: product.id,
@@ -496,8 +496,7 @@ export function RentClient({
         ) : (
           <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredMenu.map((product) => {
-              const inCart = cart.filter((i) => i.productId === product.id).reduce((s, i) => s + i.quantity, 0);
-              const availableStock = Math.max(0, product.stock - inCart);
+              const availableStock = Math.max(0, product.stock);
               return (
                 <ProductCard
                   key={product.id}
@@ -950,8 +949,9 @@ function BookingModal({
   const [customerAccountPasswordConfirm, setCustomerAccountPasswordConfirm] = useState("");
 
   const inCart = cart.filter((i) => i.productId === product.id).reduce((s, i) => s + i.quantity, 0);
-  const availableStock = Math.max(0, product.stock - inCart);
-  const safeQty = Math.min(Math.max(1, qty), availableStock);
+  const maxCanAdd = Math.max(0, product.stock - inCart);
+  const displayStock = Math.max(0, product.stock);
+  const safeQty = Math.min(Math.max(1, qty), maxCanAdd);
   const requiredModifiersSelected = !product.modifierGroups.some((g) => g.required && !selected[g.id]);
   const customerAccountValid =
     product.stockType !== "customer_account" ||
@@ -959,7 +959,7 @@ function BookingModal({
       customerAccountPassword.length > 0 &&
       customerAccountPasswordConfirm.length > 0 &&
       customerAccountPassword === customerAccountPasswordConfirm);
-  const canSubmit = availableStock >= 1 && requiredModifiersSelected && customerAccountValid;
+  const canSubmit = maxCanAdd >= 1 && requiredModifiersSelected && customerAccountValid;
 
   function handleAdd() {
     if (!canSubmit) return;
@@ -973,7 +973,7 @@ function BookingModal({
         customerAccountPassword
       );
     }
-    onAdd(Math.min(safeQty, availableStock), mods);
+    onAdd(Math.min(safeQty, maxCanAdd), mods);
   }
 
   const imageSrc = product.imageUrl
@@ -1108,8 +1108,8 @@ function BookingModal({
                   </div>
                 </div>
                 <p className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-muted-foreground dark:border-neutral-700 dark:bg-neutral-800/50">
-                  {availableStock > 0
-                    ? `สต็อกพร้อมใช้งาน ${availableStock} รายการ`
+                  {displayStock > 0
+                    ? `สต็อกพร้อมใช้งาน ${displayStock} รายการ`
                     : "สต็อกหมดชั่วคราว กรุณาเลือกรายการอื่น"}
                 </p>
               </div>
@@ -1163,12 +1163,12 @@ function BookingModal({
                       −
                     </button>
                     <span className="flex h-10 min-w-10 items-center justify-center border-x border-neutral-200 px-2 text-sm font-medium dark:border-neutral-700">
-                      {Math.min(qty, availableStock)}
+                      {Math.min(qty, maxCanAdd)}
                     </span>
                     <button
                       type="button"
-                      onClick={() => setQty((n) => Math.min(availableStock, n + 1))}
-                      disabled={availableStock < 1 || qty >= availableStock}
+                      onClick={() => setQty((n) => Math.min(maxCanAdd, n + 1))}
+                      disabled={maxCanAdd < 1 || qty >= maxCanAdd}
                       className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       +
@@ -1179,7 +1179,7 @@ function BookingModal({
                       .filter((g) => selected[g.id])
                       .reduce((s, g) => s + (selected[g.id]?.price ?? 0), 0);
                     const unitAfterPromo = baseUnit * (1 - discountPercent / 100);
-                    const total = Math.round(unitAfterPromo * Math.min(qty, availableStock));
+                    const total = Math.round(unitAfterPromo * Math.min(qty, maxCanAdd));
                     return <span className="text-sm text-muted-foreground">รวม {formatMoney(total)} ฿</span>;
                   })()}
                 </div>
@@ -1251,7 +1251,7 @@ function BookingModal({
                 <button
                   type="button"
                   onClick={() => setBookingStep(3)}
-                  disabled={availableStock < 1}
+                  disabled={maxCanAdd < 1}
                   className="flex-1 rounded-2xl bg-neutral-900 py-3.5 font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
                 >
                   ถัดไป

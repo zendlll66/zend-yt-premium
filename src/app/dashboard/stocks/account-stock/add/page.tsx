@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createAccountStockAction } from "@/features/youtube/youtube-stock.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 
 export default function AddAccountStockPage() {
   return (
@@ -57,7 +58,7 @@ export default function AddAccountStockPage() {
           </select>
         </div>
         <div className="flex gap-2">
-          <Button type="submit">เพิ่ม stock</Button>
+          <FormSubmitButton loadingText="กำลังเพิ่ม…">เพิ่ม stock</FormSubmitButton>
           <Button type="button" variant="outline" asChild>
             <Link href="/dashboard/stocks/account-stock">ยกเลิก</Link>
           </Button>

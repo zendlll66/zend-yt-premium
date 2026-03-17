@@ -7,6 +7,7 @@ import {
 import { findInviteLinks } from "@/features/youtube/youtube-stock.repo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 
 export default async function InviteLinksPage() {
   const links = await findInviteLinks(500);
@@ -38,7 +39,7 @@ export default async function InviteLinksPage() {
           <option value="reserved">reserved</option>
           <option value="used">used</option>
         </select>
-        <Button type="submit">เพิ่ม invite link</Button>
+        <FormSubmitButton loadingText="กำลังเพิ่ม…">เพิ่ม invite link</FormSubmitButton>
       </form>
 
       <div className="rounded-xl border bg-card">
@@ -69,9 +70,9 @@ export default async function InviteLinksPage() {
                         <option value="reserved">reserved</option>
                         <option value="used">used</option>
                       </select>
-                      <Button size="sm" variant="outline" type="submit">
+                      <FormSubmitButton size="sm" variant="outline" loadingText="กำลังบันทึก…">
                         บันทึก
-                      </Button>
+                      </FormSubmitButton>
                     </form>
                   </td>
                   <td className="px-3 py-2">
@@ -98,13 +99,14 @@ export default async function InviteLinksPage() {
                   <td className="px-3 py-2 text-right">
                     <form action={deleteInviteLinkAction}>
                       <input type="hidden" name="id" value={row.id} />
-                      <Button
+                      <FormSubmitButton
                         size="sm"
                         variant="outline"
+                        loadingText="กำลังลบ…"
                         className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                       >
                         ลบ
-                      </Button>
+                      </FormSubmitButton>
                     </form>
                   </td>
                 </tr>

@@ -6,6 +6,7 @@ import {
 import { findCustomerAccounts } from "@/features/youtube/youtube-stock.repo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 
 export default async function CustomerAccountsPage() {
   const customerAccounts = await findCustomerAccounts(500);
@@ -68,22 +69,23 @@ export default async function CustomerAccountsPage() {
                         placeholder="หมายเหตุ"
                         className="h-8"
                       />
-                      <Button size="sm" variant="outline" type="submit">
+                      <FormSubmitButton size="sm" variant="outline" loadingText="กำลังบันทึก…">
                         บันทึก
-                      </Button>
+                      </FormSubmitButton>
                     </form>
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">{row.notes ?? "-"}</td>
                   <td className="px-3 py-2 text-right">
                     <form action={deleteCustomerAccountAction}>
                       <input type="hidden" name="id" value={row.id} />
-                      <Button
+                      <FormSubmitButton
                         size="sm"
                         variant="outline"
+                        loadingText="กำลังลบ…"
                         className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                       >
                         ลบ
-                      </Button>
+                      </FormSubmitButton>
                     </form>
                   </td>
                 </tr>

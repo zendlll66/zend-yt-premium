@@ -10,6 +10,7 @@ import {
 import { findFamilyGroupsWithMembers } from "@/features/youtube/youtube-stock.repo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 
 export default async function FamilyGroupsPage() {
   const familyData = await findFamilyGroupsWithMembers();
@@ -28,7 +29,7 @@ export default async function FamilyGroupsPage() {
         <Input name="head_email" placeholder="Head account email (ไม่บังคับ)" />
         <Input name="head_password" placeholder="Head account password (ไม่บังคับ)" />
         <Input name="notes" placeholder="หมายเหตุ (ไม่บังคับ)" />
-        <Button type="submit">เพิ่ม family group</Button>
+        <FormSubmitButton loadingText="กำลังเพิ่ม…">เพิ่ม family group</FormSubmitButton>
       </form>
 
       <div className="space-y-3">
@@ -60,13 +61,14 @@ export default async function FamilyGroupsPage() {
               <div className="flex justify-end">
                 <form action={deleteFamilyGroupAction}>
                   <input type="hidden" name="id" value={group.id} />
-                  <Button
+                  <FormSubmitButton
                     size="sm"
                     variant="outline"
+                    loadingText="กำลังลบ…"
                     className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                   >
                     ลบกลุ่ม
-                  </Button>
+                  </FormSubmitButton>
                 </form>
               </div>
 
@@ -99,18 +101,18 @@ export default async function FamilyGroupsPage() {
                   defaultValue={group.headPassword ?? ""}
                   placeholder="Head account password"
                 />
-                <Button type="submit" size="sm" variant="outline">
+                <FormSubmitButton size="sm" variant="outline" loadingText="กำลังบันทึก…">
                   บันทึกข้อมูลกลุ่ม
-                </Button>
+                </FormSubmitButton>
               </form>
 
               <form action={addFamilyMemberAction} className="flex gap-2">
                 <input type="hidden" name="family_group_id" value={group.id} />
                 <Input name="email" placeholder="อีเมลสมาชิกใหม่" required />
                 <Input name="member_password" placeholder="รหัสผ่านสมาชิก" required />
-                <Button type="submit" size="sm">
+                <FormSubmitButton size="sm" loadingText="กำลังเพิ่ม…">
                   เพิ่มสมาชิก
-                </Button>
+                </FormSubmitButton>
               </form>
 
               <div className="rounded-lg border bg-card">
@@ -203,15 +205,15 @@ export default async function FamilyGroupsPage() {
                               <div className="flex justify-end gap-2">
                                 <form id={`edit-family-member-${m.id}`} action={updateFamilyMemberAction}>
                                   <input type="hidden" name="id" value={m.id} />
-                                  <Button size="sm" variant="outline" type="submit">
+                                  <FormSubmitButton size="sm" variant="outline" loadingText="กำลังบันทึก…">
                                     บันทึก
-                                  </Button>
+                                  </FormSubmitButton>
                                 </form>
                                 <form action={removeFamilyMemberAction}>
                                   <input type="hidden" name="id" value={m.id} />
-                                  <Button size="sm" variant="ghost" className="h-8 px-2 text-destructive">
+                                  <FormSubmitButton size="sm" variant="ghost" loadingText="กำลังลบ…" className="h-8 px-2 text-destructive">
                                     ลบ
-                                  </Button>
+                                  </FormSubmitButton>
                                 </form>
                               </div>
                             </td>

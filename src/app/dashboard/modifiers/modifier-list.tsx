@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import {
   createModifierAction,
   updateModifierAction,
@@ -22,6 +23,8 @@ export function ModifierList({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [savingId, setSavingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   async function handleAdd(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -30,29 +33,40 @@ export function ModifierList({
     const form = e.currentTarget;
     const formData = new FormData(form);
     formData.set("groupId", String(groupId));
-    const result = await createModifierAction(formData);
-    setPending(false);
-    if (result?.error) setError(result.error);
-    else {
-      form.reset();
-      router.refresh();
+    try {
+      const result = await createModifierAction(formData);
+      if (result?.error) setError(result.error);
+      else {
+        form.reset();
+        router.refresh();
+      }
+    } finally {
+      setPending(false);
     }
   }
 
   async function handleEdit(id: number, formData: FormData) {
     setError(null);
-    setPending(true);
-    const result = await updateModifierAction(id, groupId, formData);
-    setPending(false);
-    if (result?.error) setError(result.error);
-    else router.refresh();
+    setSavingId(id);
+    try {
+      const result = await updateModifierAction(id, groupId, formData);
+      if (result?.error) setError(result.error);
+      else router.refresh();
+    } finally {
+      setSavingId(null);
+    }
   }
 
   async function handleDelete(id: number) {
     if (!confirm("ลบตัวเลือกนี้?")) return;
-    const result = await deleteModifierAction(id);
-    if (result?.error) alert(result.error);
-    router.refresh();
+    setDeletingId(id);
+    try {
+      const result = await deleteModifierAction(id);
+      if (result?.error) alert(result.error);
+      else router.refresh();
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -82,6 +96,8 @@ export function ModifierList({
                 onSave={(formData) => handleEdit(m.id, formData)}
                 onDelete={() => handleDelete(m.id)}
                 disabled={pending}
+                saving={savingId === m.id}
+                deleting={deletingId === m.id}
               />
             ))}
           </tbody>
@@ -119,7 +135,14 @@ export function ModifierList({
           />
         </div>
         <Button type="submit" size="sm" disabled={pending}>
-          เพิ่มตัวเลือก
+          {pending ? (
+            <>
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin shrink-0" aria-hidden />
+              กำลังเพิ่ม…
+            </>
+          ) : (
+            "เพิ่มตัวเลือก"
+          )}
         </Button>
       </form>
     </div>
@@ -131,22 +154,26 @@ function ModifierRow({
   onSave,
   onDelete,
   disabled,
+  saving,
+  deleting,
 }: {
   modifier: ModifierItem;
-  onSave: (formData: FormData) => void;
+  onSave: (formData: FormData) => void | Promise<void>;
   onDelete: () => void;
   disabled: boolean;
+  saving?: boolean;
+  deleting?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(modifier.name);
   const [price, setPrice] = useState(String(modifier.price));
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const formData = new FormData();
     formData.set("name", name);
     formData.set("price", price);
-    onSave(formData);
+    await onSave(formData);
     setEditing(false);
   }
 
@@ -172,11 +199,18 @@ function ModifierRow({
           />
         </td>
         <td className="py-2 text-right">
-          <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
+          <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)} disabled={saving}>
             ยกเลิก
           </Button>
-          <Button type="button" size="sm" onClick={handleSubmit}>
-            บันทึก
+          <Button type="button" size="sm" onClick={handleSubmit} disabled={saving}>
+            {saving ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin shrink-0" aria-hidden />
+                กำลังบันทึก…
+              </>
+            ) : (
+              "บันทึก"
+            )}
           </Button>
         </td>
       </tr>
@@ -204,10 +238,17 @@ function ModifierRow({
           variant="outline"
           size="sm"
           onClick={onDelete}
-          disabled={disabled}
+          disabled={disabled || deleting}
           className="ml-1 text-destructive hover:bg-destructive/10 hover:text-destructive"
         >
-          ลบ
+          {deleting ? (
+            <>
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin shrink-0" aria-hidden />
+              กำลังลบ…
+            </>
+          ) : (
+            "ลบ"
+          )}
         </Button>
       </td>
     </tr>

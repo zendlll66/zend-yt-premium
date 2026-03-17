@@ -5,6 +5,7 @@ import { findAccountStockById } from "@/features/youtube/youtube-stock.repo";
 import { updateAccountStockAction } from "@/features/youtube/youtube-stock.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { CustomerSelectField } from "./customer-select-field";
 
 function toDatetimeLocal(d: Date | null): string {
@@ -156,7 +157,7 @@ export default async function EditAccountStockPage({
           />
         </div>
         <div className="flex gap-2">
-          <Button type="submit">บันทึก</Button>
+          <FormSubmitButton loadingText="กำลังบันทึก…">บันทึก</FormSubmitButton>
           <Button type="button" variant="outline" asChild>
             <Link href="/dashboard/stocks/account-stock">ยกเลิก</Link>
           </Button>
