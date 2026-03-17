@@ -67,6 +67,7 @@ async function claimIndividualStock(conn: typeof db, ctx: AssignContext): Promis
 }
 
 async function claimInviteLink(conn: typeof db, ctx: AssignContext): Promise<AssignedStock> {
+  const resolvedCustomerId = await resolveCustomerId(conn, ctx);
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const [candidate] = await conn
       .select({ id: inviteLinks.id })
@@ -81,6 +82,7 @@ async function claimInviteLink(conn: typeof db, ctx: AssignContext): Promise<Ass
       .set({
         status: "used",
         orderId: ctx.orderId,
+        customerId: resolvedCustomerId,
         usedAt: new Date(),
       })
       .where(and(eq(inviteLinks.id, candidate.id), eq(inviteLinks.status, "available")))
@@ -164,12 +166,12 @@ async function resolveCustomerId(conn: typeof db, ctx: AssignContext): Promise<n
 
 /** ผลรวม quantity ของ order_items ในออเดอร์ (ใช้กำหนดจำนวนรหัส stock ที่จะส่ง) — ถ้าไม่มีหรือเป็น 0 คืน 1 */
 export async function getOrderTotalQuantity(conn: typeof db, orderId: number): Promise<number> {
-  const [row] = await conn
-    .select({ total: sql<number>`coalesce(sum(${orderItems.quantity}), 0)` })
+  const rows = await conn
+    .select({ quantity: orderItems.quantity })
     .from(orderItems)
     .where(eq(orderItems.orderId, orderId));
-  const n = Number(row?.total ?? 0) || 0;
-  return n < 1 ? 1 : n;
+  const total = rows.reduce((sum, r) => sum + (Number(r.quantity) || 0), 0);
+  return total < 1 ? 1 : total;
 }
 
 async function sendLineInventoryMessage(
@@ -408,10 +410,42 @@ export async function assignStockForPaidOrder(input: {
     return assigned;
   }
 
+  if (input.productType === "invite") {
+    const totalQty = await getOrderTotalQuantity(conn, input.orderId);
+    const links: string[] = [];
+    for (let i = 0; i < totalQty; i++) {
+      const s = await claimInviteLink(conn, ctx);
+      if (s.kind === "invite") links.push(s.link);
+    }
+    const customerId = await resolveCustomerId(conn, ctx);
+    if (customerId && links.length > 0) {
+      const durationDays = await resolveOrderDurationDays(conn, ctx.orderId);
+      for (let idx = 0; idx < links.length; idx++) {
+        await addCustomerInventoryItem({
+          customerId,
+          orderId: ctx.orderId,
+          itemType: "invite",
+          title: links.length > 1 ? `Invite Link (${idx + 1}/${links.length})` : "Invite Link",
+          inviteLink: links[idx],
+          durationDays,
+          insertOnly: idx > 0,
+          tx: conn,
+        });
+      }
+      const lines = links.map((l, i) => `ลิงก์ ${i + 1}: ${l}`);
+      await sendLineInventoryMessage(
+        conn,
+        customerId,
+        `ออเดอร์ #${ctx.orderId} ชำระเงินสำเร็จ\nประเภท: Invite Link (${links.length} ลิงก์)\n${lines.join("\n")}`
+      );
+    }
+    if (links.length === 0) throw new Error("OUT_OF_STOCK_INVITE");
+    assigned = { kind: "invite", link: links[0] };
+    return assigned;
+  }
+
   if (input.productType === "family") {
     assigned = await claimFamilySlot(conn, ctx);
-  } else if (input.productType === "invite") {
-    assigned = await claimInviteLink(conn, ctx);
   } else {
     assigned = {
       kind: "customer_account",

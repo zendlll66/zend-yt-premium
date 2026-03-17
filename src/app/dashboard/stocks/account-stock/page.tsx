@@ -9,6 +9,34 @@ function formatDate(d: Date | null) {
   return new Date(d).toLocaleString("th-TH");
 }
 
+function getStatusBadge(status: string) {
+  const s = (status || "").toLowerCase();
+  const base =
+    "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium";
+  if (s === "available") {
+    return {
+      label: "available",
+      className: `${base} border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300`,
+    };
+  }
+  if (s === "reserved") {
+    return {
+      label: "reserved",
+      className: `${base} border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300`,
+    };
+  }
+  if (s === "sold") {
+    return {
+      label: "sold",
+      className: `${base} border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300`,
+    };
+  }
+  return {
+    label: status,
+    className: `${base} border-neutral-200 bg-neutral-50 text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900/40 dark:text-neutral-300`,
+  };
+}
+
 export default async function AccountStockPage() {
   const accounts = await findAccountStocks(300);
   const availableCount = accounts.filter((a) => a.status === "available").length;
@@ -60,7 +88,12 @@ export default async function AccountStockPage() {
                       {row.email}
                     </Link>
                   </td>
-                  <td className="px-3 py-2">{row.status}</td>
+                  <td className="px-3 py-2">
+                    {(() => {
+                      const b = getStatusBadge(row.status);
+                      return <span className={b.className}>{b.label}</span>;
+                    })()}
+                  </td>
                   <td className="px-3 py-2">{row.orderId ?? "-"}</td>
                   <td className="px-3 py-2">
                     {row.customerId ? (

@@ -7,6 +7,7 @@ export const inviteLinks = sqliteTable("invite_links", {
   /** สถานะ: available, reserved, used */
   status: text("status").notNull().default("available"),
   orderId: integer("order_id"),
+  customerId: integer("customer_id"),
   reservedAt: integer("reserved_at", { mode: "timestamp" }),
   usedAt: integer("used_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })

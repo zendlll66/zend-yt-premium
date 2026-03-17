@@ -182,7 +182,9 @@ export async function createInviteLinkAction(formData: FormData) {
   const status = ((formData.get("status") as string) || "available") as "available" | "reserved" | "used";
   if (!link) return;
   await createInviteLink({ link, status });
+  revalidatePath("/dashboard/stocks/invite-links");
   refreshStocksPage();
+  redirect("/dashboard/stocks/invite-links");
 }
 
 export async function updateInviteLinkStatusAction(formData: FormData) {
@@ -197,9 +199,25 @@ export async function updateInviteLinkAction(formData: FormData) {
   const id = parseInt((formData.get("id") as string) ?? "0", 10);
   const link = (formData.get("link") as string)?.trim() ?? "";
   const status = ((formData.get("status") as string) || "available") as "available" | "reserved" | "used";
+  const orderId = parseOptionalInt((formData.get("orderId") as string) ?? null);
+  const customerId = parseOptionalInt((formData.get("customerId") as string) ?? null);
+  const reservedAt = parseOptionalDate((formData.get("reservedAt") as string) ?? null);
+  const usedAt = parseOptionalDate((formData.get("usedAt") as string) ?? null);
+  const createdAt = parseOptionalDate((formData.get("createdAt") as string) ?? null);
   if (!id || !Number.isFinite(id) || !link) return;
-  await updateInviteLinkById({ id, link, status });
+  await updateInviteLinkById({
+    id,
+    link,
+    status,
+    orderId,
+    customerId,
+    reservedAt,
+    usedAt,
+    createdAt,
+  });
+  revalidatePath("/dashboard/stocks/invite-links");
   refreshStocksPage();
+  redirect("/dashboard/stocks/invite-links");
 }
 
 export async function deleteInviteLinkAction(formData: FormData) {

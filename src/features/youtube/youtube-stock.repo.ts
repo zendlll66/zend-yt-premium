@@ -468,6 +468,24 @@ export async function updateFamilyMemberById(data: {
   return row ?? null;
 }
 
+export async function findInviteLinkById(id: number) {
+  const [row] = await db
+    .select({
+      id: inviteLinks.id,
+      link: inviteLinks.link,
+      status: inviteLinks.status,
+      orderId: inviteLinks.orderId,
+      customerId: inviteLinks.customerId,
+      reservedAt: inviteLinks.reservedAt,
+      usedAt: inviteLinks.usedAt,
+      createdAt: inviteLinks.createdAt,
+    })
+    .from(inviteLinks)
+    .where(eq(inviteLinks.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function findInviteLinks(limit = 200) {
   return db
     .select({
@@ -486,7 +504,13 @@ export async function findInviteLinks(limit = 200) {
     })
     .from(inviteLinks)
     .leftJoin(orders, eq(inviteLinks.orderId, orders.id))
-    .leftJoin(customers, eq(orders.customerId, customers.id))
+    .leftJoin(
+      customers,
+      or(
+        eq(inviteLinks.customerId, customers.id),
+        and(isNull(inviteLinks.customerId), eq(orders.customerId, customers.id))
+      )
+    )
     .orderBy(desc(inviteLinks.createdAt))
     .limit(limit);
 }
@@ -526,6 +550,11 @@ export async function updateInviteLinkById(data: {
   id: number;
   link: string;
   status: "available" | "reserved" | "used";
+  orderId?: number | null;
+  customerId?: number | null;
+  reservedAt?: Date | null;
+  usedAt?: Date | null;
+  createdAt?: Date | null;
 }) {
   const now = new Date();
   const [row] = await db
@@ -533,8 +562,11 @@ export async function updateInviteLinkById(data: {
     .set({
       link: data.link,
       status: data.status,
-      reservedAt: data.status === "reserved" ? now : null,
-      usedAt: data.status === "used" ? now : null,
+      ...(data.orderId !== undefined && { orderId: data.orderId }),
+      ...(data.customerId !== undefined && { customerId: data.customerId }),
+      reservedAt: data.reservedAt !== undefined ? data.reservedAt : data.status === "reserved" ? now : null,
+      usedAt: data.usedAt !== undefined ? data.usedAt : data.status === "used" ? now : null,
+      ...(data.createdAt !== undefined && { createdAt: data.createdAt }),
     })
     .where(eq(inviteLinks.id, data.id))
     .returning();
