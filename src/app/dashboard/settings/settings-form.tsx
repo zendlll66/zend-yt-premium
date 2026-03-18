@@ -292,6 +292,126 @@ export function SettingsForm({ initial }: Props) {
               disabled={isPending}
             />
           </div>
+          <div>
+            <label
+              htmlFor="inventoryExpiryWarningDays"
+              className="mb-1.5 block text-sm font-medium"
+            >
+              เตือน order inventory ใกล้หมดอายุก่อน (วัน)
+            </label>
+            <Input
+              id="inventoryExpiryWarningDays"
+              name="inventoryExpiryWarningDays"
+              type="number"
+              min="1"
+              defaultValue={initial.inventoryExpiryWarningDays}
+              disabled={isPending}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* แจ้งเตือน inventory (LINE) */}
+      <section className="rounded-xl border bg-card p-6">
+        <h2 className="mb-2 font-semibold">แจ้งเตือนอายุการใช้งาน Inventory (LINE)</h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          กำหนดข้อความและรูปแบบการส่งแจ้งเตือนให้ลูกค้าเมื่อรายการ inventory ใกล้หมดอายุหรือหมดอายุแล้ว
+        </p>
+        <div className="space-y-4">
+          <div>
+            <label
+              htmlFor="inventoryExpiryWarningMessage"
+              className="mb-1.5 block text-sm font-medium"
+            >
+              ข้อความแจ้งเตือนใกล้หมดอายุ
+            </label>
+            <textarea
+              id="inventoryExpiryWarningMessage"
+              name="inventoryExpiryWarningMessage"
+              defaultValue={initial.inventoryExpiryWarningMessage}
+              rows={3}
+              disabled={isPending}
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              ใช้ตัวแปรได้: {"{{name}}"}, {"{{title}}"}, {"{{orderNumber}}"},{" "}
+              {"{{expiresAt}}"}, {"{{daysLeft}}"}
+            </p>
+          </div>
+          <div className="max-w-xs">
+            <label
+              htmlFor="inventoryExpiryWarningMode"
+              className="mb-1.5 block text-sm font-medium"
+            >
+              โหมดการส่งแจ้งเตือนใกล้หมดอายุ
+            </label>
+            <select
+              id="inventoryExpiryWarningMode"
+              name="inventoryExpiryWarningMode"
+              defaultValue={initial.inventoryExpiryWarningMode || "once"}
+              disabled={isPending}
+              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+            >
+              <option value="once">ส่งครั้งเดียว (เมื่อเข้าโซนเตือน)</option>
+              <option value="daily">ส่งทุกวันจนถึงวันหมดอายุ</option>
+            </select>
+          </div>
+          <div>
+            <label
+              htmlFor="inventoryExpiredMessage"
+              className="mb-1.5 block text-sm font-medium"
+            >
+              ข้อความแจ้งเตือนเมื่อหมดอายุแล้ว
+            </label>
+            <textarea
+              id="inventoryExpiredMessage"
+              name="inventoryExpiredMessage"
+              defaultValue={initial.inventoryExpiredMessage}
+              rows={3}
+              disabled={isPending}
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              ใช้ตัวแปรได้: {"{{name}}"}, {"{{title}}"}, {"{{orderNumber}}"},{" "}
+              {"{{expiresAt}}"}, {"{{daysSinceExpired}}"}
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="inventoryExpiredMode"
+                className="mb-1.5 block text-sm font-medium"
+              >
+                โหมดการส่งแจ้งเตือนเมื่อหมดอายุแล้ว
+              </label>
+              <select
+                id="inventoryExpiredMode"
+                name="inventoryExpiredMode"
+                defaultValue={initial.inventoryExpiredMode || "once"}
+                disabled={isPending}
+                className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+              >
+                <option value="once">ส่งครั้งเดียว (วันที่หมดอายุ)</option>
+                <option value="daily">ส่งทุกวันหลังหมดอายุ</option>
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor="inventoryExpiredRepeatDays"
+                className="mb-1.5 block text-sm font-medium"
+              >
+                ส่งซ้ำกี่วันหลังหมดอายุ (ใช้กับโหมด daily)
+              </label>
+              <Input
+                id="inventoryExpiredRepeatDays"
+                name="inventoryExpiredRepeatDays"
+                type="number"
+                min="1"
+                defaultValue={initial.inventoryExpiredRepeatDays || "3"}
+                disabled={isPending}
+              />
+            </div>
+          </div>
         </div>
       </section>
 

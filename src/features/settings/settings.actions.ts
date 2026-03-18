@@ -32,6 +32,18 @@ export async function saveSettingsAction(
     bankAccountName: (formData.get("bankAccountName") as string)?.trim() ?? "",
     bankAccountNumber: (formData.get("bankAccountNumber") as string)?.trim() ?? "",
     bankPromptpayId: (formData.get("bankPromptpayId") as string)?.trim() ?? "",
+    inventoryExpiryWarningDays:
+      (formData.get("inventoryExpiryWarningDays") as string)?.trim() ?? "5",
+    inventoryExpiryWarningMessage:
+      (formData.get("inventoryExpiryWarningMessage") as string)?.trim() ?? "",
+    inventoryExpiryWarningMode:
+      ((formData.get("inventoryExpiryWarningMode") as string) || "once") as string,
+    inventoryExpiredMessage:
+      (formData.get("inventoryExpiredMessage") as string)?.trim() ?? "",
+    inventoryExpiredMode:
+      ((formData.get("inventoryExpiredMode") as string) || "once") as string,
+    inventoryExpiredRepeatDays:
+      (formData.get("inventoryExpiredRepeatDays") as string)?.trim() ?? "3",
   };
 
   await saveShopSettings(data);

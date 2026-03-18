@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { findExpiringInventories } from "@/features/inventory/inventory-dashboard.repo";
 import { getShopSettings } from "@/features/settings/settings.repo";
+import { sendInventoryExpiringNotificationAction } from "@/features/inventory/inventory-notify.actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -131,11 +132,24 @@ export default async function ExpiringInventoryOrdersPage() {
                         {formatDate(row.expiresAt ?? null)}
                       </td>
                       <td className="px-3 py-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/dashboard/inventory/orders/${row.id}/edit`}>
-                            แก้ไข
-                          </Link>
-                        </Button>
+                        <div className="flex flex-col gap-1">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/dashboard/inventory/orders/${row.id}/edit`}>
+                              แก้ไข
+                            </Link>
+                          </Button>
+                          <form action={sendInventoryExpiringNotificationAction}>
+                            <input type="hidden" name="id" value={row.id} />
+                            <Button
+                              type="submit"
+                              variant="outline"
+                              size="sm"
+                              className="mt-1 w-full text-[11px]"
+                            >
+                              ส่งแจ้งเตือนใกล้หมดอายุ
+                            </Button>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   );

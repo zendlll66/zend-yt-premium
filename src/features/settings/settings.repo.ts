@@ -27,6 +27,11 @@ export const SETTING_KEYS = {
   bankAccountNumber: "bank_account_number",
   bankPromptpayId: "bank_promptpay_id",
   inventoryExpiryWarningDays: "inventory_expiry_warning_days",
+  inventoryExpiryWarningMessage: "inventory_expiry_warning_message",
+  inventoryExpiryWarningMode: "inventory_expiry_warning_mode",
+  inventoryExpiredMessage: "inventory_expired_message",
+  inventoryExpiredMode: "inventory_expired_mode",
+  inventoryExpiredRepeatDays: "inventory_expired_repeat_days",
 } as const;
 
 /** ค่าที่ใช้ได้สำหรับ theme (ต้องตรงกับ [data-theme] ใน globals.css) */
@@ -56,6 +61,13 @@ const DEFAULTS: Record<string, string> = {
   [SETTING_KEYS.bankAccountNumber]: "",
   [SETTING_KEYS.bankPromptpayId]: "",
   [SETTING_KEYS.inventoryExpiryWarningDays]: "5",
+  [SETTING_KEYS.inventoryExpiryWarningMessage]:
+    "รายการ {{title}} ใกล้หมดอายุแล้ว (ออเดอร์ {{orderNumber}}) จะหมดอายุวันที่ {{expiresAt}}",
+  [SETTING_KEYS.inventoryExpiryWarningMode]: "once",
+  [SETTING_KEYS.inventoryExpiredMessage]:
+    "รายการ {{title}} (ออเดอร์ {{orderNumber}}) หมดอายุแล้วตั้งแต่วันที่ {{expiresAt}}",
+  [SETTING_KEYS.inventoryExpiredMode]: "once",
+  [SETTING_KEYS.inventoryExpiredRepeatDays]: "3",
 };
 
 export type ShopSettings = {
@@ -86,6 +98,16 @@ export type ShopSettings = {
   bankPromptpayId: string;
   /** แสดงคำเตือน order ใกล้หมดอายุก่อนหมดกี่วัน (inventory) */
   inventoryExpiryWarningDays: string;
+  /** ข้อความแจ้งเตือนใกล้หมดอายุ (template) */
+  inventoryExpiryWarningMessage: string;
+  /** โหมดส่งแจ้งเตือนใกล้หมดอายุ: once | daily */
+  inventoryExpiryWarningMode: string;
+  /** ข้อความแจ้งเตือนหมดอายุแล้ว (template) */
+  inventoryExpiredMessage: string;
+  /** โหมดส่งแจ้งเตือนหมดอายุ: once | daily */
+  inventoryExpiredMode: string;
+  /** จำนวนวันหลังหมดอายุที่จะส่งซ้ำ (ใช้กับโหมด daily) */
+  inventoryExpiredRepeatDays: string;
 };
 
 export async function getShopSettings(): Promise<ShopSettings> {
@@ -117,7 +139,21 @@ export async function getShopSettings(): Promise<ShopSettings> {
       map.get(SETTING_KEYS.bankAccountNumber) ?? DEFAULTS[SETTING_KEYS.bankAccountNumber],
     bankPromptpayId: map.get(SETTING_KEYS.bankPromptpayId) ?? DEFAULTS[SETTING_KEYS.bankPromptpayId],
     inventoryExpiryWarningDays:
-      map.get(SETTING_KEYS.inventoryExpiryWarningDays) ?? DEFAULTS[SETTING_KEYS.inventoryExpiryWarningDays],
+      map.get(SETTING_KEYS.inventoryExpiryWarningDays) ??
+      DEFAULTS[SETTING_KEYS.inventoryExpiryWarningDays],
+    inventoryExpiryWarningMessage:
+      map.get(SETTING_KEYS.inventoryExpiryWarningMessage) ??
+      DEFAULTS[SETTING_KEYS.inventoryExpiryWarningMessage],
+    inventoryExpiryWarningMode:
+      map.get(SETTING_KEYS.inventoryExpiryWarningMode) ??
+      DEFAULTS[SETTING_KEYS.inventoryExpiryWarningMode],
+    inventoryExpiredMessage:
+      map.get(SETTING_KEYS.inventoryExpiredMessage) ?? DEFAULTS[SETTING_KEYS.inventoryExpiredMessage],
+    inventoryExpiredMode:
+      map.get(SETTING_KEYS.inventoryExpiredMode) ?? DEFAULTS[SETTING_KEYS.inventoryExpiredMode],
+    inventoryExpiredRepeatDays:
+      map.get(SETTING_KEYS.inventoryExpiredRepeatDays) ??
+      DEFAULTS[SETTING_KEYS.inventoryExpiredRepeatDays],
   };
 }
 
@@ -153,6 +189,25 @@ export async function saveShopSettings(data: Partial<ShopSettings>): Promise<voi
     entries.push([
       SETTING_KEYS.inventoryExpiryWarningDays,
       String(data.inventoryExpiryWarningDays),
+    ]);
+  if (data.inventoryExpiryWarningMessage !== undefined)
+    entries.push([
+      SETTING_KEYS.inventoryExpiryWarningMessage,
+      String(data.inventoryExpiryWarningMessage),
+    ]);
+  if (data.inventoryExpiryWarningMode !== undefined)
+    entries.push([
+      SETTING_KEYS.inventoryExpiryWarningMode,
+      String(data.inventoryExpiryWarningMode),
+    ]);
+  if (data.inventoryExpiredMessage !== undefined)
+    entries.push([SETTING_KEYS.inventoryExpiredMessage, String(data.inventoryExpiredMessage)]);
+  if (data.inventoryExpiredMode !== undefined)
+    entries.push([SETTING_KEYS.inventoryExpiredMode, String(data.inventoryExpiredMode)]);
+  if (data.inventoryExpiredRepeatDays !== undefined)
+    entries.push([
+      SETTING_KEYS.inventoryExpiredRepeatDays,
+      String(data.inventoryExpiredRepeatDays),
     ]);
 
   for (const [key, value] of entries) {
