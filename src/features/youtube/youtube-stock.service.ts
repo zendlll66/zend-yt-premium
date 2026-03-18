@@ -7,9 +7,11 @@ import { familyGroups, familyMembers } from "@/db/schema/family.schema";
 import { inviteLinks } from "@/db/schema/invite-link.schema";
 import { orderItemModifiers, orderItems, orders, type OrderProductType } from "@/db/schema/order.schema";
 import { products } from "@/db/schema/product.schema";
+import { customerInventories } from "@/db/schema/customer-inventory.schema";
 import { addCustomerInventoryItem } from "@/features/inventory/customer-inventory.repo";
 import { pushLineTextMessage } from "@/lib/line-message";
 import { extractCustomerAccountCredentials } from "@/lib/customer-account-credentials";
+import { INVENTORY_RENEWAL_TARGET_MODIFIER_PREFIX, parseInventoryRenewalTargetId } from "@/lib/inventory-renewal";
 
 type AssignContext = {
   orderId: number;
@@ -21,9 +23,22 @@ type AssignedStock =
   | { kind: "individual"; email: string; password: string }
   | { kind: "family"; familyGroupId: number; familyName: string; email: string; password: string | null }
   | { kind: "invite"; link: string }
-  | { kind: "customer_account"; message: string };
+  | { kind: "customer_account"; message: string }
+  | { kind: "renewal"; inventoryId: number };
 
 const MAX_RETRIES = 5;
+
+function formatDateTimeTH(d: Date | null | undefined) {
+  if (!d) return "-";
+  return new Date(d).toLocaleString("th-TH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
 
 async function claimIndividualStock(conn: typeof db, ctx: AssignContext): Promise<AssignedStock> {
   const customerId = await resolveCustomerId(conn, ctx);
@@ -372,6 +387,73 @@ export async function assignStockForPaidOrder(input: {
   };
 
   const conn = input.tx ?? db;
+
+  // Renewal mode: ถ้า order มี modifier ระบุ inventory ที่ต้องต่ออายุ
+  // query modifiers ของออเดอร์ก่อน (ใช้เพื่อบอกว่าเป็นการต่ออายุ)
+  const renewalModifierNames = await conn
+    .select({ modifierName: orderItemModifiers.modifierName })
+    .from(orderItemModifiers)
+    .innerJoin(orderItems, eq(orderItemModifiers.orderItemId, orderItems.id))
+    .where(eq(orderItems.orderId, ctx.orderId));
+
+  const renewalTargetModifier = renewalModifierNames
+    .map((r) => r.modifierName)
+    .find((name) => name?.startsWith(INVENTORY_RENEWAL_TARGET_MODIFIER_PREFIX));
+
+  const parsedRenewalTargetId = renewalTargetModifier
+    ? parseInventoryRenewalTargetId(renewalTargetModifier)
+    : null;
+
+  if (parsedRenewalTargetId) {
+    const [target] = await conn
+      .select({
+        id: customerInventories.id,
+        customerId: customerInventories.customerId,
+        itemType: customerInventories.itemType,
+        title: customerInventories.title,
+        activatedAt: customerInventories.activatedAt,
+        expiresAt: customerInventories.expiresAt,
+        durationDays: customerInventories.durationDays,
+        note: customerInventories.note,
+      })
+      .from(customerInventories)
+      .where(eq(customerInventories.id, parsedRenewalTargetId))
+      .limit(1);
+
+    if (!target) return { kind: "renewal", inventoryId: parsedRenewalTargetId };
+
+    const durationDays = await resolveOrderDurationDays(conn, ctx.orderId);
+    const now = new Date();
+    const base =
+      target.expiresAt && target.expiresAt instanceof Date
+        ? target.expiresAt.getTime() > now.getTime()
+          ? target.expiresAt
+          : now
+        : now;
+
+    const newExpiresAt = new Date(base.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+    await conn
+      .update(customerInventories)
+      .set({
+        activatedAt: base,
+        expiresAt: newExpiresAt,
+        durationDays,
+      })
+      .where(eq(customerInventories.id, parsedRenewalTargetId));
+
+    if (target.customerId != null) {
+      await sendLineInventoryMessage(
+        conn,
+        target.customerId,
+        `ออเดอร์ #${ctx.orderId} ต่ออายุสำเร็จ\nรายการ: ${target.title}\nหมดอายุใหม่: ${formatDateTimeTH(
+          newExpiresAt
+        )}`
+      );
+    }
+
+    return { kind: "renewal", inventoryId: parsedRenewalTargetId };
+  }
 
   let assigned: AssignedStock;
 

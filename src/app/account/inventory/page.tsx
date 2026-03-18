@@ -2,6 +2,7 @@ import Link from "next/link";
 import { KeyRound, LinkIcon, Mail, Package, ShoppingBag } from "lucide-react";
 import { getCustomerSession } from "@/lib/auth-customer-server";
 import { findCustomerInventory } from "@/features/inventory/customer-inventory.repo";
+import { renewInventoryItemAction } from "@/features/inventory/inventory-renewal.actions";
 import { Button } from "@/components/ui/button";
 
 function getTypeConfig(type: string): { label: string; icon: typeof Package; className: string } {
@@ -55,6 +56,7 @@ export default async function AccountInventoryPage() {
   if (!customer) return null;
 
   const items = await findCustomerInventory(customer.id);
+  const now = Date.now();
 
   return (
     <div className="space-y-8">
@@ -101,6 +103,14 @@ export default async function AccountInventoryPage() {
                         </span>
                         <ExpiryBadge expiresAt={item.expiresAt} durationDays={item.durationDays} />
                       </div>
+                      {item.expiresAt && new Date(item.expiresAt).getTime() <= now && (
+                        <form action={renewInventoryItemAction} className="mt-3">
+                          <input type="hidden" name="inventoryId" value={item.id} />
+                          <Button type="submit" variant="secondary" size="sm" className="w-full">
+                            ต่ออายุ
+                          </Button>
+                        </form>
+                      )}
                       <h2 className="mt-3 font-semibold text-foreground">{item.title}</h2>
                       {item.orderNumber && (
                         <p className="mt-1 text-xs text-muted-foreground">

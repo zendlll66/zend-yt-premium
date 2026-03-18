@@ -106,6 +106,37 @@ export async function findCustomerInventory(customerId: number) {
     .orderBy(desc(customerInventories.createdAt));
 }
 
+export async function findCustomerInventoryById(customerId: number, inventoryId: number) {
+  const rows = await db
+    .select({
+      id: customerInventories.id,
+      orderId: customerInventories.orderId,
+      orderNumber: orders.orderNumber,
+      itemType: customerInventories.itemType,
+      title: customerInventories.title,
+      loginEmail: customerInventories.loginEmail,
+      loginPassword: customerInventories.loginPassword,
+      inviteLink: customerInventories.inviteLink,
+      durationDays: customerInventories.durationDays,
+      activatedAt: customerInventories.activatedAt,
+      expiresAt: customerInventories.expiresAt,
+      note: customerInventories.note,
+      createdAt: customerInventories.createdAt,
+    })
+    .from(customerInventories)
+    .leftJoin(orders, eq(customerInventories.orderId, orders.id))
+    .where(
+      and(
+        eq(customerInventories.customerId, customerId),
+        eq(customerInventories.id, inventoryId),
+        inArray(orders.status, ["paid", "fulfilled", "completed"])
+      )
+    )
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
 export async function findCustomerInventoryForOrderItem(data: {
   orderId: number;
   itemType: InventoryItemType;

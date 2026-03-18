@@ -1,3 +1,5 @@
+import { INVENTORY_RENEWAL_TARGET_MODIFIER_PREFIX } from "./inventory-renewal";
+
 export const CUSTOMER_ACCOUNT_EMAIL_KEY = "__customer_account_email__";
 export const CUSTOMER_ACCOUNT_PASSWORD_KEY = "__customer_account_password__";
 
@@ -34,7 +36,8 @@ export function extractCustomerAccountCredentials(modifiers: ModifierEntry[]): {
 export function isHiddenSystemModifier(name: string): boolean {
   return (
     name.startsWith(CUSTOMER_ACCOUNT_EMAIL_KEY) ||
-    name.startsWith(CUSTOMER_ACCOUNT_PASSWORD_KEY)
+    name.startsWith(CUSTOMER_ACCOUNT_PASSWORD_KEY) ||
+    name.startsWith(INVENTORY_RENEWAL_TARGET_MODIFIER_PREFIX)
   );
 }
 

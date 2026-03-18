@@ -6,6 +6,7 @@ import { OrderStatusActions } from "./order-status-actions";
 import { getVisibleModifiers } from "@/lib/customer-account-credentials";
 import { findCustomerAccountsByOrderId } from "@/features/youtube/youtube-stock.repo";
 import { updateCustomerAccountsStatusByOrderIdAction } from "@/features/youtube/youtube-stock.actions";
+import { parseInventoryRenewalTargetId } from "@/lib/inventory-renewal";
 import { Check } from "lucide-react";
 
 function formatDate(d: Date | null) {
@@ -67,6 +68,12 @@ export default async function OrderDetailPage({
             ? "subscribed"
             : "-";
 
+  const renewedInventoryId =
+    order.items
+      .flatMap((i) => i.modifiers)
+      .map((m) => parseInventoryRenewalTargetId(m.modifierName))
+      .find((v): v is number => v != null) ?? null;
+
   return (
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex items-center gap-2">
@@ -84,6 +91,12 @@ export default async function OrderDetailPage({
           <p className="text-sm text-muted-foreground">
             ประเภทสินค้า: {getProductTypeLabel(order.productType)}
           </p>
+          {renewedInventoryId && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              ต่ออายุ Inventory:{" "}
+              <span className="font-medium tabular-nums">{renewedInventoryId}</span>
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-end gap-3">
           <div className="flex flex-col items-end gap-2">
