@@ -277,20 +277,26 @@ export async function updateCustomerAccountsStatusByOrderIdAction(formData: Form
   refreshStocksPage();
   revalidatePath(`/dashboard/orders/${orderId}`);
 
-  if (status === "done") {
+  // ส่ง LINE เมื่อ admin อัปเดต workflow สำหรับ customer_account
+  // - processing: "กำลังดำเนินการ"
+  // - done: "สมัครใช้งานแล้ว/ใช้งานได้แล้ว"
+  const shouldNotify = status === "processing" || status === "done";
+  if (shouldNotify) {
     for (const after of updated) {
       const before = beforeById.get(after.id);
       if (!before) continue;
-      if (before.status !== "done") {
-        const target = await findCustomerAccountNotifyTarget(after.id);
-        if (target?.lineUserId) {
-          const noteLine = target.notes?.trim() ? `\nหมายเหตุ: ${target.notes.trim()}` : "";
-          await pushLineTextMessage(
-            target.lineUserId,
-            `บัญชีนี้ใช้งานได้แล้ว\nบัญชี: ${after.email}${noteLine}`
-          );
-        }
-      }
+      if (before.status === status) continue;
+
+      const target = await findCustomerAccountNotifyTarget(after.id);
+      if (!target?.lineUserId) continue;
+
+      const noteLine = target.notes?.trim() ? `\nหมายเหตุ: ${target.notes.trim()}` : "";
+      const message =
+        status === "processing"
+          ? `บัญชีนี้กำลังดำเนินการ\nบัญชี: ${after.email}${noteLine}`
+          : `บัญชีนี้ใช้งานได้แล้ว\nบัญชี: ${after.email}${noteLine}`;
+
+      await pushLineTextMessage(target.lineUserId, message);
     }
   }
 

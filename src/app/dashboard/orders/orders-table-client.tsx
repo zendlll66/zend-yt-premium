@@ -17,6 +17,12 @@ const STATUS_LABELS: Record<string, string> = {
   refunded: "คืนเงิน",
 };
 
+const CUSTOMER_ACCOUNT_STAGE_LABELS: Record<string, string> = {
+  pending: "รอดำเนินการ",
+  processing: "กำลังดำเนินการ",
+  subscribed: "สมัครใช้งานแล้ว",
+};
+
 function formatMoney(n: number) {
   return new Intl.NumberFormat("th-TH", {
     minimumFractionDigits: 0,
@@ -30,6 +36,37 @@ function getProductTypeLabel(productType: string) {
   if (productType === "invite") return "Invite Link";
   if (productType === "customer_account") return "Customer Account";
   return productType;
+}
+
+function getCustomerAccountStageBadge(stage: string) {
+  const s = stage.trim();
+  // stage ที่มาจาก repo ตอนนี้อาจเป็น "รอดำเนินการ" / "กำลังดำเนินการ" / "subscribed"
+  if (s === "รอดำเนินการ") {
+    return {
+      label: CUSTOMER_ACCOUNT_STAGE_LABELS.pending,
+      className:
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium border-amber-200 bg-amber-50 text-amber-700",
+    };
+  }
+  if (s === "กำลังดำเนินการ") {
+    return {
+      label: CUSTOMER_ACCOUNT_STAGE_LABELS.processing,
+      className:
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium border-blue-200 bg-blue-50 text-blue-700",
+    };
+  }
+  if (s.toLowerCase() === "subscribed") {
+    return {
+      label: CUSTOMER_ACCOUNT_STAGE_LABELS.subscribed,
+      className:
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium border-emerald-200 bg-emerald-50 text-emerald-700",
+    };
+  }
+  return {
+    label: s,
+    className:
+      "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium border-neutral-200 bg-neutral-50 text-neutral-700",
+  };
 }
 
 type Props = {
@@ -201,17 +238,27 @@ export function OrdersTableClient({ orders }: Props) {
                       {getProductTypeLabel(o.productType)}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={
-                          o.status === "cancelled"
-                            ? "text-muted-foreground"
-                            : o.status === "paid" || o.status === "completed"
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-amber-600 dark:text-amber-400"
-                        }
-                      >
-                        {STATUS_LABELS[o.status] ?? o.status}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={
+                            o.status === "cancelled"
+                              ? "text-muted-foreground"
+                              : o.status === "paid" || o.status === "completed"
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-amber-600 dark:text-amber-400"
+                          }
+                        >
+                          {STATUS_LABELS[o.status] ?? o.status}
+                        </span>
+                        {o.productType === "customer_account" && o.customerAccountStageLabel && (
+                          <span className={getCustomerAccountStageBadge(o.customerAccountStageLabel).className}>
+                            Customer Account:{" "}
+                            <span className="font-medium">
+                              {getCustomerAccountStageBadge(o.customerAccountStageLabel).label}
+                            </span>
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {o.paymentSlipImageUrl ? (

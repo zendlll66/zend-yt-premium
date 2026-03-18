@@ -109,6 +109,9 @@ export type OrderDetail = {
 export type DashboardOrderListItem = OrderListItem & {
   items: Array<{ productName: string; quantity: number }>;
   paymentSlipImageUrl: string | null;
+  /** สำหรับ productType = customer_account: จำนวน/สถานะของ customer_accounts ที่ผูกกับ order */
+  customerAccountStageLabel?: string;
+  customerAccountCounts?: { pending: number; processing: number; done: number };
 };
 
 type UpdateOrderAdminInput = {
@@ -665,6 +668,34 @@ export async function findOrdersForDashboard(limit = 50): Promise<DashboardOrder
     });
   }
 
+  // สำหรับแสดง stage ของ customer_account ในหน้า list
+  const customerAccountOrderIds = rows
+    .filter((r) => (r as { productType?: string }).productType === "customer_account")
+    .map((r) => r.id);
+
+  const customerAccountCountsByOrderId = new Map<
+    number,
+    { pending: number; processing: number; done: number }
+  >();
+  if (customerAccountOrderIds.length > 0) {
+    // lazy import from youtube flow to avoid cyclic dependency in UI
+    const { customerAccounts } = await import("@/db/schema/customer-account.schema");
+    const accRows = await db
+      .select({ orderId: customerAccounts.orderId, status: customerAccounts.status })
+      .from(customerAccounts)
+      .where(inArray(customerAccounts.orderId, customerAccountOrderIds));
+
+    for (const r of accRows) {
+      if (r.orderId == null) continue;
+      const prev =
+        customerAccountCountsByOrderId.get(r.orderId) ?? { pending: 0, processing: 0, done: 0 };
+      if (r.status === "pending") prev.pending += 1;
+      else if (r.status === "processing") prev.processing += 1;
+      else if (r.status === "done") prev.done += 1;
+      customerAccountCountsByOrderId.set(r.orderId, prev);
+    }
+  }
+
   const customerIds = [...new Set(rows.map((r) => r.customerId).filter((id): id is number => id != null))];
   const customerEmails = [...new Set(rows.map((r) => r.customerEmail).filter(Boolean))];
   const customersByIdRows =
@@ -696,6 +727,18 @@ export async function findOrdersForDashboard(limit = 50): Promise<DashboardOrder
 
   return rows.map((r) => {
     const customer = (r.customerId != null ? customersById.get(r.customerId) : undefined) ?? customersByEmail.get(r.customerEmail);
+    const counts = customerAccountCountsByOrderId.get(r.id) ?? { pending: 0, processing: 0, done: 0 };
+    const stageLabel =
+      (r as { productType?: string }).productType === "customer_account"
+        ? counts.done > 0
+          ? "subscribed"
+          : counts.processing > 0
+            ? "กำลังดำเนินการ"
+            : counts.pending > 0
+              ? "รอดำเนินการ"
+              : "-"
+        : undefined;
+
     return {
       id: r.id,
       orderNumber: r.orderNumber,
@@ -715,6 +758,10 @@ export async function findOrdersForDashboard(limit = 50): Promise<DashboardOrder
         : null,
       createdAt: r.createdAt,
       items: itemsByOrder[r.id] ?? [],
+      customerAccountStageLabel: stageLabel,
+      customerAccountCounts: (r as { productType?: string }).productType === "customer_account"
+        ? counts
+        : undefined,
     };
   });
 }
