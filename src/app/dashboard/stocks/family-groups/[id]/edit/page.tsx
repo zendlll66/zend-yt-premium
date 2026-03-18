@@ -12,6 +12,13 @@ import { Input } from "@/components/ui/input";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PasswordInput } from "@/components/ui/password-input";
 
+function daysLeft(expiresAt: Date | null) {
+  if (!expiresAt) return null;
+  const now = new Date();
+  const diff = expiresAt.getTime() - now.getTime();
+  return Math.floor(diff / (24 * 60 * 60 * 1000));
+}
+
 export default async function EditFamilyGroupPage({
   params,
 }: {
@@ -153,13 +160,14 @@ export default async function EditFamilyGroupPage({
                   <th className="px-3 py-2">Status</th>
                   <th className="px-3 py-2">ลูกค้าที่ใช้</th>
                   <th className="px-3 py-2">Order</th>
+                  <th className="px-3 py-2">เหลือ</th>
                   <th className="px-3 py-2 text-right">จัดการ</th>
                 </tr>
               </thead>
               <tbody>
                 {members.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-3 py-4 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-3 py-4 text-center text-muted-foreground">
                       ยังไม่มีสมาชิกในกลุ่มนี้
                     </td>
                   </tr>
@@ -240,6 +248,18 @@ export default async function EditFamilyGroupPage({
                           placeholder="ว่างไว้ถ้าไม่มี"
                           className="h-8 w-28"
                         />
+                      </td>
+                      <td className="px-3 py-2">
+                        {(() => {
+                          const d = daysLeft((m as { expiresAt?: Date | null }).expiresAt ?? null);
+                          if (d == null) return <span className="text-muted-foreground">-</span>;
+                          if (d < 0) return <span className="text-destructive font-medium">หมดอายุ</span>;
+                          return (
+                            <span className={d <= 3 ? "text-amber-600 font-medium" : ""}>
+                              {d} วัน
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-3 py-2 text-right">
                         <div className="flex justify-end gap-2">

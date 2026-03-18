@@ -9,6 +9,13 @@ function formatDate(d: Date | null) {
   return new Date(d).toLocaleString("th-TH");
 }
 
+function daysLeft(expiresAt: Date | null) {
+  if (!expiresAt) return null;
+  const now = new Date();
+  const diff = expiresAt.getTime() - now.getTime();
+  return Math.floor(diff / (24 * 60 * 60 * 1000));
+}
+
 function getStatusBadge(status: string) {
   const s = (status || "").toLowerCase();
   const base =
@@ -73,6 +80,7 @@ export default async function AccountStockPage() {
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Order</th>
                 <th className="px-3 py-2">ลูกค้าที่ใช้</th>
+                <th className="px-3 py-2">เหลือ</th>
                 <th className="px-3 py-2">Sold At</th>
                 <th className="px-3 py-2 text-right">จัดการ</th>
               </tr>
@@ -120,6 +128,18 @@ export default async function AccountStockPage() {
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
+                  </td>
+                  <td className="px-3 py-2">
+                    {(() => {
+                      const d = daysLeft((row as { expiresAt?: Date | null }).expiresAt ?? null);
+                      if (d == null) return <span className="text-muted-foreground">-</span>;
+                      if (d < 0) return <span className="text-destructive font-medium">หมดอายุ</span>;
+                      return (
+                        <span className={d <= 3 ? "text-amber-600 font-medium" : ""}>
+                          {d} วัน
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">{formatDate(row.soldAt ?? null)}</td>
                   <td className="px-3 py-2 text-right">

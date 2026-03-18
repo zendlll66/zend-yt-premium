@@ -1,12 +1,27 @@
 import Link from "next/link";
 import { deleteFamilyGroupAction } from "@/features/youtube/youtube-stock.actions";
 import { findFamilyGroupsWithMembers } from "@/features/youtube/youtube-stock.repo";
+import { getShopSettings } from "@/features/settings/settings.repo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 
+function daysLeft(expiresAt: Date | null) {
+  if (!expiresAt) return null;
+  const now = new Date();
+  const diff = expiresAt.getTime() - now.getTime();
+  return Math.floor(diff / (24 * 60 * 60 * 1000));
+}
+
 export default async function FamilyGroupsPage() {
-  const familyData = await findFamilyGroupsWithMembers();
+  const [familyData, settings] = await Promise.all([
+    findFamilyGroupsWithMembers(),
+    getShopSettings(),
+  ]);
+  const warningDays = Math.max(
+    1,
+    Number.parseInt(settings.inventoryExpiryWarningDays || "5", 10) || 5
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -32,6 +47,16 @@ export default async function FamilyGroupsPage() {
           const releasedCount = members.filter((m) => m.memberStatus === "released").length;
           const availableCount = members.filter((m) => m.memberStatus === "available").length + releasedCount;
           const stockedCount = members.length;
+          const expiringCount = members.filter((m) => {
+            if (m.memberStatus !== "in_use") return false;
+            const d = daysLeft(m.expiresAt ?? null);
+            return d != null && d >= 0 && d <= warningDays;
+          }).length;
+          const expiredCount = members.filter((m) => {
+            if (m.memberStatus !== "in_use") return false;
+            const d = daysLeft(m.expiresAt ?? null);
+            return d != null && d < 0;
+          }).length;
 
           return (
             <div key={group.id} className="rounded-lg border bg-card p-3">
@@ -44,6 +69,17 @@ export default async function FamilyGroupsPage() {
                   <p className="text-xs text-muted-foreground">
                     คงเหลือในคลัง {availableCount} · ส่งให้ลูกค้าแล้ว {inUseCount}
                   </p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                    <span className="rounded-full border px-2 py-0.5 text-muted-foreground">
+                      ใกล้หมดอายุ {expiringCount}
+                    </span>
+                    <span className="rounded-full border px-2 py-0.5 text-muted-foreground">
+                      หมดอายุแล้ว {expiredCount}
+                    </span>
+                    <span className="rounded-full border px-2 py-0.5 text-muted-foreground">
+                      เกณฑ์เตือน {warningDays} วัน
+                    </span>
+                  </div>
                 </div>
                 <div className="flex gap-1">
                   <Button size="sm" variant="outline" asChild>

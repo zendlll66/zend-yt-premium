@@ -17,6 +17,8 @@ import {
   updateAccountStockById,
   updateCustomerAccountStatus,
   updateCustomerAccountById,
+  findCustomerAccountsByOrderId,
+  updateCustomerAccountsStatusByOrderId,
   findCustomerAccountNotifyTarget,
   updateFamilyGroupById,
   updateFamilyMemberById,
@@ -258,6 +260,40 @@ export async function updateCustomerAccountStatusAction(formData: FormData) {
     );
   }
   refreshStocksPage();
+}
+
+export async function updateCustomerAccountsStatusByOrderIdAction(formData: FormData) {
+  const orderId = parseInt((formData.get("orderId") as string) ?? "0", 10);
+  const status = ((formData.get("status") as string) || "pending") as "pending" | "processing" | "done";
+  const notes = (formData.get("notes") as string)?.trim() ?? "";
+  if (!orderId || !Number.isFinite(orderId)) return;
+
+  // สำหรับ trigger LINE เมื่อเปลี่ยนสถานะไป done (subscribed)
+  const beforeAccounts = await findCustomerAccountsByOrderId(orderId);
+  const beforeById = new Map(beforeAccounts.map((a) => [a.id, a] as const));
+
+  const updated = await updateCustomerAccountsStatusByOrderId(orderId, status, notes || null);
+  // อัปเดตได้แม้จำนวนจะเป็น 0 แต่โดยปกติควรมีรายการใน order นี้
+  refreshStocksPage();
+  revalidatePath(`/dashboard/orders/${orderId}`);
+
+  if (status === "done") {
+    for (const after of updated) {
+      const before = beforeById.get(after.id);
+      if (!before) continue;
+      if (before.status !== "done") {
+        const target = await findCustomerAccountNotifyTarget(after.id);
+        if (target?.lineUserId) {
+          const noteLine = target.notes?.trim() ? `\nหมายเหตุ: ${target.notes.trim()}` : "";
+          await pushLineTextMessage(
+            target.lineUserId,
+            `บัญชีนี้ใช้งานได้แล้ว\nบัญชี: ${after.email}${noteLine}`
+          );
+        }
+      }
+    }
+  }
+
 }
 
 export async function createCustomerAccountAction(formData: FormData) {

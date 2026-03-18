@@ -17,7 +17,8 @@ const STATUS_LABELS: Record<string, string> = {
 const NEXT_STATUS: Record<string, string[] | null> = {
   pending: ["cancelled"],
   wait: ["paid", "cancelled"],
-  paid: ["fulfilled", "cancelled"],
+  // ไม่มีขั้นตอน "จัดส่งสำเร็จ" แล้ว จึงไม่ให้เลือก fulfilled จากสถานะ paid
+  paid: ["cancelled"],
   fulfilled: null,
   completed: null,
   cancelled: null,
@@ -64,11 +65,9 @@ export function OrderStatusActions({
         >
           {s === "cancelled"
             ? "ยกเลิกคำสั่ง"
-            : s === "fulfilled"
-              ? "บันทึกว่าส่งสำเร็จ"
-              : s === "paid" && currentStatus === "wait"
-                ? "Approve"
-                : STATUS_LABELS[s]}
+            : s === "paid" && currentStatus === "wait"
+              ? "Approve"
+              : STATUS_LABELS[s]}
         </Button>
       ))}
     </div>

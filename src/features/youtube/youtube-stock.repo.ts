@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { accountStock } from "@/db/schema/account-stock.schema";
 import { customerAccounts } from "@/db/schema/customer-account.schema";
 import { customers } from "@/db/schema/customer.schema";
+import { customerInventories } from "@/db/schema/customer-inventory.schema";
 import { familyGroups, familyMembers } from "@/db/schema/family.schema";
 import { inviteLinks } from "@/db/schema/invite-link.schema";
 import { orders } from "@/db/schema/order.schema";
@@ -28,6 +29,7 @@ export type FamilyMemberWithStatus = {
   memberPassword: string | null;
   orderId: number | null;
   createdAt: Date;
+  expiresAt: Date | null;
   memberStatus: "available" | "released" | "in_use";
   orderStatus: string | null;
   customerIdResolved: number | null;
@@ -55,7 +57,7 @@ async function getFamilyGroupColumnSupport(): Promise<{ headAccount: boolean }> 
 }
 
 export async function findAccountStocks(limit = 100) {
-  return db
+  const rows = await db
     .select({
       id: accountStock.id,
       email: accountStock.email,
@@ -64,6 +66,7 @@ export async function findAccountStocks(limit = 100) {
       orderId: accountStock.orderId,
       reservedAt: accountStock.reservedAt,
       soldAt: accountStock.soldAt,
+      expiresAt: customerInventories.expiresAt,
       createdAt: accountStock.createdAt,
       updatedAt: accountStock.updatedAt,
       customerId: customers.id,
@@ -75,6 +78,16 @@ export async function findAccountStocks(limit = 100) {
     .from(accountStock)
     .leftJoin(orders, eq(accountStock.orderId, orders.id))
     .leftJoin(
+      customerInventories,
+      and(
+        eq(customerInventories.orderId, accountStock.orderId),
+        eq(customerInventories.itemType, "individual"),
+        // ป้องกัน row ซ้ำ: ผูกเฉพาะ inventory แถวของ account นี้ด้วย loginEmail
+        // (accountStock.email มักเท่ากับ customer_inventories.login_email)
+        eq(customerInventories.loginEmail, accountStock.email)
+      )
+    )
+    .leftJoin(
       customers,
       or(
         eq(accountStock.customerId, customers.id),
@@ -83,6 +96,26 @@ export async function findAccountStocks(limit = 100) {
     )
     .orderBy(desc(accountStock.createdAt))
     .limit(limit);
+
+  // กันกรณี join ทำให้ได้ row ซ้ำ id เดิม (React key ต้อง unique)
+  const byId = new Map<number, (typeof rows)[number]>();
+  for (const row of rows) {
+    const prev = byId.get(row.id);
+    if (!prev) {
+      byId.set(row.id, row);
+      continue;
+    }
+    // เลือก expiresAt ที่มากสุด (ล่าสุด) เผื่อมี inventory ซ้ำหลายแถว
+    if (row.expiresAt) {
+      if (!prev.expiresAt || row.expiresAt > prev.expiresAt) {
+        byId.set(row.id, row);
+      }
+    }
+  }
+
+  return Array.from(byId.values()).sort(
+    (a, b) => (b.createdAt?.getTime?.() ?? 0) - (a.createdAt?.getTime?.() ?? 0)
+  );
 }
 
 export async function findAccountStockById(id: number) {
@@ -216,6 +249,20 @@ export async function findFamilyGroupsWithMembers() {
           .where(inArray(orders.id, orderIds));
   const orderById = new Map(orderRows.map((o) => [o.id, o]));
 
+  const expiresByOrderId = new Map<number, Date | null>();
+  if (orderIds.length > 0) {
+    const invRows = await db
+      .select({
+        orderId: customerInventories.orderId,
+        expiresAt: customerInventories.expiresAt,
+      })
+      .from(customerInventories)
+      .where(and(inArray(customerInventories.orderId, orderIds), eq(customerInventories.itemType, "family")));
+    for (const r of invRows) {
+      if (r.orderId != null) expiresByOrderId.set(r.orderId, r.expiresAt ?? null);
+    }
+  }
+
   const customerIds = [
     ...new Set(
       [
@@ -275,6 +322,7 @@ export async function findFamilyGroupsWithMembers() {
 
     return {
       ...m,
+      expiresAt: m.orderId ? (expiresByOrderId.get(m.orderId) ?? null) : null,
       memberStatus,
       orderStatus: linkedOrder?.status ?? null,
       customerIdResolved: customer?.id ?? null,
@@ -507,7 +555,7 @@ export async function findInviteLinkById(id: number) {
 }
 
 export async function findInviteLinks(limit = 200) {
-  return db
+  const rows = await db
     .select({
       id: inviteLinks.id,
       link: inviteLinks.link,
@@ -515,6 +563,7 @@ export async function findInviteLinks(limit = 200) {
       orderId: inviteLinks.orderId,
       reservedAt: inviteLinks.reservedAt,
       usedAt: inviteLinks.usedAt,
+      expiresAt: customerInventories.expiresAt,
       createdAt: inviteLinks.createdAt,
       customerId: customers.id,
       customerName: customers.name,
@@ -525,6 +574,15 @@ export async function findInviteLinks(limit = 200) {
     .from(inviteLinks)
     .leftJoin(orders, eq(inviteLinks.orderId, orders.id))
     .leftJoin(
+      customerInventories,
+      and(
+        eq(customerInventories.orderId, inviteLinks.orderId),
+        eq(customerInventories.itemType, "invite"),
+        // ผูกด้วย inviteLink string เพื่อลดโอกาส join ซ้ำ
+        eq(customerInventories.inviteLink, inviteLinks.link)
+      )
+    )
+    .leftJoin(
       customers,
       or(
         eq(inviteLinks.customerId, customers.id),
@@ -533,6 +591,26 @@ export async function findInviteLinks(limit = 200) {
     )
     .orderBy(desc(inviteLinks.createdAt))
     .limit(limit);
+
+  // กันกรณี join ทำให้ได้ row ซ้ำ id เดิม (React key ต้อง unique)
+  const byId = new Map<number, (typeof rows)[number]>();
+  for (const row of rows) {
+    const prev = byId.get(row.id);
+    if (!prev) {
+      byId.set(row.id, row);
+      continue;
+    }
+    // เลือกแถวที่มี expiresAt มากกว่า (ล่าสุด) ถ้ามี
+    if (row.expiresAt) {
+      if (!prev.expiresAt || row.expiresAt > prev.expiresAt) {
+        byId.set(row.id, row);
+      }
+    }
+  }
+
+  return Array.from(byId.values()).sort(
+    (a, b) => (b.createdAt?.getTime?.() ?? 0) - (a.createdAt?.getTime?.() ?? 0)
+  );
 }
 
 export async function createInviteLink(data: {
@@ -610,15 +688,58 @@ export async function findCustomerAccounts(limit = 200) {
       notes: customerAccounts.notes,
       createdAt: customerAccounts.createdAt,
       updatedAt: customerAccounts.updatedAt,
+      expiresAt: customerInventories.expiresAt,
       customerName: customers.name,
       customerEmail: customers.email,
       customerLineDisplayName: customers.lineDisplayName,
       customerLinePictureUrl: customers.linePictureUrl,
     })
     .from(customerAccounts)
+    .leftJoin(
+      customerInventories,
+      and(
+        eq(customerInventories.orderId, customerAccounts.orderId),
+        eq(customerInventories.itemType, "customer_account"),
+        // ผูกด้วย loginEmail (customerAccounts.email) เพื่อลด row ซ้ำ
+        eq(customerInventories.loginEmail, customerAccounts.email)
+      )
+    )
     .leftJoin(customers, eq(customerAccounts.customerId, customers.id))
     .orderBy(desc(customerAccounts.createdAt))
     .limit(limit);
+}
+
+export async function findCustomerAccountsByOrderId(orderId: number) {
+  return db
+    .select({
+      id: customerAccounts.id,
+      status: customerAccounts.status,
+      email: customerAccounts.email,
+      notes: customerAccounts.notes,
+      createdAt: customerAccounts.createdAt,
+    })
+    .from(customerAccounts)
+    .where(eq(customerAccounts.orderId, orderId))
+    .orderBy(desc(customerAccounts.createdAt));
+}
+
+export async function updateCustomerAccountsStatusByOrderId(
+  orderId: number,
+  status: "pending" | "processing" | "done",
+  notes?: string | null
+) {
+  const payload: Partial<typeof customerAccounts.$inferInsert> = {
+    status,
+    updatedAt: new Date(),
+  };
+  if (notes !== undefined) payload.notes = notes;
+
+  const updated = await db
+    .update(customerAccounts)
+    .set(payload)
+    .where(eq(customerAccounts.orderId, orderId))
+    .returning();
+  return updated;
 }
 
 export async function findCustomerAccountById(id: number) {

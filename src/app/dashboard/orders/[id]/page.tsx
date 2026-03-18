@@ -4,6 +4,9 @@ import { findOrderById } from "@/features/order/order.repo";
 import { Button } from "@/components/ui/button";
 import { OrderStatusActions } from "./order-status-actions";
 import { getVisibleModifiers } from "@/lib/customer-account-credentials";
+import { findCustomerAccountsByOrderId } from "@/features/youtube/youtube-stock.repo";
+import { updateCustomerAccountsStatusByOrderIdAction } from "@/features/youtube/youtube-stock.actions";
+import { Check } from "lucide-react";
 
 function formatDate(d: Date | null) {
   if (!d) return "-";
@@ -41,6 +44,29 @@ export default async function OrderDetailPage({
   const order = await findOrderById(orderId);
   if (!order) notFound();
 
+  const customerAccounts =
+    order.productType === "customer_account"
+      ? await findCustomerAccountsByOrderId(order.id)
+      : [];
+  const counts = {
+    pending: customerAccounts.filter((a) => a.status === "pending").length,
+    processing: customerAccounts.filter((a) => a.status === "processing").length,
+    done: customerAccounts.filter((a) => a.status === "done").length,
+  };
+  const stepIndex =
+    counts.done > 0 ? 3 : counts.processing > 0 ? 2 : counts.pending > 0 ? 1 : 0;
+
+  const customerAccountStageLabel =
+    order.productType !== "customer_account"
+      ? null
+      : stepIndex === 1
+        ? "รอดำเนินการ"
+        : stepIndex === 2
+          ? "กำลังดำเนินการ"
+          : stepIndex === 3
+            ? "subscribed"
+            : "-";
+
   return (
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex items-center gap-2">
@@ -59,7 +85,16 @@ export default async function OrderDetailPage({
             ประเภทสินค้า: {getProductTypeLabel(order.productType)}
           </p>
         </div>
-        <OrderStatusActions orderId={order.id} currentStatus={order.status} />
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex flex-col items-end gap-2">
+            <OrderStatusActions orderId={order.id} currentStatus={order.status} />
+            {customerAccountStageLabel && (
+              <div className="text-xs text-muted-foreground">
+                Customer Account: <span className="font-medium">{customerAccountStageLabel}</span>
+              </div>
+            )}
+          </div>
+        </div>
         <Button variant="outline" size="sm" asChild>
           <Link href={`/dashboard/orders/${order.id}/edit`}>แก้ไขคำสั่งซื้อ</Link>
         </Button>
@@ -161,6 +196,127 @@ export default async function OrderDetailPage({
             </tbody>
           </table>
         </div>
+      )}
+
+      {order.productType === "customer_account" && (
+        <section className="rounded-xl border bg-card p-6">
+          <h2 className="mb-4 text-lg font-semibold">Customer Account Workflow</h2>
+
+          {/* Big stepper bar */}
+          <div className="mb-4 flex items-center gap-3">
+            {[
+              { idx: 1, key: "pending", label: "รอดำเนินการ" },
+              { idx: 2, key: "processing", label: "กำลังดำเนินการ" },
+              { idx: 3, key: "done", label: "subscribed" },
+            ].map((s, i, arr) => {
+              const isDone = stepIndex > s.idx;
+              const isActive = stepIndex === s.idx;
+
+              return (
+                <div key={s.key} className="flex min-w-0 flex-1 items-center gap-3">
+                  <div
+                    className={[
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-sm font-semibold",
+                      isDone
+                        ? "border-emerald-500 bg-emerald-500 text-white"
+                        : isActive
+                          ? "border-primary bg-primary text-white"
+                          : "border-neutral-300 bg-white text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400",
+                    ].join(" ")}
+                  >
+                    {isDone ? <Check className="h-4 w-4" /> : s.idx}
+                  </div>
+
+                  <div className="min-w-0">
+                    <div
+                      className={[
+                        "truncate text-sm font-medium",
+                        isActive ? "text-foreground" : "text-muted-foreground",
+                      ].join(" ")}
+                    >
+                      {s.label}
+                    </div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">
+                      {s.key === "pending"
+                        ? `${counts.pending} บัญชี`
+                        : s.key === "processing"
+                          ? `${counts.processing} บัญชี`
+                          : `${counts.done} บัญชี`}
+                    </div>
+                  </div>
+
+                  {i < arr.length - 1 && (
+                    <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Sections (each step has its own action card) */}
+          <div className="grid gap-3 md:grid-cols-3">
+            {[
+              { idx: 1, key: "pending", title: "รอดำเนินการ", disabledReason: "เดินหน้าต่อได้" },
+              { idx: 2, key: "processing", title: "กำลังดำเนินการ", disabledReason: "เดินหน้าต่อได้" },
+              { idx: 3, key: "done", title: "subscribed", disabledReason: "เดินหน้าต่อได้" },
+            ].map((step) => {
+              const isActive = stepIndex === step.idx;
+              const canSelect = true;
+
+              return (
+                <div
+                  key={step.key}
+                  className={[
+                    "rounded-xl border p-4",
+                    isActive ? "border-primary/60 bg-primary/5" : "bg-background",
+                  ].join(" ")}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold">{step.title}</div>
+                    {step.idx < stepIndex && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
+                        สำเร็จแล้ว
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    {step.key === "pending"
+                      ? `${counts.pending} บัญชี`
+                      : step.key === "processing"
+                        ? `${counts.processing} บัญชี`
+                        : `${counts.done} บัญชี`}
+                  </div>
+
+                  <form
+                    action={updateCustomerAccountsStatusByOrderIdAction}
+                    className="mt-3"
+                  >
+                    <input type="hidden" name="orderId" value={order.id} />
+                    <button
+                      type="submit"
+                      name="status"
+                      value={step.key}
+                      disabled={!canSelect}
+                      className={[
+                        "w-full rounded-md border px-3 py-2 text-xs font-medium",
+                        canSelect
+                          ? "border-primary/30 bg-primary/10 text-primary"
+                          : "border-muted-foreground/30 bg-muted/10 text-muted-foreground cursor-not-allowed",
+                      ].join(" ")}
+                    >
+                      อัปเดตเป็น {step.title}
+                    </button>
+                  </form>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 text-xs text-muted-foreground">
+            อัปเดตสถานะของ <b>customer_accounts</b> ที่ผูกกับออเดอร์นี้ (ไม่ใช่ <b>orders.status</b>)
+          </div>
+        </section>
       )}
 
       <div className="flex flex-col gap-1 rounded-xl border bg-muted/30 px-4 py-3 text-right">
