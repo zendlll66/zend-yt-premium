@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { findAllCustomers } from "@/features/customer/customer.repo";
 import { findInviteLinkById } from "@/features/youtube/youtube-stock.repo";
 import { updateInviteLinkAction } from "@/features/youtube/youtube-stock.actions";
+import { updateInventoryDatesAction } from "@/features/inventory/inventory-order.actions";
+import { findCustomerInventoryForOrderItem } from "@/features/inventory/customer-inventory.repo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
@@ -33,6 +35,15 @@ export default async function EditInviteLinkPage({
     findAllCustomers(500),
   ]);
   if (!linkRow) notFound();
+
+  const inventoryRow =
+    linkRow.orderId != null
+      ? await findCustomerInventoryForOrderItem({
+          orderId: linkRow.orderId,
+          itemType: "invite",
+          inviteLink: linkRow.link,
+        })
+      : null;
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -94,42 +105,6 @@ export default async function EditInviteLinkPage({
           customers={customers}
           initialCustomerId={linkRow.customerId ?? null}
         />
-        <div>
-          <label htmlFor="reservedAt" className="mb-1.5 block text-sm font-medium">
-            เวลาจอง (reservedAt)
-          </label>
-          <Input
-            id="reservedAt"
-            name="reservedAt"
-            type="datetime-local"
-            defaultValue={toDatetimeLocal(linkRow.reservedAt)}
-            className="w-full"
-          />
-        </div>
-        <div>
-          <label htmlFor="usedAt" className="mb-1.5 block text-sm font-medium">
-            ใช้แล้ว (usedAt)
-          </label>
-          <Input
-            id="usedAt"
-            name="usedAt"
-            type="datetime-local"
-            defaultValue={toDatetimeLocal(linkRow.usedAt)}
-            className="w-full"
-          />
-        </div>
-        <div>
-          <label htmlFor="createdAt" className="mb-1.5 block text-sm font-medium">
-            สร้างเมื่อ (createdAt)
-          </label>
-          <Input
-            id="createdAt"
-            name="createdAt"
-            type="datetime-local"
-            defaultValue={toDatetimeLocal(linkRow.createdAt)}
-            className="w-full"
-          />
-        </div>
         <div className="flex gap-2">
           <FormSubmitButton loadingText="กำลังบันทึก…">บันทึก</FormSubmitButton>
           <Button type="button" variant="outline" asChild>
@@ -137,6 +112,67 @@ export default async function EditInviteLinkPage({
           </Button>
         </div>
       </form>
+
+      {inventoryRow && (
+        <form
+          action={updateInventoryDatesAction}
+          className="flex max-w-xl flex-col gap-4 rounded-xl border bg-card p-6"
+        >
+          <input type="hidden" name="id" value={inventoryRow.id} />
+          <input
+            type="hidden"
+            name="redirectTo"
+            value={`/dashboard/stocks/invite-links/${linkRow.id}/edit`}
+          />
+
+          <h2 className="text-sm font-semibold">แก้ไขวันเริ่ม/หมดอายุ</h2>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="activatedAt" className="mb-1.5 block text-sm font-medium">
+                วันที่เริ่ม (activatedAt)
+              </label>
+              <Input
+                id="activatedAt"
+                name="activatedAt"
+                type="datetime-local"
+                lang="th-TH"
+                defaultValue={toDatetimeLocal(inventoryRow.activatedAt)}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label htmlFor="expiresAt" className="mb-1.5 block text-sm font-medium">
+                วันที่หมดอายุ (expiresAt) — แก้เลื่อนต่ออายุได้
+              </label>
+              <Input
+                id="expiresAt"
+                name="expiresAt"
+                type="datetime-local"
+                lang="th-TH"
+                defaultValue={toDatetimeLocal(inventoryRow.expiresAt)}
+                className="w-full"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="note" className="mb-1.5 block text-sm font-medium">
+              หมายเหตุ
+            </label>
+            <Input
+              id="note"
+              name="note"
+              defaultValue={inventoryRow.note ?? ""}
+              className="w-full"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <FormSubmitButton loadingText="กำลังบันทึก…">บันทึกวันเริ่ม/หมดอายุ</FormSubmitButton>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

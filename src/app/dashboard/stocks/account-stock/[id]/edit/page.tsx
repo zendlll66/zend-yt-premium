@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { findAllCustomers } from "@/features/customer/customer.repo";
 import { findAccountStockById } from "@/features/youtube/youtube-stock.repo";
 import { updateAccountStockAction } from "@/features/youtube/youtube-stock.actions";
+import { updateInventoryDatesAction } from "@/features/inventory/inventory-order.actions";
+import { findCustomerInventoryForOrderItem } from "@/features/inventory/customer-inventory.repo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
@@ -20,6 +22,18 @@ function toDatetimeLocal(d: Date | null): string {
   return `${y}-${m}-${day}T${h}:${min}`;
 }
 
+function formatDateTimeTH(d: Date | null): string {
+  if (!d) return "--/--/---- --:--";
+  return new Date(d).toLocaleString("th-TH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 export default async function EditAccountStockPage({
   params,
 }: {
@@ -34,6 +48,15 @@ export default async function EditAccountStockPage({
     findAllCustomers(500),
   ]);
   if (!stock) notFound();
+
+  const inventoryRow =
+    stock.orderId != null
+      ? await findCustomerInventoryForOrderItem({
+          orderId: stock.orderId,
+          itemType: "individual",
+          loginEmail: stock.email,
+        })
+      : null;
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -106,18 +129,6 @@ export default async function EditAccountStockPage({
           initialCustomerId={stock.customerId ?? null}
         />
         <div>
-          <label htmlFor="reservedAt" className="mb-1.5 block text-sm font-medium">
-            เวลาจอง (reservedAt)
-          </label>
-          <Input
-            id="reservedAt"
-            name="reservedAt"
-            type="datetime-local"
-            defaultValue={toDatetimeLocal(stock.reservedAt)}
-            className="w-full"
-          />
-        </div>
-        <div>
           <label htmlFor="soldAt" className="mb-1.5 block text-sm font-medium">
             เวลาขายแล้ว (soldAt)
           </label>
@@ -125,21 +136,11 @@ export default async function EditAccountStockPage({
             id="soldAt"
             name="soldAt"
             type="datetime-local"
+            lang="th-TH"
             defaultValue={toDatetimeLocal(stock.soldAt)}
             className="w-full"
           />
-        </div>
-        <div>
-          <label htmlFor="createdAt" className="mb-1.5 block text-sm font-medium">
-            สร้างเมื่อ (createdAt)
-          </label>
-          <Input
-            id="createdAt"
-            name="createdAt"
-            type="datetime-local"
-            defaultValue={toDatetimeLocal(stock.createdAt)}
-            className="w-full"
-          />
+          <div className="mt-1 text-xs text-muted-foreground">{formatDateTimeTH(stock.soldAt)}</div>
         </div>
         <div>
           <label htmlFor="updatedAt" className="mb-1.5 block text-sm font-medium">
@@ -149,9 +150,11 @@ export default async function EditAccountStockPage({
             id="updatedAt"
             name="updatedAt"
             type="datetime-local"
+            lang="th-TH"
             defaultValue={toDatetimeLocal(stock.updatedAt)}
             className="w-full"
           />
+          <div className="mt-1 text-xs text-muted-foreground">{formatDateTimeTH(stock.updatedAt)}</div>
         </div>
         <div className="flex gap-2">
           <FormSubmitButton loadingText="กำลังบันทึก…">บันทึก</FormSubmitButton>
@@ -160,6 +163,67 @@ export default async function EditAccountStockPage({
           </Button>
         </div>
       </form>
+
+      {inventoryRow && (
+        <form
+          action={updateInventoryDatesAction}
+          className="flex max-w-xl flex-col gap-4 rounded-xl border bg-card p-6"
+        >
+          <input type="hidden" name="id" value={inventoryRow.id} />
+          <input
+            type="hidden"
+            name="redirectTo"
+            value={`/dashboard/stocks/account-stock/${stock.id}/edit`}
+          />
+
+          <h2 className="text-sm font-semibold">แก้ไขวันเริ่ม/หมดอายุ</h2>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="activatedAt" className="mb-1.5 block text-sm font-medium">
+                วันที่เริ่ม (activatedAt)
+              </label>
+              <Input
+                id="activatedAt"
+                name="activatedAt"
+                type="datetime-local"
+                lang="th-TH"
+                defaultValue={toDatetimeLocal(inventoryRow.activatedAt)}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label htmlFor="expiresAt" className="mb-1.5 block text-sm font-medium">
+                วันที่หมดอายุ (expiresAt) — แก้เลื่อนต่ออายุได้
+              </label>
+              <Input
+                id="expiresAt"
+                name="expiresAt"
+                type="datetime-local"
+                lang="th-TH"
+                defaultValue={toDatetimeLocal(inventoryRow.expiresAt)}
+                className="w-full"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="note" className="mb-1.5 block text-sm font-medium">
+              หมายเหตุ
+            </label>
+            <Input
+              id="note"
+              name="note"
+              defaultValue={inventoryRow.note ?? ""}
+              className="w-full"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <FormSubmitButton loadingText="กำลังบันทึก…">บันทึกวันเริ่ม/หมดอายุ</FormSubmitButton>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

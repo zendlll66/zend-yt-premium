@@ -23,6 +23,7 @@ import {
   updateFamilyGroupById,
   updateFamilyMemberById,
   updateFamilyGroupHeadAccount,
+  findInviteLinkById,
   updateInviteLinkById,
   updateInviteLinkStatus,
 } from "./youtube-stock.repo";
@@ -70,7 +71,9 @@ export async function updateAccountStockAction(formData: FormData) {
   const status = ((formData.get("status") as string) || "available") as "available" | "reserved" | "sold";
   const orderId = parseOptionalInt((formData.get("orderId") as string) ?? null);
   const customerId = parseOptionalInt((formData.get("customerId") as string) ?? null);
-  const reservedAt = parseOptionalDate((formData.get("reservedAt") as string) ?? null);
+  const reservedAt = formData.has("reservedAt")
+    ? parseOptionalDate((formData.get("reservedAt") as string) ?? null)
+    : undefined;
   const soldAt = parseOptionalDate((formData.get("soldAt") as string) ?? null);
   const createdAt = parseOptionalDate((formData.get("createdAt") as string) ?? null);
   const updatedAt = parseOptionalDate((formData.get("updatedAt") as string) ?? null);
@@ -212,9 +215,22 @@ export async function updateInviteLinkAction(formData: FormData) {
   const status = ((formData.get("status") as string) || "available") as "available" | "reserved" | "used";
   const orderId = parseOptionalInt((formData.get("orderId") as string) ?? null);
   const customerId = parseOptionalInt((formData.get("customerId") as string) ?? null);
-  const reservedAt = parseOptionalDate((formData.get("reservedAt") as string) ?? null);
-  const usedAt = parseOptionalDate((formData.get("usedAt") as string) ?? null);
-  const createdAt = parseOptionalDate((formData.get("createdAt") as string) ?? null);
+  const before = await findInviteLinkById(id);
+
+  // ถ้าไม่ได้ส่ง reservedAt/usedAt มา (เพราะซ่อนช่องแก้ไขไว้) ให้คงค่าเดิมเมื่อ status ไม่ได้เปลี่ยน
+  const reservedAt = formData.has("reservedAt")
+    ? parseOptionalDate((formData.get("reservedAt") as string) ?? null)
+    : status === "reserved" && before?.status === "reserved"
+      ? before?.reservedAt ?? null
+      : undefined;
+  const usedAt = formData.has("usedAt")
+    ? parseOptionalDate((formData.get("usedAt") as string) ?? null)
+    : status === "used" && before?.status === "used"
+      ? before?.usedAt ?? null
+      : undefined;
+  const createdAt = formData.has("createdAt")
+    ? parseOptionalDate((formData.get("createdAt") as string) ?? null)
+    : undefined;
   if (!id || !Number.isFinite(id) || !link) return;
   await updateInviteLinkById({
     id,

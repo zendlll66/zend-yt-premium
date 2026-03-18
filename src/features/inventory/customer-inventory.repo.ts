@@ -106,3 +106,31 @@ export async function findCustomerInventory(customerId: number) {
     .orderBy(desc(customerInventories.createdAt));
 }
 
+export async function findCustomerInventoryForOrderItem(data: {
+  orderId: number;
+  itemType: InventoryItemType;
+  loginEmail?: string | null;
+  inviteLink?: string | null;
+}) {
+  const conditions = [
+    eq(customerInventories.orderId, data.orderId),
+    eq(customerInventories.itemType, data.itemType),
+  ];
+
+  if (data.loginEmail != null) conditions.push(eq(customerInventories.loginEmail, data.loginEmail));
+  if (data.inviteLink != null) conditions.push(eq(customerInventories.inviteLink, data.inviteLink));
+
+  const rows = await db
+    .select({
+      id: customerInventories.id,
+      activatedAt: customerInventories.activatedAt,
+      expiresAt: customerInventories.expiresAt,
+      note: customerInventories.note,
+    })
+    .from(customerInventories)
+    .where(and(...conditions))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+

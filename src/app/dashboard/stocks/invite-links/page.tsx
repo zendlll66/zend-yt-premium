@@ -6,7 +6,14 @@ import { FormSubmitButton } from "@/components/ui/form-submit-button";
 
 function formatDate(d: Date | null) {
   if (!d) return "-";
-  return new Date(d).toLocaleString("th-TH");
+  return new Date(d).toLocaleString("th-TH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 function daysLeft(expiresAt: Date | null) {

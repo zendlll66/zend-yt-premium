@@ -132,6 +132,36 @@ export async function updateInventoryOrderAction(
   redirect(`/dashboard/inventory/orders/${id}/edit`);
 }
 
+function parseRedirectTo(value: string | null): string {
+  const v = (value ?? "").trim();
+  if (v.startsWith("/dashboard/stocks/account-stock/") && v.endsWith("/edit")) return v;
+  if (v.startsWith("/dashboard/stocks/invite-links/") && v.endsWith("/edit")) return v;
+  return "/dashboard/stocks";
+}
+
+export async function updateInventoryDatesAction(formData: FormData) {
+  const id = parseId((formData.get("id") as string) ?? null);
+  const activatedAt = parseDate((formData.get("activatedAt") as string) ?? null);
+  const expiresAt = parseDate((formData.get("expiresAt") as string) ?? null);
+  const note = (formData.get("note") as string)?.trim() || null;
+  const redirectTo = parseRedirectTo((formData.get("redirectTo") as string) ?? null);
+
+  if (!id) return;
+
+  const updated = await updateInventoryOrderById(id, {
+    activatedAt,
+    expiresAt,
+    note,
+  });
+
+  if (!updated) return;
+
+  // ส่วนนี้อัปเดตเฉพาะ dates ของ customer_inventories
+  revalidatePath("/dashboard/stocks");
+  revalidatePath(redirectTo);
+  redirect(redirectTo);
+}
+
 export async function deleteInventoryOrderAction(formData: FormData): Promise<void> {
   const id = parseId((formData.get("id") as string) ?? null);
   if (!id) {
