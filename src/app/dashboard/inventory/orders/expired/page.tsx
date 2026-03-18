@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { findExpiredInventories } from "@/features/inventory/inventory-dashboard.repo";
-import { sendInventoryExpiredNotificationAction } from "@/features/inventory/inventory-notify.actions";
+import {
+  sendAllExpiredNotificationsAction,
+  sendInventoryExpiredNotificationAction,
+} from "@/features/inventory/inventory-notify.actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -25,6 +28,11 @@ export default async function ExpiredInventoryOrdersPage() {
           <Button size="sm" asChild>
             <Link href="/dashboard/inventory/orders/add">+ เพิ่ม Order</Link>
           </Button>
+          <form action={sendAllExpiredNotificationsAction}>
+            <Button type="submit" variant="default" size="sm">
+              Broadcast ทั้งหน้า
+            </Button>
+          </form>
           <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/inventory/orders/active">← กลับไป Active</Link>
           </Button>

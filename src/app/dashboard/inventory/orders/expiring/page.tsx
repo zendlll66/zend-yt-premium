@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { findExpiringInventories } from "@/features/inventory/inventory-dashboard.repo";
 import { getShopSettings } from "@/features/settings/settings.repo";
-import { sendInventoryExpiringNotificationAction } from "@/features/inventory/inventory-notify.actions";
+import {
+  sendAllExpiringNotificationsAction,
+  sendInventoryExpiringNotificationAction,
+} from "@/features/inventory/inventory-notify.actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -38,6 +41,12 @@ export default async function ExpiringInventoryOrdersPage() {
           <Button size="sm" asChild>
             <Link href="/dashboard/inventory/orders/add">+ เพิ่ม Order</Link>
           </Button>
+          <form action={sendAllExpiringNotificationsAction}>
+            <input type="hidden" name="warningDays" value={warningDays} />
+            <Button type="submit" variant="default" size="sm">
+              Broadcast ทั้งหน้า
+            </Button>
+          </form>
           <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/inventory/orders/active">← กลับไป Active</Link>
           </Button>
