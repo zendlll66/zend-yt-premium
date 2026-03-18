@@ -78,6 +78,8 @@ export function OrdersTableClient({ orders }: Props) {
   const [selectedProduct, setSelectedProduct] = useState<string>("all");
   const [selectedProductType, setSelectedProductType] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedCustomerAccountStage, setSelectedCustomerAccountStage] = useState<string>("all");
+  const [search, setSearch] = useState<string>("");
 
   async function handleApprove(orderId: number) {
     await updateOrderStatusAction(orderId, "paid");
@@ -105,6 +107,7 @@ export function OrdersTableClient({ orders }: Props) {
   }, [orders]);
 
   const filteredOrders = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return orders.filter((order) => {
       const passProduct =
         selectedProduct === "all" ||
@@ -112,9 +115,19 @@ export function OrdersTableClient({ orders }: Props) {
       const passProductType =
         selectedProductType === "all" || order.productType === selectedProductType;
       const passStatus = selectedStatus === "all" || order.status === selectedStatus;
-      return passProduct && passProductType && passStatus;
+      const passCustomerAccountStage =
+        selectedCustomerAccountStage === "all" || order.customerAccountStageLabel === selectedCustomerAccountStage;
+
+      const orderNumber = String(order.orderNumber ?? "");
+      const passSearch =
+        !q ||
+        orderNumber.toLowerCase().includes(q) ||
+        (order.customerName ?? "").toLowerCase().includes(q) ||
+        (order.customerEmail ?? "").toLowerCase().includes(q);
+
+      return passProduct && passProductType && passStatus && passCustomerAccountStage && passSearch;
     });
-  }, [orders, selectedProduct, selectedProductType, selectedStatus]);
+  }, [orders, selectedProduct, selectedProductType, selectedStatus, selectedCustomerAccountStage, search]);
 
   return (
     <div className="space-y-3">
@@ -160,6 +173,32 @@ export function OrdersTableClient({ orders }: Props) {
               </option>
             ))}
           </select>
+        </div>
+      </div>
+
+      <div className="grid gap-2 rounded-xl border bg-card p-3 md:grid-cols-2">
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">Customer Account Workflow</label>
+          <select
+            className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+            value={selectedCustomerAccountStage}
+            onChange={(e) => setSelectedCustomerAccountStage(e.target.value)}
+          >
+            <option value="all">ทั้งหมด</option>
+            <option value="รอดำเนินการ">รอดำเนินการ</option>
+            <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
+            <option value="subscribed">สมัครใช้งานแล้ว</option>
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">ค้นหา (เลขที่/ชื่อ)</label>
+          <input
+            type="search"
+            className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+            placeholder="เช่น 10012 หรือ Somchai"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
       </div>
 
