@@ -664,7 +664,9 @@ export async function updateInviteLinkById(data: {
       ...(data.customerId !== undefined && { customerId: data.customerId }),
       reservedAt: data.reservedAt !== undefined ? data.reservedAt : data.status === "reserved" ? now : null,
       usedAt: data.usedAt !== undefined ? data.usedAt : data.status === "used" ? now : null,
-      ...(data.createdAt !== undefined && { createdAt: data.createdAt }),
+      ...(data.createdAt !== undefined && data.createdAt !== null
+        ? { createdAt: data.createdAt }
+        : {}),
     })
     .where(eq(inviteLinks.id, data.id))
     .returning();

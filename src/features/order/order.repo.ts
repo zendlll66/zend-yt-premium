@@ -139,6 +139,7 @@ export async function updateOrderByAdmin(id: number, data: UpdateOrderAdminInput
     customerName?: string;
     customerEmail?: string;
     customerPhone?: string | null;
+    customerId?: number | null;
     updatedAt?: Date;
   } = {};
   if (data.status !== undefined) set.status = data.status;
@@ -152,7 +153,7 @@ export async function updateOrderByAdmin(id: number, data: UpdateOrderAdminInput
   if (data.customerName !== undefined) set.customerName = data.customerName;
   if (data.customerEmail !== undefined) set.customerEmail = data.customerEmail;
   if (data.customerPhone !== undefined) set.customerPhone = data.customerPhone;
-   if (data.customerId !== undefined && columnSupport.customerId) {
+  if (data.customerId !== undefined && columnSupport.customerId) {
     set.customerId = data.customerId;
   }
   if (Object.keys(set).length === 0) return null;

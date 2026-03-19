@@ -8,6 +8,7 @@ import {
   deleteInventoryOrderById,
 } from "./inventory-order.repo";
 import type { InventoryItemType } from "@/db/schema/customer-inventory.schema";
+import { updateCustomerInventoriesDatesByOrderIdAndType } from "./customer-inventory.repo";
 
 const INVENTORY_ITEM_TYPES: InventoryItemType[] = [
   "individual",
@@ -83,14 +84,9 @@ export async function createInventoryOrderAction(
   redirect(`/dashboard/inventory/orders/${result.inventoryId}/edit`);
 }
 
-export type UpdateInventoryOrderState = { error?: string };
-
 export async function updateInventoryOrderAction(
-  first: UpdateInventoryOrderState | FormData,
-  second?: FormData
-): Promise<UpdateInventoryOrderState> {
-  const formData = second ?? (first instanceof FormData ? first : undefined);
-  if (!formData) return { error: "Invalid request" };
+  formData: FormData
+): Promise<void> {
   const id = parseId((formData.get("id") as string) ?? null);
   const itemType = parseItemType((formData.get("itemType") as string) ?? null);
   const title = (formData.get("title") as string)?.trim() ?? "";
@@ -105,8 +101,13 @@ export async function updateInventoryOrderAction(
   const inviteLink = (formData.get("inviteLink") as string)?.trim() || null;
   const note = (formData.get("note") as string)?.trim() || null;
 
-  if (!id || !itemType || !title) {
-    return { error: "กรุณากรอก ID, ประเภท และ Title" };
+  if (!id) {
+    redirect("/dashboard/inventory/orders/active");
+    return;
+  }
+  if (!itemType || !title) {
+    redirect(`/dashboard/inventory/orders/${id}/edit`);
+    return;
   }
 
   const updated = await updateInventoryOrderById(id, {
@@ -121,8 +122,10 @@ export async function updateInventoryOrderAction(
     note,
   });
 
+  // ถ้าแก้ไขไม่สำเร็จ ให้ redirect กลับหน้าเดิมเพื่อให้ผู้ใช้ลองใหม่
   if (!updated) {
-    return { error: "แก้ไขไม่สำเร็จ" };
+    redirect(`/dashboard/inventory/orders/${id}/edit`);
+    return;
   }
 
   revalidatePath("/dashboard/inventory/orders/active");
@@ -159,6 +162,30 @@ export async function updateInventoryDatesAction(formData: FormData) {
   // ส่วนนี้อัปเดตเฉพาะ dates ของ customer_inventories
   revalidatePath("/dashboard/stocks");
   revalidatePath(redirectTo);
+  redirect(redirectTo);
+}
+
+export async function updateInventoryDatesByOrderAction(formData: FormData) {
+  const orderId = parseId((formData.get("orderId") as string) ?? null);
+  const itemType = parseItemType((formData.get("itemType") as string) ?? null);
+  const activatedAt = parseDate((formData.get("activatedAt") as string) ?? null);
+  const expiresAt = parseDate((formData.get("expiresAt") as string) ?? null);
+  const note = (formData.get("note") as string)?.trim() || null;
+  const redirectTo = ((formData.get("redirectTo") as string) ?? "").trim() || "/dashboard/stocks";
+
+  if (!orderId || !itemType) return;
+
+  const updatedCount = await updateCustomerInventoriesDatesByOrderIdAndType({
+    orderId,
+    itemType,
+    activatedAt,
+    expiresAt,
+    note,
+  });
+
+  if (updatedCount > 0) {
+    revalidatePath("/dashboard/stocks");
+  }
   redirect(redirectTo);
 }
 

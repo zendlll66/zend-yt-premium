@@ -165,3 +165,25 @@ export async function findCustomerInventoryForOrderItem(data: {
   return rows[0] ?? null;
 }
 
+export async function updateCustomerInventoriesDatesByOrderIdAndType(data: {
+  orderId: number;
+  itemType: InventoryItemType;
+  activatedAt?: Date | null;
+  expiresAt?: Date | null;
+  note?: string | null;
+}) {
+  const set: Partial<typeof customerInventories.$inferInsert> = {};
+  if (data.activatedAt !== undefined) set.activatedAt = data.activatedAt;
+  if (data.expiresAt !== undefined) set.expiresAt = data.expiresAt;
+  if (data.note !== undefined) set.note = data.note;
+  if (Object.keys(set).length === 0) return 0;
+
+  const updated = await db
+    .update(customerInventories)
+    .set(set)
+    .where(and(eq(customerInventories.orderId, data.orderId), eq(customerInventories.itemType, data.itemType)))
+    .returning({ id: customerInventories.id });
+
+  return updated.length;
+}
+

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, gte, lte, lt } from "drizzle-orm";
+import { and, eq, gte, lte, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { customerInventories } from "@/db/schema/customer-inventory.schema";
 import { customers } from "@/db/schema/customer.schema";
@@ -93,8 +93,8 @@ export async function GET() {
             customerLineUserId: customers.lineUserId,
           })
           .from(customerInventories)
-          .leftJoin(orders, and(orders.id.eq(customerInventories.orderId)))
-          .leftJoin(customers, and(customers.id.eq(customerInventories.customerId)))
+          .leftJoin(orders, eq(orders.id, customerInventories.orderId))
+          .leftJoin(customers, eq(customers.id, customerInventories.customerId))
           .where(
             and(
               gte(customerInventories.expiresAt, warningFrom),
@@ -114,8 +114,8 @@ export async function GET() {
             customerLineUserId: customers.lineUserId,
           })
           .from(customerInventories)
-          .leftJoin(orders, and(orders.id.eq(customerInventories.orderId)))
-          .leftJoin(customers, and(customers.id.eq(customerInventories.customerId)))
+          .leftJoin(orders, eq(orders.id, customerInventories.orderId))
+          .leftJoin(customers, eq(customers.id, customerInventories.customerId))
           .where(
             and(
               gte(customerInventories.expiresAt, todayStart),
@@ -155,8 +155,8 @@ export async function GET() {
             customerLineUserId: customers.lineUserId,
           })
           .from(customerInventories)
-          .leftJoin(orders, and(orders.id.eq(customerInventories.orderId)))
-          .leftJoin(customers, and(customers.id.eq(customerInventories.customerId)))
+          .leftJoin(orders, eq(orders.id, customerInventories.orderId))
+          .leftJoin(customers, eq(customers.id, customerInventories.customerId))
           .where(
             and(
               gte(customerInventories.expiresAt, todayStart),
@@ -176,8 +176,8 @@ export async function GET() {
             customerLineUserId: customers.lineUserId,
           })
           .from(customerInventories)
-          .leftJoin(orders, and(orders.id.eq(customerInventories.orderId)))
-          .leftJoin(customers, and(customers.id.eq(customerInventories.customerId)))
+          .leftJoin(orders, eq(orders.id, customerInventories.orderId))
+          .leftJoin(customers, eq(customers.id, customerInventories.customerId))
           .where(lt(customerInventories.expiresAt, todayEnd));
 
   const expiredTemplate =
