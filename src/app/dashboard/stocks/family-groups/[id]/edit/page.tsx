@@ -1,16 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  addFamilyMemberAction,
-  removeFamilyMemberAction,
-  updateFamilyGroupAction,
-  updateFamilyMemberAction,
-} from "@/features/youtube/youtube-stock.actions";
+import { removeFamilyMemberAction, updateFamilyGroupAction } from "@/features/youtube/youtube-stock.actions";
 import { findFamilyGroupsWithMembers } from "@/features/youtube/youtube-stock.repo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PasswordInput } from "@/components/ui/password-input";
+import { AddFamilyMemberForm } from "./add-family-member-form";
 
 function daysLeft(expiresAt: Date | null) {
   if (!expiresAt) return null;
@@ -128,35 +124,16 @@ export default async function EditFamilyGroupPage({
 
       <div className="space-y-2">
         <h2 className="text-lg font-semibold">สมาชิกในกลุ่มนี้</h2>
-        <form
-          action={addFamilyMemberAction}
-          className="flex max-w-2xl flex-wrap items-center gap-2"
-        >
-          <input type="hidden" name="family_group_id" value={group.id} />
-          <Input
-            name="email"
-            placeholder="อีเมลสมาชิกใหม่"
-            required
-            className="flex-1 min-w-[180px]"
-          />
-          <PasswordInput
-            name="member_password"
-            placeholder="รหัสผ่านสมาชิก"
-            required
-            className="flex-1 min-w-[180px]"
-          />
-          <FormSubmitButton size="sm" loadingText="กำลังเพิ่ม…" className="shrink-0">
-            เพิ่มสมาชิก
-          </FormSubmitButton>
-        </form>
+        <AddFamilyMemberForm familyGroupId={group.id} />
 
         <div className="rounded-lg border bg-card">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="px-3 py-2">Email</th>
+                  <th className="px-3 py-2">Email / ชื่อเรียก</th>
                   <th className="px-3 py-2">Password</th>
+                  <th className="px-3 py-2">ลิงก์เชิญ</th>
                   <th className="px-3 py-2">Status</th>
                   <th className="px-3 py-2">ลูกค้าที่ใช้</th>
                   <th className="px-3 py-2">Order</th>
@@ -167,7 +144,7 @@ export default async function EditFamilyGroupPage({
               <tbody>
                 {members.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-3 py-4 text-center text-muted-foreground">
+                    <td colSpan={8} className="px-3 py-4 text-center text-muted-foreground">
                       ยังไม่มีสมาชิกในกลุ่มนี้
                     </td>
                   </tr>
@@ -191,6 +168,20 @@ export default async function EditFamilyGroupPage({
                           defaultValue={m.memberPassword ?? ""}
                           placeholder="Password"
                         />
+                      </td>
+                      <td className="px-3 py-2 max-w-[200px]">
+                        {m.inviteLink ? (
+                          <a
+                            href={m.inviteLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="break-all text-xs text-primary underline line-clamp-2"
+                          >
+                            {m.inviteLink}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </td>
                       <td className="px-3 py-2">
                         <span

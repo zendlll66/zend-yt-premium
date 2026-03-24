@@ -7,11 +7,9 @@ import {
   createAccountStock,
   createCustomerAccount,
   createFamilyGroup,
-  createInviteLink,
   deleteAccountStockById,
   deleteCustomerAccountById,
   deleteFamilyGroupById,
-  deleteInviteLinkById,
   removeFamilyMemberById,
   updateAccountStockStatus,
   updateAccountStockById,
@@ -23,9 +21,6 @@ import {
   updateFamilyGroupById,
   updateFamilyMemberById,
   updateFamilyGroupHeadAccount,
-  findInviteLinkById,
-  updateInviteLinkById,
-  updateInviteLinkStatus,
 } from "./youtube-stock.repo";
 import { pushLineTextMessage } from "@/lib/line-message";
 
@@ -160,10 +155,26 @@ export async function deleteFamilyGroupAction(formData: FormData) {
 
 export async function addFamilyMemberAction(formData: FormData) {
   const familyGroupId = parseInt((formData.get("family_group_id") as string) ?? "0", 10);
-  const email = (formData.get("email") as string)?.trim() ?? "";
-  const memberPassword = (formData.get("member_password") as string)?.trim() ?? "";
-  if (!familyGroupId || !Number.isFinite(familyGroupId) || !email || !memberPassword) return;
-  await addFamilyMember({ familyGroupId, email, memberPassword });
+  if (!familyGroupId || !Number.isFinite(familyGroupId)) return;
+
+  const mode = ((formData.get("add_member_mode") as string) || "credentials").trim();
+  if (mode === "invite") {
+    const inviteLink = (formData.get("invite_link") as string)?.trim() ?? "";
+    const slotLabel = (formData.get("slot_label") as string)?.trim() ?? "";
+    if (!inviteLink) return;
+    const email = slotLabel || "(ลิงก์เชิญ)";
+    await addFamilyMember({
+      familyGroupId,
+      email,
+      memberPassword: null,
+      inviteLink,
+    });
+  } else {
+    const email = (formData.get("email") as string)?.trim() ?? "";
+    const memberPassword = (formData.get("member_password") as string)?.trim() ?? "";
+    if (!email || !memberPassword) return;
+    await addFamilyMember({ familyGroupId, email, memberPassword, inviteLink: null });
+  }
   refreshStocksPage();
 }
 
@@ -178,79 +189,18 @@ export async function updateFamilyMemberAction(formData: FormData) {
   const id = parseInt((formData.get("id") as string) ?? "0", 10);
   const email = (formData.get("email") as string)?.trim() ?? "";
   const memberPassword = (formData.get("member_password") as string)?.trim() ?? "";
+  const inviteLink = (formData.get("invite_link") as string)?.trim() ?? "";
   const orderId = parseOptionalInt((formData.get("orderId") as string) ?? null);
   const customerId = parseOptionalInt((formData.get("customerId") as string) ?? null);
-  if (!id || !Number.isFinite(id) || !email || !memberPassword) return;
+  if (!id || !Number.isFinite(id) || !email) return;
   await updateFamilyMemberById({
     id,
     email,
-    memberPassword,
+    memberPassword: memberPassword || null,
+    inviteLink: inviteLink || null,
     orderId,
     customerId,
   });
-  refreshStocksPage();
-}
-
-export async function createInviteLinkAction(formData: FormData) {
-  const link = (formData.get("link") as string)?.trim() ?? "";
-  const status = ((formData.get("status") as string) || "available") as "available" | "reserved" | "used";
-  if (!link) return;
-  await createInviteLink({ link, status });
-  revalidatePath("/dashboard/stocks/invite-links");
-  refreshStocksPage();
-  redirect("/dashboard/stocks/invite-links");
-}
-
-export async function updateInviteLinkStatusAction(formData: FormData) {
-  const id = parseInt((formData.get("id") as string) ?? "0", 10);
-  const status = ((formData.get("status") as string) || "available") as "available" | "reserved" | "used";
-  if (!id || !Number.isFinite(id)) return;
-  await updateInviteLinkStatus(id, status);
-  refreshStocksPage();
-}
-
-export async function updateInviteLinkAction(formData: FormData) {
-  const id = parseInt((formData.get("id") as string) ?? "0", 10);
-  const link = (formData.get("link") as string)?.trim() ?? "";
-  const status = ((formData.get("status") as string) || "available") as "available" | "reserved" | "used";
-  const orderId = parseOptionalInt((formData.get("orderId") as string) ?? null);
-  const customerId = parseOptionalInt((formData.get("customerId") as string) ?? null);
-  const before = await findInviteLinkById(id);
-
-  // ถ้าไม่ได้ส่ง reservedAt/usedAt มา (เพราะซ่อนช่องแก้ไขไว้) ให้คงค่าเดิมเมื่อ status ไม่ได้เปลี่ยน
-  const reservedAt = formData.has("reservedAt")
-    ? parseOptionalDate((formData.get("reservedAt") as string) ?? null)
-    : status === "reserved" && before?.status === "reserved"
-      ? before?.reservedAt ?? null
-      : undefined;
-  const usedAt = formData.has("usedAt")
-    ? parseOptionalDate((formData.get("usedAt") as string) ?? null)
-    : status === "used" && before?.status === "used"
-      ? before?.usedAt ?? null
-      : undefined;
-  const createdAt = formData.has("createdAt")
-    ? parseOptionalDate((formData.get("createdAt") as string) ?? null)
-    : undefined;
-  if (!id || !Number.isFinite(id) || !link) return;
-  await updateInviteLinkById({
-    id,
-    link,
-    status,
-    orderId,
-    customerId,
-    reservedAt,
-    usedAt,
-    createdAt,
-  });
-  revalidatePath("/dashboard/stocks/invite-links");
-  refreshStocksPage();
-  redirect("/dashboard/stocks/invite-links");
-}
-
-export async function deleteInviteLinkAction(formData: FormData) {
-  const id = parseInt((formData.get("id") as string) ?? "0", 10);
-  if (!id || !Number.isFinite(id)) return;
-  await deleteInviteLinkById(id);
   refreshStocksPage();
 }
 

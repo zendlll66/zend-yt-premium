@@ -11,11 +11,15 @@ import type { ProductStockType } from "@/db/schema/product.schema";
 import { payments } from "@/db/schema/payment.schema";
 import { accountStock } from "@/db/schema/account-stock.schema";
 import { familyMembers } from "@/db/schema/family.schema";
-import { inviteLinks } from "@/db/schema/invite-link.schema";
 import { customers } from "@/db/schema/customer.schema";
 import { generateOrderNumber } from "@/lib/order-number";
 import { findActiveMembershipByEmail } from "@/features/membership/membership.repo";
 import { assignStockForPaidOrder } from "@/features/youtube/youtube-stock.service";
+import {
+  familyMemberCredentialOnlySql,
+  familyMemberHasInviteUrlSql,
+  familyMemberSlotOpenSql,
+} from "@/features/youtube/family-stock-availability";
 
 export type OrderItemInput = {
   productId: number | null;
@@ -998,8 +1002,7 @@ async function getAvailableStockByType(stockType: ProductStockType): Promise<num
       .select({
         count: sql<number>`coalesce(sum(
           case
-            when ${familyMembers.orderId} is null then 1
-            when ${orders.status} in ('cancelled', 'refunded') then 1
+            when ${familyMemberCredentialOnlySql} and ${familyMemberSlotOpenSql} then 1
             else 0
           end
         ), 0)`,
@@ -1010,9 +1013,16 @@ async function getAvailableStockByType(stockType: ProductStockType): Promise<num
   }
   if (stockType === "invite") {
     const [row] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(inviteLinks)
-      .where(eq(inviteLinks.status, "available"));
+      .select({
+        count: sql<number>`coalesce(sum(
+          case
+            when ${familyMemberHasInviteUrlSql} and ${familyMemberSlotOpenSql} then 1
+            else 0
+          end
+        ), 0)`,
+      })
+      .from(familyMembers)
+      .leftJoin(orders, eq(familyMembers.orderId, orders.id));
     return Number(row?.count ?? 0);
   }
   return Number.MAX_SAFE_INTEGER;

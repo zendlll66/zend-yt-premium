@@ -7,9 +7,13 @@ import {
 } from "@/db/schema/modifier.schema";
 import { accountStock } from "@/db/schema/account-stock.schema";
 import { familyMembers } from "@/db/schema/family.schema";
-import { inviteLinks } from "@/db/schema/invite-link.schema";
 import { orders } from "@/db/schema/order.schema";
 import type { ProductStockType } from "@/db/schema/product.schema";
+import {
+  familyMemberCredentialOnlySql,
+  familyMemberHasInviteUrlSql,
+  familyMemberSlotOpenSql,
+} from "@/features/youtube/family-stock-availability";
 
 // ---------- Modifier Groups ----------
 
@@ -216,8 +220,7 @@ export async function getMenuForOrder(): Promise<MenuProduct[]> {
       .select({
         count: sql<number>`coalesce(sum(
           case
-            when ${familyMembers.orderId} is null then 1
-            when ${orders.status} in ('cancelled', 'refunded') then 1
+            when ${familyMemberCredentialOnlySql} and ${familyMemberSlotOpenSql} then 1
             else 0
           end
         ), 0)`,
@@ -225,9 +228,16 @@ export async function getMenuForOrder(): Promise<MenuProduct[]> {
       .from(familyMembers)
       .leftJoin(orders, eq(familyMembers.orderId, orders.id)),
     db
-      .select({ count: sql<number>`count(*)` })
-      .from(inviteLinks)
-      .where(eq(inviteLinks.status, "available")),
+      .select({
+        count: sql<number>`coalesce(sum(
+          case
+            when ${familyMemberHasInviteUrlSql} and ${familyMemberSlotOpenSql} then 1
+            else 0
+          end
+        ), 0)`,
+      })
+      .from(familyMembers)
+      .leftJoin(orders, eq(familyMembers.orderId, orders.id)),
   ]);
   const stockByType: Record<ProductStockType, number> = {
     individual: Number(individualRow[0]?.count ?? 0),

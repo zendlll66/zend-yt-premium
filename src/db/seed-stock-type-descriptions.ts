@@ -28,7 +28,8 @@ const DEFAULT_NAMES: Record<ProductStockType, string> = {
 const DEFAULT_DESCRIPTIONS: Record<ProductStockType, string> = {
   individual: "<p>ใช้สำหรับสินค้าที่ผูกกับบัญชีเดียว (หนึ่งรหัสต่อหนึ่งผู้ใช้)</p>",
   family: "<p>ใช้สำหรับแพ็กเกจแบบครอบครัว มีหัวกลุ่มจัดการและสมาชิกในกลุ่ม</p>",
-  invite: "<p>สร้างลิงก์เชิญให้ลูกค้านำไปใช้งานหรือแจกจ่ายได้</p>",
+  invite:
+    "<p>ลิงก์เชิญมาจากช่อง &quot;ลิงก์เชิญ&quot; ใน Family Groups — เพิ่มสต็อกที่หน้าจัดการ Family</p>",
   customer_account: "<p>ผูกกับบัญชีลูกค้าในระบบ (เช่น ล็อกอิน LINE) ใช้สำหรับการเช่าต่อเนื่อง</p>",
 };
 

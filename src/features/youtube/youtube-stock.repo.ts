@@ -6,7 +6,6 @@ import { customerAccounts } from "@/db/schema/customer-account.schema";
 import { customers } from "@/db/schema/customer.schema";
 import { customerInventories } from "@/db/schema/customer-inventory.schema";
 import { familyGroups, familyMembers } from "@/db/schema/family.schema";
-import { inviteLinks } from "@/db/schema/invite-link.schema";
 import { orders } from "@/db/schema/order.schema";
 
 const familyGroupsLegacy = sqliteTable("family_groups", {
@@ -27,6 +26,7 @@ export type FamilyMemberWithStatus = {
   customerId: number | null;
   email: string;
   memberPassword: string | null;
+  inviteLink: string | null;
   orderId: number | null;
   createdAt: Date;
   expiresAt: Date | null;
@@ -228,6 +228,7 @@ export async function findFamilyGroupsWithMembers() {
       customerId: familyMembers.customerId,
       email: familyMembers.email,
       memberPassword: familyMembers.memberPassword,
+      inviteLink: familyMembers.inviteLink,
       orderId: familyMembers.orderId,
       createdAt: familyMembers.createdAt,
     })
@@ -249,6 +250,7 @@ export async function findFamilyGroupsWithMembers() {
           .where(inArray(orders.id, orderIds));
   const orderById = new Map(orderRows.map((o) => [o.id, o]));
 
+  /** ทั้ง family และ invite ลงท้ายที่ customer_inventories — invite ใช้ลิงก์จาก family_members แต่ itemType เป็น "invite" */
   const expiresByOrderId = new Map<number, Date | null>();
   if (orderIds.length > 0) {
     const invRows = await db
@@ -257,9 +259,18 @@ export async function findFamilyGroupsWithMembers() {
         expiresAt: customerInventories.expiresAt,
       })
       .from(customerInventories)
-      .where(and(inArray(customerInventories.orderId, orderIds), eq(customerInventories.itemType, "family")));
+      .where(
+        and(
+          inArray(customerInventories.orderId, orderIds),
+          inArray(customerInventories.itemType, ["family", "invite"])
+        )
+      );
     for (const r of invRows) {
-      if (r.orderId != null) expiresByOrderId.set(r.orderId, r.expiresAt ?? null);
+      if (r.orderId == null) continue;
+      const next = r.expiresAt ?? null;
+      if (!next) continue;
+      const prev = expiresByOrderId.get(r.orderId);
+      if (prev == null || next > prev) expiresByOrderId.set(r.orderId, next);
     }
   }
 
@@ -442,7 +453,8 @@ export async function deleteFamilyGroupById(id: number) {
 export async function addFamilyMember(data: {
   familyGroupId: number;
   email: string;
-  memberPassword: string;
+  memberPassword?: string | null;
+  inviteLink?: string | null;
   customerId?: number | null;
   orderId?: number | null;
 }) {
@@ -460,7 +472,8 @@ export async function addFamilyMember(data: {
       .values({
         familyGroupId: data.familyGroupId,
         email: data.email,
-        memberPassword: data.memberPassword,
+        memberPassword: data.memberPassword ?? null,
+        inviteLink: data.inviteLink ?? null,
         customerId: data.customerId ?? null,
         orderId: data.orderId ?? null,
         createdAt: new Date(),
@@ -503,7 +516,8 @@ export async function removeFamilyMemberById(id: number) {
 export async function updateFamilyMemberById(data: {
   id: number;
   email: string;
-  memberPassword: string;
+  memberPassword?: string | null;
+  inviteLink?: string | null;
   orderId?: number | null;
   customerId?: number | null;
 }) {
@@ -511,7 +525,8 @@ export async function updateFamilyMemberById(data: {
     .update(familyMembers)
     .set({
       email: data.email,
-      memberPassword: data.memberPassword,
+      memberPassword: data.memberPassword ?? null,
+      inviteLink: data.inviteLink ?? null,
       ...(data.orderId !== undefined && { orderId: data.orderId }),
       ...(data.customerId !== undefined && { customerId: data.customerId }),
     })
@@ -527,6 +542,7 @@ export async function findFamilyMemberById(id: number) {
       familyGroupId: familyMembers.familyGroupId,
       email: familyMembers.email,
       memberPassword: familyMembers.memberPassword,
+      inviteLink: familyMembers.inviteLink,
       orderId: familyMembers.orderId,
       customerId: familyMembers.customerId,
     })
@@ -534,148 +550,6 @@ export async function findFamilyMemberById(id: number) {
     .where(eq(familyMembers.id, id))
     .limit(1);
   return row ?? null;
-}
-
-export async function findInviteLinkById(id: number) {
-  const [row] = await db
-    .select({
-      id: inviteLinks.id,
-      link: inviteLinks.link,
-      status: inviteLinks.status,
-      orderId: inviteLinks.orderId,
-      customerId: inviteLinks.customerId,
-      reservedAt: inviteLinks.reservedAt,
-      usedAt: inviteLinks.usedAt,
-      createdAt: inviteLinks.createdAt,
-    })
-    .from(inviteLinks)
-    .where(eq(inviteLinks.id, id))
-    .limit(1);
-  return row ?? null;
-}
-
-export async function findInviteLinks(limit = 200) {
-  const rows = await db
-    .select({
-      id: inviteLinks.id,
-      link: inviteLinks.link,
-      status: inviteLinks.status,
-      orderId: inviteLinks.orderId,
-      reservedAt: inviteLinks.reservedAt,
-      usedAt: inviteLinks.usedAt,
-      expiresAt: customerInventories.expiresAt,
-      createdAt: inviteLinks.createdAt,
-      customerId: customers.id,
-      customerName: customers.name,
-      customerEmail: customers.email,
-      customerLineDisplayName: customers.lineDisplayName,
-      customerLinePictureUrl: customers.linePictureUrl,
-    })
-    .from(inviteLinks)
-    .leftJoin(orders, eq(inviteLinks.orderId, orders.id))
-    .leftJoin(
-      customerInventories,
-      and(
-        eq(customerInventories.orderId, inviteLinks.orderId),
-        eq(customerInventories.itemType, "invite"),
-        // ผูกด้วย inviteLink string เพื่อลดโอกาส join ซ้ำ
-        eq(customerInventories.inviteLink, inviteLinks.link)
-      )
-    )
-    .leftJoin(
-      customers,
-      or(
-        eq(inviteLinks.customerId, customers.id),
-        and(isNull(inviteLinks.customerId), eq(orders.customerId, customers.id))
-      )
-    )
-    .orderBy(desc(inviteLinks.createdAt))
-    .limit(limit);
-
-  // กันกรณี join ทำให้ได้ row ซ้ำ id เดิม (React key ต้อง unique)
-  const byId = new Map<number, (typeof rows)[number]>();
-  for (const row of rows) {
-    const prev = byId.get(row.id);
-    if (!prev) {
-      byId.set(row.id, row);
-      continue;
-    }
-    // เลือกแถวที่มี expiresAt มากกว่า (ล่าสุด) ถ้ามี
-    if (row.expiresAt) {
-      if (!prev.expiresAt || row.expiresAt > prev.expiresAt) {
-        byId.set(row.id, row);
-      }
-    }
-  }
-
-  return Array.from(byId.values()).sort(
-    (a, b) => (b.createdAt?.getTime?.() ?? 0) - (a.createdAt?.getTime?.() ?? 0)
-  );
-}
-
-export async function createInviteLink(data: {
-  link: string;
-  status?: "available" | "reserved" | "used";
-}) {
-  const [row] = await db
-    .insert(inviteLinks)
-    .values({
-      link: data.link,
-      status: data.status ?? "available",
-      createdAt: new Date(),
-    })
-    .returning();
-  return row ?? null;
-}
-
-export async function updateInviteLinkStatus(
-  id: number,
-  status: "available" | "reserved" | "used"
-) {
-  const [row] = await db
-    .update(inviteLinks)
-    .set({
-      status,
-      reservedAt: status === "reserved" ? new Date() : null,
-      usedAt: status === "used" ? new Date() : null,
-    })
-    .where(eq(inviteLinks.id, id))
-    .returning();
-  return row ?? null;
-}
-
-export async function updateInviteLinkById(data: {
-  id: number;
-  link: string;
-  status: "available" | "reserved" | "used";
-  orderId?: number | null;
-  customerId?: number | null;
-  reservedAt?: Date | null;
-  usedAt?: Date | null;
-  createdAt?: Date | null;
-}) {
-  const now = new Date();
-  const [row] = await db
-    .update(inviteLinks)
-    .set({
-      link: data.link,
-      status: data.status,
-      ...(data.orderId !== undefined && { orderId: data.orderId }),
-      ...(data.customerId !== undefined && { customerId: data.customerId }),
-      reservedAt: data.reservedAt !== undefined ? data.reservedAt : data.status === "reserved" ? now : null,
-      usedAt: data.usedAt !== undefined ? data.usedAt : data.status === "used" ? now : null,
-      ...(data.createdAt !== undefined && data.createdAt !== null
-        ? { createdAt: data.createdAt }
-        : {}),
-    })
-    .where(eq(inviteLinks.id, data.id))
-    .returning();
-  return row ?? null;
-}
-
-export async function deleteInviteLinkById(id: number) {
-  const [row] = await db.delete(inviteLinks).where(eq(inviteLinks.id, id)).returning({ id: inviteLinks.id });
-  return row != null;
 }
 
 export async function findCustomerAccounts(limit = 200) {

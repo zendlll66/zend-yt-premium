@@ -35,6 +35,8 @@ export const familyMembers = sqliteTable("family_members", {
   email: text("email").notNull(),
   /** รหัสผ่าน/ข้อมูลเข้าใช้งานที่ส่งมอบให้ลูกค้า */
   memberPassword: text("member_password"),
+  /** ลิงก์เชิญเข้า family (ถ้ามี — แทนหรือเสริม email+password) */
+  inviteLink: text("invite_link"),
   /** อ้างอิง order ที่ทำให้ได้ slot นี้ */
   orderId: integer("order_id"),
   createdAt: integer("created_at", { mode: "timestamp" })

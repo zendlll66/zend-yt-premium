@@ -138,7 +138,7 @@ export async function updateInventoryOrderAction(
 function parseRedirectTo(value: string | null): string {
   const v = (value ?? "").trim();
   if (v.startsWith("/dashboard/stocks/account-stock/") && v.endsWith("/edit")) return v;
-  if (v.startsWith("/dashboard/stocks/invite-links/") && v.endsWith("/edit")) return v;
+  if (v.startsWith("/dashboard/stocks/family-members/") && v.endsWith("/edit")) return v;
   return "/dashboard/stocks";
 }
 

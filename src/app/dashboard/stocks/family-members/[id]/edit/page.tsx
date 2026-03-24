@@ -81,8 +81,19 @@ export default async function EditFamilyMemberPage({
           name="member_password"
           label="Password"
           defaultValue={member.memberPassword ?? ""}
-          placeholder="รหัสผ่านสมาชิก"
+          placeholder="รหัสผ่านสมาชิก (ว่างได้ถ้าใช้แค่ลิงก์เชิญ)"
         />
+        <div>
+          <label htmlFor="invite_link" className="mb-1.5 block text-sm font-medium">
+            ลิงก์เชิญ
+          </label>
+          <Input
+            id="invite_link"
+            name="invite_link"
+            defaultValue={member.inviteLink ?? ""}
+            placeholder="ว่างได้ — ใส่เมื่อช่องนี้เป็นลิงก์เชิญ"
+          />
+        </div>
         <div>
           <label htmlFor="orderId" className="mb-1.5 block text-sm font-medium">
             Order ID

@@ -47,7 +47,7 @@ type Props = {
   shopDescription?: string | null;
   /** คำอธิบายแต่ละประเภท stock — ใช้แสดงใน Stepper step 1 ของ modal เลือกแพ็กเกจ */
   stockTypeDescriptions?: StockTypeDescription[];
-  customer?: { name: string; email: string; phone: string | null } | null;
+  customer?: { id: number; name: string; email: string; phone: string | null } | null;
   /** สิทธิ์สมาชิก (วันเช่าฟรี + ส่วนลด) — ถ้ามีจะแสดงราคาขีดและฟรี/ราคาหลังลด */
   membership?: MembershipBenefit | null;
   /** productId → ส่วนลด % จากโปรโมชัน (สำหรับแสดงราคาลดและคำนวณตะกร้า) */
@@ -311,6 +311,7 @@ export function RentClient({
       customerName: customer.name.trim(),
       customerEmail: customer.email.trim(),
       customerPhone: customer.phone?.trim() || null,
+      customerId: customer.id,
       items,
     });
 

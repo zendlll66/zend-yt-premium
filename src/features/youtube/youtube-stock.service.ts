@@ -4,7 +4,6 @@ import { accountStock } from "@/db/schema/account-stock.schema";
 import { customerAccounts } from "@/db/schema/customer-account.schema";
 import { customers } from "@/db/schema/customer.schema";
 import { familyGroups, familyMembers } from "@/db/schema/family.schema";
-import { inviteLinks } from "@/db/schema/invite-link.schema";
 import { orderItemModifiers, orderItems, orders, type OrderProductType } from "@/db/schema/order.schema";
 import { products } from "@/db/schema/product.schema";
 import { customerInventories } from "@/db/schema/customer-inventory.schema";
@@ -12,6 +11,12 @@ import { addCustomerInventoryItem } from "@/features/inventory/customer-inventor
 import { pushLineTextMessage } from "@/lib/line-message";
 import { extractCustomerAccountCredentials } from "@/lib/customer-account-credentials";
 import { INVENTORY_RENEWAL_TARGET_MODIFIER_PREFIX, parseInventoryRenewalTargetId } from "@/lib/inventory-renewal";
+import {
+  familyMemberCredentialOnlySql,
+  familyMemberHasInviteUrlSql,
+  familyMemberSlotOpenSql,
+  resolveFamilyInviteUrl,
+} from "@/features/youtube/family-stock-availability";
 
 type AssignContext = {
   orderId: number;
@@ -21,7 +26,14 @@ type AssignContext = {
 
 type AssignedStock =
   | { kind: "individual"; email: string; password: string }
-  | { kind: "family"; familyGroupId: number; familyName: string; email: string; password: string | null }
+  | {
+      kind: "family";
+      familyGroupId: number;
+      familyName: string;
+      email: string;
+      password: string | null;
+      inviteLink?: string | null;
+    }
   | { kind: "invite"; link: string }
   | { kind: "customer_account"; message: string }
   | { kind: "renewal"; inventoryId: number };
@@ -81,37 +93,48 @@ async function claimIndividualStock(conn: typeof db, ctx: AssignContext): Promis
   throw new Error("OUT_OF_STOCK_INDIVIDUAL");
 }
 
-async function claimInviteLink(conn: typeof db, ctx: AssignContext): Promise<AssignedStock> {
-  const resolvedCustomerId = await resolveCustomerId(conn, ctx);
+/** ดึงลิงก์เชิญจาก family_members (สินค้าประเภท invite — ลิงก์อยู่ใน invite_link หรือค่า URL ใน email/password) */
+async function claimFamilyInviteSlot(conn: typeof db, ctx: AssignContext): Promise<AssignedStock> {
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    const [candidate] = await conn
-      .select({ id: inviteLinks.id })
-      .from(inviteLinks)
-      .where(eq(inviteLinks.status, "available"))
-      .orderBy(inviteLinks.id)
-      .limit(1);
-    if (!candidate) break;
-
-    const [claimed] = await conn
-      .update(inviteLinks)
-      .set({
-        status: "used",
-        orderId: ctx.orderId,
-        customerId: resolvedCustomerId,
-        usedAt: new Date(),
+    const [slot] = await conn
+      .select({
+        memberId: familyMembers.id,
+        currentOrderId: familyMembers.orderId,
+        inviteLink: familyMembers.inviteLink,
+        email: familyMembers.email,
+        memberPassword: familyMembers.memberPassword,
       })
-      .where(and(eq(inviteLinks.id, candidate.id), eq(inviteLinks.status, "available")))
-      .returning({
-        id: inviteLinks.id,
-        link: inviteLinks.link,
-      });
+      .from(familyMembers)
+      .leftJoin(orders, eq(familyMembers.orderId, orders.id))
+      .where(and(familyMemberSlotOpenSql, familyMemberHasInviteUrlSql))
+      .orderBy(familyMembers.familyGroupId, familyMembers.id)
+      .limit(1);
 
-    if (claimed) {
-      return {
-        kind: "invite",
-        link: claimed.link,
-      };
-    }
+    const link = slot ? resolveFamilyInviteUrl(slot) : null;
+    if (!slot || !link) break;
+
+    const [updated] = await conn
+      .update(familyMembers)
+      .set({
+        customerId: ctx.customerId,
+        orderId: ctx.orderId,
+      })
+      .where(
+        and(
+          eq(familyMembers.id, slot.memberId),
+          slot.currentOrderId == null
+            ? sql`${familyMembers.orderId} is null`
+            : eq(familyMembers.orderId, slot.currentOrderId)
+        )
+      )
+      .returning({ id: familyMembers.id });
+
+    if (!updated) continue;
+
+    return {
+      kind: "invite",
+      link,
+    };
   }
 
   throw new Error("OUT_OF_STOCK_INVITE");
@@ -126,14 +149,13 @@ async function claimFamilySlot(conn: typeof db, ctx: AssignContext): Promise<Ass
         currentOrderId: familyMembers.orderId,
         email: familyMembers.email,
         memberPassword: familyMembers.memberPassword,
+        inviteLink: familyMembers.inviteLink,
         name: familyGroups.name,
       })
       .from(familyMembers)
       .innerJoin(familyGroups, eq(familyMembers.familyGroupId, familyGroups.id))
       .leftJoin(orders, eq(familyMembers.orderId, orders.id))
-      .where(
-        sql`${familyMembers.orderId} is null or ${orders.status} in ('cancelled', 'refunded')`
-      )
+      .where(and(familyMemberSlotOpenSql, familyMemberCredentialOnlySql))
       .orderBy(familyMembers.familyGroupId, familyMembers.id)
       .limit(1);
 
@@ -163,6 +185,7 @@ async function claimFamilySlot(conn: typeof db, ctx: AssignContext): Promise<Ass
       familyName: slot.name,
       email: slot.email,
       password: slot.memberPassword ?? null,
+      inviteLink: slot.inviteLink ?? null,
     };
   }
 
@@ -170,11 +193,14 @@ async function claimFamilySlot(conn: typeof db, ctx: AssignContext): Promise<Ass
 }
 
 async function resolveCustomerId(conn: typeof db, ctx: AssignContext): Promise<number | null> {
-  if (ctx.customerId) return ctx.customerId;
+  if (ctx.customerId != null && ctx.customerId > 0) return ctx.customerId;
+  const email = ctx.customerEmail?.trim() ?? "";
+  if (!email) return null;
+  const normalized = email.toLowerCase();
   const [customer] = await conn
     .select({ id: customers.id })
     .from(customers)
-    .where(eq(customers.email, ctx.customerEmail))
+    .where(sql`lower(trim(${customers.email})) = ${normalized}`)
     .limit(1);
   return customer?.id ?? null;
 }
@@ -284,21 +310,26 @@ async function writeInventoryForAssignedStock(conn: typeof db, ctx: AssignContex
   }
 
   if (stock.kind === "family") {
+    const invite = stock.inviteLink?.trim() ?? "";
     await addCustomerInventoryItem({
       customerId,
       orderId: ctx.orderId,
       itemType: "family",
       title: `Family Group: ${stock.familyName}`,
       loginEmail: stock.email,
-      loginPassword: stock.password,
+      loginPassword: invite ? null : stock.password ?? undefined,
+      inviteLink: invite || null,
       durationDays,
       note: `family_group_id=${stock.familyGroupId}`,
       tx: conn,
     });
+    const detail = invite
+      ? `ลิงก์เชิญ: ${invite}`
+      : `Email: ${stock.email}\nPassword: ${stock.password ?? "-"}`;
     await sendLineInventoryMessage(
       conn,
       customerId,
-      `ออเดอร์ #${ctx.orderId} ชำระเงินสำเร็จ\nประเภท: Family (${stock.familyName})\nEmail: ${stock.email}\nPassword: ${stock.password ?? "-"}`
+      `ออเดอร์ #${ctx.orderId} ชำระเงินสำเร็จ\nประเภท: Family (${stock.familyName})\n${detail}`
     );
     return;
   }
@@ -380,13 +411,20 @@ export async function assignStockForPaidOrder(input: {
   customerEmail: string;
   tx?: typeof db;
 }): Promise<AssignedStock> {
-  const ctx: AssignContext = {
+  let ctx: AssignContext = {
     orderId: input.orderId,
     customerId: input.customerId,
     customerEmail: input.customerEmail,
   };
 
   const conn = input.tx ?? db;
+
+  /** ผูก customer จากออเดอร์หรือจากอีเมล (กรณี order ไม่มี customer_id) ก่อน claim stock */
+  const resolvedCustomerId = await resolveCustomerId(conn, ctx);
+  ctx = {
+    ...ctx,
+    customerId: resolvedCustomerId ?? ctx.customerId,
+  };
 
   // Renewal mode: ถ้า order มี modifier ระบุ inventory ที่ต้องต่ออายุ
   // query modifiers ของออเดอร์ก่อน (ใช้เพื่อบอกว่าเป็นการต่ออายุ)
@@ -496,7 +534,7 @@ export async function assignStockForPaidOrder(input: {
     const totalQty = await getOrderTotalQuantity(conn, input.orderId);
     const links: string[] = [];
     for (let i = 0; i < totalQty; i++) {
-      const s = await claimInviteLink(conn, ctx);
+      const s = await claimFamilyInviteSlot(conn, ctx);
       if (s.kind === "invite") links.push(s.link);
     }
     const customerId = await resolveCustomerId(conn, ctx);
@@ -528,11 +566,23 @@ export async function assignStockForPaidOrder(input: {
 
   if (input.productType === "family") {
     const totalQty = await getOrderTotalQuantity(conn, input.orderId);
-    const slots: { email: string; password: string | null; familyName: string }[] = [];
+    const slots: {
+      email: string;
+      password: string | null;
+      familyName: string;
+      familyGroupId: number;
+      inviteLink: string | null;
+    }[] = [];
     for (let i = 0; i < totalQty; i++) {
       const s = await claimFamilySlot(conn, ctx);
       if (s.kind === "family") {
-        slots.push({ email: s.email, password: s.password, familyName: s.familyName });
+        slots.push({
+          email: s.email,
+          password: s.password,
+          familyName: s.familyName,
+          familyGroupId: s.familyGroupId,
+          inviteLink: s.inviteLink ?? null,
+        });
       }
     }
     const customerId = await resolveCustomerId(conn, ctx);
@@ -540,6 +590,7 @@ export async function assignStockForPaidOrder(input: {
       const durationDays = await resolveOrderDurationDays(conn, ctx.orderId);
       for (let idx = 0; idx < slots.length; idx++) {
         const slot = slots[idx];
+        const invite = slot.inviteLink?.trim() ?? "";
         await addCustomerInventoryItem({
           customerId,
           orderId: ctx.orderId,
@@ -549,15 +600,18 @@ export async function assignStockForPaidOrder(input: {
               ? `${slot.familyName} (${idx + 1}/${slots.length})`
               : slot.familyName,
           loginEmail: slot.email,
-          loginPassword: slot.password ?? undefined,
+          loginPassword: invite ? undefined : slot.password ?? undefined,
+          inviteLink: invite || undefined,
           durationDays,
           insertOnly: idx > 0,
           tx: conn,
         });
       }
-      const lines = slots.map(
-        (s, i) => `สมาชิก ${i + 1}: ${s.email}${s.password ? ` / ${s.password}` : ""}`
-      );
+      const lines = slots.map((s, i) => {
+        const inv = s.inviteLink?.trim() ?? "";
+        if (inv) return `สมาชิก ${i + 1} (ลิงก์เชิญ): ${inv}`;
+        return `สมาชิก ${i + 1}: ${s.email}${s.password ? ` / ${s.password}` : ""}`;
+      });
       await sendLineInventoryMessage(
         conn,
         customerId,
@@ -569,10 +623,11 @@ export async function assignStockForPaidOrder(input: {
     if (slots.length === 0) throw new Error("NO_FAMILY_SLOT");
     assigned = {
       kind: "family",
-      familyGroupId: 0,
+      familyGroupId: slots[0].familyGroupId,
       familyName: slots[0].familyName,
       email: slots[0].email,
       password: slots[0].password,
+      inviteLink: slots[0].inviteLink,
     };
   } else {
     assigned = {

@@ -3,7 +3,6 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { accountStock } from "@/db/schema/account-stock.schema";
 import { familyGroups, familyMembers } from "@/db/schema/family.schema";
-import { inviteLinks } from "@/db/schema/invite-link.schema";
 import { customerAccounts } from "@/db/schema/customer-account.schema";
 import { customers } from "@/db/schema/customer.schema";
 import { orders } from "@/db/schema/order.schema";
@@ -197,41 +196,66 @@ async function seedFamilyStock(seedOrderIds: { family1: number; family2: number 
   console.log("  + family_members:", addedMembers, "rows");
 }
 
-async function seedInviteLinks(seedOrderIds: { reservedInvite: number; usedInvite: number }) {
-  const links = [
+/** ลิงก์เชิญสำหรับสินค้า Invite — เก็บใน family_members (กลุ่มเดียวกับ Family) */
+async function seedFamilyInviteSlots(seedOrderIds: { reservedInvite: number; usedInvite: number }) {
+  const [family] = await db
+    .select({ id: familyGroups.id })
+    .from(familyGroups)
+    .where(eq(familyGroups.name, "YT Family Group A"))
+    .limit(1);
+  if (!family) {
+    console.log("  + family_members (invite slots): skip (no YT Family Group A)");
+    return;
+  }
+
+  const slots = [
     {
-      link: "https://youtube.com/invite/seed-001",
-      status: "available" as const,
-      orderId: null,
+      email: "invite-slot-seed-1@example.com",
+      inviteLink: "https://youtube.com/invite/seed-001",
+      orderId: null as number | null,
     },
     {
-      link: "https://youtube.com/invite/seed-002",
-      status: "reserved" as const,
+      email: "invite-slot-seed-2@example.com",
+      inviteLink: "https://youtube.com/invite/seed-002",
       orderId: seedOrderIds.reservedInvite,
     },
     {
-      link: "https://youtube.com/invite/seed-003",
-      status: "used" as const,
+      email: "invite-slot-seed-3@example.com",
+      inviteLink: "https://youtube.com/invite/seed-003",
       orderId: seedOrderIds.usedInvite,
     },
   ];
 
   let added = 0;
-  for (const item of links) {
-    const [exists] = await db.select({ id: inviteLinks.id }).from(inviteLinks).where(eq(inviteLinks.link, item.link)).limit(1);
+  for (const s of slots) {
+    const [exists] = await db
+      .select({ id: familyMembers.id })
+      .from(familyMembers)
+      .where(and(eq(familyMembers.familyGroupId, family.id), eq(familyMembers.email, s.email)))
+      .limit(1);
     if (exists) continue;
-    const now = new Date();
-    await db.insert(inviteLinks).values({
-      link: item.link,
-      status: item.status,
-      orderId: item.orderId,
-      reservedAt: item.status === "reserved" ? now : null,
-      usedAt: item.status === "used" ? now : null,
-      createdAt: now,
+    await db.insert(familyMembers).values({
+      familyGroupId: family.id,
+      email: s.email,
+      memberPassword: null,
+      inviteLink: s.inviteLink,
+      customerId: null,
+      orderId: s.orderId,
+      createdAt: new Date(),
     });
     added++;
   }
-  console.log("  + invite_links:", added, "rows");
+
+  const rows = await db
+    .select({ id: familyMembers.id })
+    .from(familyMembers)
+    .where(eq(familyMembers.familyGroupId, family.id));
+  await db
+    .update(familyGroups)
+    .set({ used: rows.length, updatedAt: new Date() })
+    .where(eq(familyGroups.id, family.id));
+
+  console.log("  + family_members (invite slots):", added, "rows");
 }
 
 async function seedCustomerAccounts(seedOrderIds: { caPending: number; caProcessing: number; caDone: number }) {
@@ -397,7 +421,7 @@ export async function seedStocks(): Promise<void> {
 
   await seedAccountStock({ soldIndividual, reservedIndividual });
   await seedFamilyStock({ family1, family2 });
-  await seedInviteLinks({ reservedInvite, usedInvite });
+  await seedFamilyInviteSlots({ reservedInvite, usedInvite });
   await seedCustomerAccounts({ caPending, caProcessing, caDone });
 
   console.log("Seed stocks done.");

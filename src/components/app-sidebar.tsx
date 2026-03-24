@@ -74,7 +74,6 @@ const NAV_MAIN = [
       { title: "คำอธิบายประเภท Stock", url: "/dashboard/stock-types" },
       { title: "Individual Accounts", url: "/dashboard/stocks/account-stock" },
       { title: "Family Groups", url: "/dashboard/stocks/family-groups" },
-      { title: "Invite Links", url: "/dashboard/stocks/invite-links" },
       { title: "Customer Accounts", url: "/dashboard/stocks/customer-accounts" },
     ],
   },

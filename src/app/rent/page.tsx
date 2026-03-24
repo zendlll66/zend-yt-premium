@@ -32,7 +32,11 @@ export default async function RentPage() {
       menu={menu}
       shopDescription={shop.shopDescription}
       stockTypeDescriptions={stockTypeDescriptions}
-      customer={customer ? { name: customer.name, email: customer.email, phone: customer.phone } : null}
+      customer={
+        customer
+          ? { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone }
+          : null
+      }
       membership={membership}
       productDiscountMap={productDiscountMap}
       initialCart={initialCart}
