@@ -7,6 +7,7 @@ import {
   getCartByCustomerId,
   addToCartDb,
   updateCartItemQtyDb,
+  updateCartInviteEmailsDb,
   removeCartItemDb,
   clearCartDb,
 } from "./cart.repo";
@@ -24,6 +25,23 @@ export async function addToCartAction(
   if (!customer) return { error: "กรุณาเข้าสู่ระบบเพื่อเพิ่มลงตะกร้า" };
   try {
     const cart = await addToCartDb(customer.id, item);
+    return { cart };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "เกิดข้อผิดพลาด" };
+  }
+}
+
+export async function updateCartInviteEmailsAction(
+  index: number,
+  emails: string[]
+): Promise<{ error?: string; cart?: CartItem[] }> {
+  const customer = await getCustomerSession();
+  if (!customer) return { error: "กรุณาเข้าสู่ระบบ" };
+  try {
+    const cart = await updateCartInviteEmailsDb(customer.id, index, emails);
+    revalidatePath("/");
+    revalidatePath("/rent");
+    revalidatePath("/cart");
     return { cart };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "เกิดข้อผิดพลาด" };

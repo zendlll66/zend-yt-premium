@@ -8,9 +8,10 @@ import {
   getLineTotalWithMembership,
   getCartTotalWithMembership,
   type MembershipBenefit,
+  resizeInviteEmailsForQty,
 } from "@/lib/cart-storage";
 import type { MenuProduct } from "@/features/modifier/modifier.repo";
-import { updateCartItemAction, removeCartItemAction } from "@/features/cart/cart.actions";
+import { updateCartItemAction, updateCartInviteEmailsAction, removeCartItemAction } from "@/features/cart/cart.actions";
 import { ShoppingBag, MapPin, Store, CreditCard, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getVisibleModifiers } from "@/lib/customer-account-credentials";
@@ -29,6 +30,42 @@ function formatMoney(n: number) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(n);
+}
+
+function InviteCartEmailInputs({
+  quantity,
+  emails,
+  onCommit,
+}: {
+  quantity: number;
+  emails: string[];
+  onCommit: (next: string[]) => void;
+}) {
+  const [vals, setVals] = useState<string[]>(() => resizeInviteEmailsForQty(emails, quantity));
+  useEffect(() => {
+    setVals(resizeInviteEmailsForQty(emails, quantity));
+  }, [emails, quantity]);
+  return (
+    <div className="mt-3 space-y-2 border-t border-border pt-3">
+      <p className="text-xs font-medium text-emerald-800 dark:text-emerald-200">อีเมลผู้รับลิงก์</p>
+      {Array.from({ length: quantity }, (_, j) => (
+        <input
+          key={j}
+          type="email"
+          autoComplete="email"
+          value={vals[j] ?? ""}
+          onChange={(e) => {
+            const next = [...vals];
+            next[j] = e.target.value;
+            setVals(next);
+          }}
+          onBlur={() => onCommit(resizeInviteEmailsForQty(vals, quantity))}
+          className="h-8 w-full rounded-md border border-emerald-200/80 bg-background px-2 text-xs dark:border-emerald-900/50"
+          placeholder={`ชิ้นที่ ${j + 1}`}
+        />
+      ))}
+    </div>
+  );
 }
 
 type Props = {
@@ -58,6 +95,12 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
 
   async function removeFromCart(index: number) {
     const result = await removeCartItemAction(index);
+    if (result.cart) setCart(result.cart);
+    router.refresh();
+  }
+
+  async function saveInviteEmailsForLine(index: number, emails: string[]) {
+    const result = await updateCartInviteEmailsAction(index, emails);
     if (result.cart) setCart(result.cart);
     router.refresh();
   }
@@ -148,6 +191,13 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
                           สต็อกคงเหลือ {product.stock}
                           {!canIncrease && " · ถึงจำนวนสูงสุดแล้ว"}
                         </p>
+                      )}
+                      {(item.productStockType === "invite" || product?.stockType === "invite") && (
+                        <InviteCartEmailInputs
+                          quantity={item.quantity}
+                          emails={item.inviteRecipientEmails ?? []}
+                          onCommit={(next) => void saveInviteEmailsForLine(i, next)}
+                        />
                       )}
                       <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                         <span>

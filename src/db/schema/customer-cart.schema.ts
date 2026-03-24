@@ -23,6 +23,10 @@ export const customerCartItems = sqliteTable("customer_cart_items", {
   /** วันคืน YYYY-MM-DD */
   rentalEnd: text("rental_end").notNull(),
   deliveryOption: text("delivery_option", { enum: CART_DELIVERY_OPTIONS }).notNull(),
+  /** JSON array อีเมลผู้รับลิงก์ — ความยาวเท่ากับ quantity สำหรับ stock invite */
+  inviteRecipientEmailsJson: text("invite_recipient_emails_json").notNull().default("[]"),
+  /** ประเภทสต็อกสินค้าตอนเพิ่มลงตะกร้า (denormalized) */
+  productStockType: text("product_stock_type"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .$defaultFn(() => new Date())
     .notNull(),

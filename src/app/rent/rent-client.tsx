@@ -28,11 +28,13 @@ import {
   getLineTotalWithMembership,
   getCartTotalWithMembership,
   type MembershipBenefit,
+  resizeInviteEmailsForQty,
 } from "@/lib/cart-storage";
 import {
   addToCartAction,
   clearCartAction,
   updateCartItemAction,
+  updateCartInviteEmailsAction,
   removeCartItemAction,
 } from "@/features/cart/cart.actions";
 import { ImageUpload } from "@/components/image-upload";
@@ -68,6 +70,12 @@ function formatMoney(n: number) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(n);
+}
+
+function isValidInviteBuyerEmail(s: string): boolean {
+  const t = s.trim();
+  if (!t) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
 }
 
 function getCategories(menu: MenuProduct[]): { id: number | null; name: string }[] {
@@ -233,7 +241,8 @@ export function RentClient({
   async function addToCart(
     product: MenuProduct,
     quantity: number,
-    mods: { modifierName: string; price: number }[]
+    mods: { modifierName: string; price: number }[],
+    inviteRecipientEmails?: string[]
   ) {
     if (!customer) {
       router.push("/customer-login?from=" + encodeURIComponent("/rent"));
@@ -244,6 +253,10 @@ export function RentClient({
     const maxCanAdd = Math.max(0, product.stock - inCart);
     const qty = Math.min(quantity, maxCanAdd);
     if (qty < 1) return;
+    const emails =
+      product.stockType === "invite"
+        ? resizeInviteEmailsForQty(inviteRecipientEmails ?? [], qty)
+        : [];
     const result = await addToCartAction({
       productId: product.id,
       productName: product.name,
@@ -253,6 +266,8 @@ export function RentClient({
       rentalStart: "",
       rentalEnd: "",
       deliveryOption: "pickup",
+      inviteRecipientEmails: emails,
+      productStockType: product.stockType,
     });
     if (result.error) {
       setError(result.error);
@@ -280,6 +295,17 @@ export function RentClient({
     router.refresh();
   }
 
+  async function saveInviteEmailsForLine(index: number, emails: string[]) {
+    if (!customer) return;
+    const result = await updateCartInviteEmailsAction(index, emails);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    if (result.cart) setCart(result.cart);
+    router.refresh();
+  }
+
   async function handleCheckout() {
     setError(null);
     if (!paymentOptions.stripeEnabled && !paymentOptions.bankEnabled) {
@@ -294,6 +320,15 @@ export function RentClient({
       setError("กรุณาเพิ่มรายการในตะกร้า");
       return;
     }
+    for (const item of cart) {
+      const stock = item.productStockType ?? menu.find((p) => p.id === item.productId)?.stockType;
+      if (stock !== "invite") continue;
+      const emails = resizeInviteEmailsForQty(item.inviteRecipientEmails ?? [], item.quantity);
+      if (emails.length !== item.quantity || !emails.every((e) => isValidInviteBuyerEmail(e))) {
+        setError("กรุณากรอกอีเมลผู้รับลิงก์ให้ครบและถูกต้อง (สินค้า Invite)");
+        return;
+      }
+    }
     setSubmitting(true);
     setBankCheckoutData(null);
     setBankSlipImageKey("");
@@ -306,6 +341,11 @@ export function RentClient({
       rentalStart: null,
       rentalEnd: null,
       deliveryOption: null,
+      inviteRecipientEmails: (() => {
+        const stock = item.productStockType ?? menu.find((p) => p.id === item.productId)?.stockType;
+        if (stock !== "invite") return undefined;
+        return resizeInviteEmailsForQty(item.inviteRecipientEmails ?? [], item.quantity);
+      })(),
     }));
     const result = await createRentalOrderAction({
       customerName: customer.name.trim(),
@@ -530,8 +570,8 @@ export function RentClient({
             cart={cart}
             stockTypeDescription={stockTypeDescriptions.find((d) => d.slug === bookingProduct.stockType) ?? null}
             onClose={() => setBookingProduct(null)}
-            onAdd={(qty, mods) => {
-              addToCart(bookingProduct, qty, mods);
+            onAdd={(qty, mods, opts) => {
+              addToCart(bookingProduct, qty, mods, opts?.inviteRecipientEmails);
               setBookingProduct(null);
             }}
             formatMoney={formatMoney}
@@ -618,6 +658,13 @@ export function RentClient({
                               <p className="mt-1 hidden text-xs text-muted-foreground sm:block">
                                 แพ็กเกจดิจิทัลพร้อมส่งเข้าบัญชีลูกค้า
                               </p>
+                              {(item.productStockType === "invite" || product?.stockType === "invite") && (
+                                <InviteCartEmailInputs
+                                  quantity={item.quantity}
+                                  emails={item.inviteRecipientEmails ?? []}
+                                  onCommit={(next) => void saveInviteEmailsForLine(i, next)}
+                                />
+                              )}
                             </div>
                             <div className="flex flex-wrap items-center justify-end gap-3 sm:shrink-0 sm:justify-end">
                               <div className="flex items-center overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 shadow-inner dark:border-neutral-600 dark:bg-neutral-800/80">
@@ -924,6 +971,42 @@ export function RentClient({
   );
 }
 
+function InviteCartEmailInputs({
+  quantity,
+  emails,
+  onCommit,
+}: {
+  quantity: number;
+  emails: string[];
+  onCommit: (next: string[]) => void;
+}) {
+  const [vals, setVals] = useState<string[]>(() => resizeInviteEmailsForQty(emails, quantity));
+  useEffect(() => {
+    setVals(resizeInviteEmailsForQty(emails, quantity));
+  }, [emails, quantity]);
+  return (
+    <div className="mt-3 space-y-2 border-t border-neutral-200/80 pt-3 dark:border-neutral-700">
+      <p className="text-xs font-medium text-emerald-800 dark:text-emerald-200">อีเมลผู้รับลิงก์</p>
+      {Array.from({ length: quantity }, (_, j) => (
+        <input
+          key={j}
+          type="email"
+          autoComplete="email"
+          value={vals[j] ?? ""}
+          onChange={(e) => {
+            const next = [...vals];
+            next[j] = e.target.value;
+            setVals(next);
+          }}
+          onBlur={() => onCommit(resizeInviteEmailsForQty(vals, quantity))}
+          className="h-8 w-full rounded-md border border-emerald-200/80 bg-background px-2 text-xs dark:border-emerald-900/50"
+          placeholder={`ชิ้นที่ ${j + 1}`}
+        />
+      ))}
+    </div>
+  );
+}
+
 /** Modal เลือกแพ็กเกจ — Step 1: คำอธิบายประเภท, Step 2: รายละเอียดสินค้า, Step 3: ตัวเลือกและจำนวน */
 function BookingModal({
   product,
@@ -938,13 +1021,18 @@ function BookingModal({
   cart: CartItem[];
   stockTypeDescription: StockTypeDescription | null;
   onClose: () => void;
-  onAdd: (quantity: number, modifiers: { modifierName: string; price: number }[]) => void;
+  onAdd: (
+    quantity: number,
+    modifiers: { modifierName: string; price: number }[],
+    options?: { inviteRecipientEmails?: string[] }
+  ) => void;
   formatMoney: (n: number) => string;
   discountPercent?: number;
 }) {
   const [qty, setQty] = useState(1);
   const [selected, setSelected] = useState<Record<number, { id: number; name: string; price: number }>>({});
   const [bookingStep, setBookingStep] = useState<1 | 2 | 3>(1);
+  const [inviteEmails, setInviteEmails] = useState<string[]>([]);
   const [customerAccountEmail, setCustomerAccountEmail] = useState("");
   const [customerAccountPassword, setCustomerAccountPassword] = useState("");
   const [customerAccountPasswordConfirm, setCustomerAccountPasswordConfirm] = useState("");
@@ -953,6 +1041,7 @@ function BookingModal({
   const maxCanAdd = Math.max(0, product.stock - inCart);
   const displayStock = Math.max(0, product.stock);
   const safeQty = Math.min(Math.max(1, qty), maxCanAdd);
+  const effectiveQty = Math.min(safeQty, maxCanAdd);
   const requiredModifiersSelected = !product.modifierGroups.some((g) => g.required && !selected[g.id]);
   const customerAccountValid =
     product.stockType !== "customer_account" ||
@@ -960,7 +1049,14 @@ function BookingModal({
       customerAccountPassword.length > 0 &&
       customerAccountPasswordConfirm.length > 0 &&
       customerAccountPassword === customerAccountPasswordConfirm);
-  const canSubmit = maxCanAdd >= 1 && requiredModifiersSelected && customerAccountValid;
+  const inviteEmailsValid =
+    product.stockType !== "invite" ||
+    (inviteEmails.length === effectiveQty && inviteEmails.every((e) => isValidInviteBuyerEmail(e)));
+  const canSubmit = maxCanAdd >= 1 && requiredModifiersSelected && customerAccountValid && inviteEmailsValid;
+
+  useEffect(() => {
+    setInviteEmails((prev) => resizeInviteEmailsForQty(prev, effectiveQty));
+  }, [effectiveQty]);
 
   function handleAdd() {
     if (!canSubmit) return;
@@ -974,7 +1070,9 @@ function BookingModal({
         customerAccountPassword
       );
     }
-    onAdd(Math.min(safeQty, maxCanAdd), mods);
+    const inviteList =
+      product.stockType === "invite" ? inviteEmails.map((e) => e.trim()) : undefined;
+    onAdd(Math.min(safeQty, maxCanAdd), mods, { inviteRecipientEmails: inviteList });
   }
 
   const imageSrc = product.imageUrl
@@ -1184,6 +1282,30 @@ function BookingModal({
                     return <span className="text-sm text-muted-foreground">รวม {formatMoney(total)} ฿</span>;
                   })()}
                 </div>
+                {product.stockType === "invite" && (
+                  <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-900/40 dark:bg-emerald-950/25">
+                    <p className="text-sm font-medium text-emerald-900 dark:text-emerald-200">
+                      อีเมลผู้รับลิงก์ (กรอกตามจำนวนชิ้น)
+                    </p>
+                    {Array.from({ length: effectiveQty }, (_, j) => (
+                      <div key={j}>
+                        <label className="text-xs text-muted-foreground">ชิ้นที่ {j + 1}</label>
+                        <input
+                          type="email"
+                          autoComplete="email"
+                          value={inviteEmails[j] ?? ""}
+                          onChange={(e) => {
+                            const next = [...inviteEmails];
+                            next[j] = e.target.value;
+                            setInviteEmails(next);
+                          }}
+                          className="mt-0.5 h-9 w-full rounded-md border border-emerald-200 bg-background px-3 text-sm dark:border-emerald-900/50"
+                          placeholder="email@example.com"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {product.stockType === "customer_account" && (
                   <div className="space-y-2 rounded-xl border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-700 dark:bg-neutral-800/50">
                     <p className="text-sm font-medium">กรอกบัญชีที่ต้องการให้ร้านดำเนินการ</p>

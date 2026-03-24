@@ -134,6 +134,7 @@ export default async function EditFamilyGroupPage({
                   <th className="px-3 py-2">Email / ชื่อเรียก</th>
                   <th className="px-3 py-2">Password</th>
                   <th className="px-3 py-2">ลิงก์เชิญ</th>
+                  <th className="px-3 py-2">อีเมลผู้รับ (ลูกค้า)</th>
                   <th className="px-3 py-2">Status</th>
                   <th className="px-3 py-2">ลูกค้าที่ใช้</th>
                   <th className="px-3 py-2">Order</th>
@@ -144,7 +145,7 @@ export default async function EditFamilyGroupPage({
               <tbody>
                 {members.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-3 py-4 text-center text-muted-foreground">
+                    <td colSpan={9} className="px-3 py-4 text-center text-muted-foreground">
                       ยังไม่มีสมาชิกในกลุ่มนี้
                     </td>
                   </tr>
@@ -179,6 +180,13 @@ export default async function EditFamilyGroupPage({
                           >
                             {m.inviteLink}
                           </a>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 max-w-[200px]">
+                        {m.recipientEmail ? (
+                          <span className="break-all text-xs text-foreground">{m.recipientEmail}</span>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}

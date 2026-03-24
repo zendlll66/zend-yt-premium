@@ -4,6 +4,14 @@ export const CART_UPDATED_EVENT = "zend-cart-update";
 
 export type DeliveryOption = "pickup" | "delivery";
 
+/** ปรับความยาวอาร์เรย์อีเมลให้เท่ากับจำนวนชิ้น (Invite) */
+export function resizeInviteEmailsForQty(emails: string[], newQty: number): string[] {
+  if (newQty < 1) return [];
+  if (emails.length === newQty) return emails;
+  if (emails.length > newQty) return emails.slice(0, newQty);
+  return [...emails, ...Array(newQty - emails.length).fill("")];
+}
+
 export type CartItem = {
   productId: number | null;
   productName: string;
@@ -15,6 +23,10 @@ export type CartItem = {
   /** วันคืน (YYYY-MM-DD) */
   rentalEnd: string;
   deliveryOption: DeliveryOption;
+  /** อีเมลผู้รับลิงก์ต่อชิ้น (สินค้า Invite) — ความยาวควรเท่ากับ quantity */
+  inviteRecipientEmails: string[];
+  /** ประเภทสต็อกตอนเพิ่มลงตะกร้า (denormalized) */
+  productStockType?: string | null;
 };
 
 export function getDaysForItem(start: string, end: string): number {

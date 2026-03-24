@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { accountStock } from "@/db/schema/account-stock.schema";
 import { customerAccounts } from "@/db/schema/customer-account.schema";
@@ -93,8 +93,38 @@ async function claimIndividualStock(conn: typeof db, ctx: AssignContext): Promis
   throw new Error("OUT_OF_STOCK_INDIVIDUAL");
 }
 
+async function loadInviteRecipientEmailsForOrder(conn: typeof db, orderId: number): Promise<string[]> {
+  const rows = await conn
+    .select({
+      inviteRecipientEmails: orderItems.inviteRecipientEmails,
+      quantity: orderItems.quantity,
+    })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId))
+    .orderBy(asc(orderItems.id));
+  const out: string[] = [];
+  for (const r of rows) {
+    let parsed: unknown;
+    try {
+      parsed = r.inviteRecipientEmails ? JSON.parse(r.inviteRecipientEmails) : [];
+    } catch {
+      parsed = [];
+    }
+    const arr = Array.isArray(parsed) ? parsed.map((x) => String(x ?? "").trim()) : [];
+    const q = Number(r.quantity) || 0;
+    for (let i = 0; i < q; i++) {
+      out.push(arr[i] ?? "");
+    }
+  }
+  return out;
+}
+
 /** ดึงลิงก์เชิญจาก family_members (สินค้าประเภท invite — ลิงก์อยู่ใน invite_link หรือค่า URL ใน email/password) */
-async function claimFamilyInviteSlot(conn: typeof db, ctx: AssignContext): Promise<AssignedStock> {
+async function claimFamilyInviteSlot(
+  conn: typeof db,
+  ctx: AssignContext,
+  recipientEmail: string | null
+): Promise<AssignedStock> {
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const [slot] = await conn
       .select({
@@ -118,6 +148,7 @@ async function claimFamilyInviteSlot(conn: typeof db, ctx: AssignContext): Promi
       .set({
         customerId: ctx.customerId,
         orderId: ctx.orderId,
+        recipientEmail: recipientEmail?.trim() || null,
       })
       .where(
         and(
@@ -532,9 +563,10 @@ export async function assignStockForPaidOrder(input: {
 
   if (input.productType === "invite") {
     const totalQty = await getOrderTotalQuantity(conn, input.orderId);
+    const recipientEmails = await loadInviteRecipientEmailsForOrder(conn, input.orderId);
     const links: string[] = [];
     for (let i = 0; i < totalQty; i++) {
-      const s = await claimFamilyInviteSlot(conn, ctx);
+      const s = await claimFamilyInviteSlot(conn, ctx, recipientEmails[i] ?? null);
       if (s.kind === "invite") links.push(s.link);
     }
     const customerId = await resolveCustomerId(conn, ctx);

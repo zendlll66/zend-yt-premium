@@ -2,6 +2,7 @@ import { eq, asc } from "drizzle-orm";
 import { db } from "@/db";
 import { customerCartItems } from "@/db/schema/customer-cart.schema";
 import type { CartItem, DeliveryOption } from "@/lib/cart-storage";
+import { resizeInviteEmailsForQty } from "@/lib/cart-storage";
 
 function parseModifiers(json: string): { modifierName: string; price: number }[] {
   try {
@@ -18,6 +19,15 @@ function parseModifiers(json: string): { modifierName: string; price: number }[]
   }
 }
 
+function parseInviteEmailsJson(json: string | null | undefined): string[] {
+  try {
+    const arr = JSON.parse(json || "[]");
+    return Array.isArray(arr) ? arr.map((x) => String(x ?? "")) : [];
+  } catch {
+    return [];
+  }
+}
+
 /** แปลงแถว DB เป็น CartItem */
 function rowToCartItem(row: typeof customerCartItems.$inferSelect): CartItem {
   return {
@@ -29,6 +39,8 @@ function rowToCartItem(row: typeof customerCartItems.$inferSelect): CartItem {
     rentalStart: row.rentalStart,
     rentalEnd: row.rentalEnd,
     deliveryOption: row.deliveryOption as DeliveryOption,
+    inviteRecipientEmails: parseInviteEmailsJson(row.inviteRecipientEmailsJson),
+    productStockType: row.productStockType ?? null,
   };
 }
 
@@ -54,17 +66,27 @@ export async function addToCartDb(
   customerId: number,
   item: Omit<CartItem, "productId"> & { productId: number | null }
 ): Promise<CartItem[]> {
+  const qty = item.quantity;
+  const stockType = item.productStockType?.trim() || null;
+  let emails = item.inviteRecipientEmails ?? [];
+  if (stockType === "invite") {
+    emails = resizeInviteEmailsForQty(emails, qty);
+  } else {
+    emails = [];
+  }
   const modifiersJson = JSON.stringify(item.modifiers ?? []);
   await db.insert(customerCartItems).values({
     customerId,
     productId: item.productId,
     productName: item.productName,
     price: item.price,
-    quantity: item.quantity,
+    quantity: qty,
     modifiersJson,
     rentalStart: item.rentalStart,
     rentalEnd: item.rentalEnd,
     deliveryOption: item.deliveryOption,
+    inviteRecipientEmailsJson: JSON.stringify(emails),
+    productStockType: stockType,
   });
   return getCartByCustomerId(customerId);
 }
@@ -87,12 +109,42 @@ export async function updateCartItemQtyDb(
     const cart = await getCartByCustomerId(customerId);
     return { cart, removed: true };
   }
-  await db
-    .update(customerCartItems)
-    .set({ quantity: newQty })
-    .where(eq(customerCartItems.id, row.id));
+  if (row.productStockType === "invite") {
+    const prev = parseInviteEmailsJson(row.inviteRecipientEmailsJson);
+    const next = resizeInviteEmailsForQty(prev, newQty);
+    await db
+      .update(customerCartItems)
+      .set({ quantity: newQty, inviteRecipientEmailsJson: JSON.stringify(next) })
+      .where(eq(customerCartItems.id, row.id));
+  } else {
+    await db
+      .update(customerCartItems)
+      .set({ quantity: newQty })
+      .where(eq(customerCartItems.id, row.id));
+  }
   const cart = await getCartByCustomerId(customerId);
   return { cart, removed: false };
+}
+
+export async function updateCartInviteEmailsDb(
+  customerId: number,
+  index: number,
+  emails: string[]
+): Promise<CartItem[]> {
+  const rows = await db
+    .select()
+    .from(customerCartItems)
+    .where(eq(customerCartItems.customerId, customerId))
+    .orderBy(asc(customerCartItems.createdAt));
+  if (index < 0 || index >= rows.length) return getCartByCustomerId(customerId);
+  const row = rows[index];
+  if (row.productStockType !== "invite") return getCartByCustomerId(customerId);
+  const next = resizeInviteEmailsForQty(emails, row.quantity);
+  await db
+    .update(customerCartItems)
+    .set({ inviteRecipientEmailsJson: JSON.stringify(next) })
+    .where(eq(customerCartItems.id, row.id));
+  return getCartByCustomerId(customerId);
 }
 
 export async function removeCartItemDb(

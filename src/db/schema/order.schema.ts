@@ -84,6 +84,8 @@ export const orderItems = sqliteTable("order_items", {
   fulfillmentStatus: text("fulfillment_status", { enum: FULFILLMENT_STATUSES }),
   /** เวลาที่อัปเดตสถานะจัดส่งล่าสุด */
   fulfillmentUpdatedAt: integer("fulfillment_updated_at", { mode: "timestamp" }),
+  /** JSON array อีเมลผู้รับลิงก์ — ความยาวเท่ากับ quantity (สินค้า Invite) */
+  inviteRecipientEmails: text("invite_recipient_emails"),
 });
 
 /** ตัวเลือกเพิ่ม (ประกัน เพิ่มวัน ฯลฯ) - เก็บชื่อ+ราคาต่อรายการ */

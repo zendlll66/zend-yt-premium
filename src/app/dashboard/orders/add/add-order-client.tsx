@@ -112,16 +112,24 @@ export function AddOrderClient({ customers, menu }: Props) {
         customerPhone: selectedCustomer.phone ?? null,
         customerId: selectedCustomer.id,
         markAsPaid: true,
-        items: cart.map((i) => ({
-          productId: i.productId,
-          productName: i.productName,
-          price: i.price,
-          quantity: i.quantity,
-          modifiers: i.modifiers,
-          rentalStart: null,
-          rentalEnd: null,
-          deliveryOption: null,
-        })),
+        items: cart.map((i) => {
+          const product = menu.find((m) => m.id === i.productId);
+          const inviteRecipientEmails =
+            product?.stockType === "invite"
+              ? Array.from({ length: i.quantity }, () => selectedCustomer.email.trim())
+              : undefined;
+          return {
+            productId: i.productId,
+            productName: i.productName,
+            price: i.price,
+            quantity: i.quantity,
+            modifiers: i.modifiers,
+            rentalStart: null,
+            rentalEnd: null,
+            deliveryOption: null,
+            inviteRecipientEmails,
+          };
+        }),
       });
       if (result.error) {
         setError(result.error);

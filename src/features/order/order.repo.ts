@@ -33,6 +33,8 @@ export type OrderItemInput = {
   rentalEnd?: Date | null;
   /** รับที่ร้าน หรือ ส่ง (legacy rental) */
   deliveryOption?: DeliveryOption | null;
+  /** อีเมลผู้รับลิงก์ต่อชิ้น (สินค้า Invite) — ความยาวเท่ากับ quantity */
+  inviteRecipientEmails?: string[];
 };
 
 export type CreateRentalOrderInput = {
@@ -85,6 +87,7 @@ export type OrderItemWithModifiers = {
   deliveryOption: string | null;
   fulfillmentStatus: string | null;
   fulfillmentUpdatedAt: Date | null;
+  inviteRecipientEmails: string[] | null;
 };
 
 export type OrderDetail = {
@@ -235,6 +238,22 @@ function isDate(value: unknown): value is Date {
   return value instanceof Date && Number.isFinite(value.getTime());
 }
 
+function isValidInviteOrderEmail(s: string): boolean {
+  const t = s.trim();
+  if (!t) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
+}
+
+function parseOrderItemInviteEmails(raw: string | null | undefined): string[] | null {
+  if (raw == null || raw === "") return null;
+  try {
+    const p = JSON.parse(raw) as unknown;
+    return Array.isArray(p) ? p.map((x) => String(x ?? "")) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function createRentalOrder(data: CreateRentalOrderInput): Promise<OrderDetail | null> {
   const orderNum = await reserveOrderNumber();
   const columnSupport = await getOrderColumnSupport();
@@ -279,6 +298,21 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
   }
   if (productTypeSet.size > 1) {
     throw new Error("MIXED_PRODUCT_TYPE_NOT_SUPPORTED");
+  }
+
+  for (const item of data.items) {
+    if (item.productId == null) continue;
+    const product = productById.get(item.productId);
+    if (product?.stockType !== "invite") continue;
+    const emails = item.inviteRecipientEmails ?? [];
+    if (emails.length !== item.quantity) {
+      throw new Error("INVITE_RECIPIENT_EMAILS_COUNT_MISMATCH");
+    }
+    for (const e of emails) {
+      if (!isValidInviteOrderEmail(String(e))) {
+        throw new Error("INVITE_RECIPIENT_EMAIL_INVALID");
+      }
+    }
   }
   const inferredProductType = [...productTypeSet][0] ?? "individual";
 
@@ -346,6 +380,12 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
       if (discountPercent > 0 && lineTotal > 0) {
         lineTotal = Math.round(lineTotal * (1 - discountPercent / 100) * 100) / 100;
       }
+      const lineProduct = item.productId != null ? productById.get(item.productId) : undefined;
+      const inviteEmailsJson =
+        lineProduct?.stockType === "invite" && item.inviteRecipientEmails?.length
+          ? JSON.stringify(item.inviteRecipientEmails.map((e) => String(e).trim()))
+          : null;
+
       const [oi] = await tx
         .insert(orderItems)
         .values({
@@ -358,6 +398,7 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
           rentalStart: hasRentalDates ? item.rentalStart : null,
           rentalEnd: hasRentalDates ? item.rentalEnd : null,
           deliveryOption: item.deliveryOption ?? null,
+          inviteRecipientEmails: inviteEmailsJson,
         })
         .returning({ id: orderItems.id });
       if (!oi) continue;
@@ -984,6 +1025,9 @@ export async function findOrderById(id: number): Promise<OrderDetail | null> {
       deliveryOption: i.deliveryOption ?? null,
       fulfillmentStatus: i.fulfillmentStatus ?? null,
       fulfillmentUpdatedAt: i.fulfillmentUpdatedAt ?? null,
+      inviteRecipientEmails: parseOrderItemInviteEmails(
+        (i as { inviteRecipientEmails?: string | null }).inviteRecipientEmails
+      ),
     })),
   };
 }

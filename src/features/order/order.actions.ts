@@ -87,6 +87,12 @@ export async function createRentalOrderAction(input: {
     if (error instanceof Error && error.message === "CUSTOMER_ACCOUNT_ORDER_NOT_SUPPORTED_IN_THIS_FLOW") {
       return { error: "แพ็กเกจแบบ Customer Account ต้องสั่งซื้อผ่านฟอร์มส่งบัญชีลูกค้า" };
     }
+    if (error instanceof Error && error.message === "INVITE_RECIPIENT_EMAILS_COUNT_MISMATCH") {
+      return { error: "สินค้า Invite ต้องกรอกอีเมลผู้รับให้ครบตามจำนวนชิ้น" };
+    }
+    if (error instanceof Error && error.message === "INVITE_RECIPIENT_EMAIL_INVALID") {
+      return { error: "รูปแบบอีเมลผู้รับลิงก์ไม่ถูกต้อง" };
+    }
     throw error;
   }
 

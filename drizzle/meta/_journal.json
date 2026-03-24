@@ -253,6 +253,34 @@
       "when": 1773600000000,
       "tag": "0041_family_members_invite_link",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1773700000000,
+      "tag": "0042_invite_recipient_emails",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1773700000001,
+      "tag": "0043_customer_cart_product_stock_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1773700000002,
+      "tag": "0044_order_items_invite_recipient_emails",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "6",
+      "when": 1773700000003,
+      "tag": "0045_family_members_recipient_email",
+      "breakpoints": true
     }
   ]
 }

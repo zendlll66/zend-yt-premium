@@ -27,6 +27,8 @@ export type FamilyMemberWithStatus = {
   email: string;
   memberPassword: string | null;
   inviteLink: string | null;
+  /** อีเมลผู้รับลิงก์ที่ลูกค้ากรอกตอนซื้อ (Invite) */
+  recipientEmail: string | null;
   orderId: number | null;
   createdAt: Date;
   expiresAt: Date | null;
@@ -229,6 +231,7 @@ export async function findFamilyGroupsWithMembers() {
       email: familyMembers.email,
       memberPassword: familyMembers.memberPassword,
       inviteLink: familyMembers.inviteLink,
+      recipientEmail: familyMembers.recipientEmail,
       orderId: familyMembers.orderId,
       createdAt: familyMembers.createdAt,
     })
