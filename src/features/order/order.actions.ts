@@ -122,13 +122,6 @@ export async function createRentalOrderAction(input: {
     } catch { /* ถ้า record ล้มเหลว ไม่ block order */ }
   }
 
-  // ตัดเงินจาก wallet
-  if (input.walletCreditUsed && input.walletCreditUsed > 0 && input.customerId) {
-    try {
-      await debitWallet(input.customerId, input.walletCreditUsed, order.id, `ชำระ Order #${order.orderNumber}`);
-    } catch { /* ถ้า wallet ไม่พอ ไม่ block order */ }
-  }
-
   if (input.markAsPaid) {
     await updateOrderStatusAction(order.id, "paid");
   }
@@ -155,6 +148,12 @@ export async function updateOrderStatusAction(orderId: number, status: OrderStat
       const orderDetail = await getOrderWithCustomer(orderId);
       if (orderDetail) {
         if (status === "paid") {
+          // หักเงิน wallet เมื่อชำระเงินสำเร็จ (admin mark paid / bank transfer confirmed)
+          if (orderDetail.walletCreditUsed > 0 && orderDetail.customerId) {
+            try {
+              await debitWallet(orderDetail.customerId, orderDetail.walletCreditUsed, orderId, `ชำระ Order #${orderDetail.orderNumber}`);
+            } catch { /* wallet ไม่พอหรือ debit ซ้ำ ไม่ block */ }
+          }
           await sendOrderPaidNotification({
             customerEmail: orderDetail.customerEmail,
             customerLineUserId: orderDetail.customerLineUserId,

@@ -200,6 +200,7 @@ type OrderColumnSupport = {
   customerId: boolean;
   updatedAt: boolean;
   paymentSlipImageUrl: boolean;
+  walletCreditUsed: boolean;
 };
 
 let orderColumnSupportCache: OrderColumnSupport | null = null;
@@ -218,6 +219,7 @@ async function getOrderColumnSupport(): Promise<OrderColumnSupport> {
       customerId: names.has("customer_id"),
       updatedAt: names.has("updated_at"),
       paymentSlipImageUrl: names.has("payment_slip_image_url"),
+      walletCreditUsed: names.has("wallet_credit_used"),
     };
     // Cache only when modern columns exist to avoid stale false after migrations.
     if (support.productType) {
@@ -230,6 +232,7 @@ async function getOrderColumnSupport(): Promise<OrderColumnSupport> {
       customerId: false,
       updatedAt: false,
       paymentSlipImageUrl: false,
+      walletCreditUsed: false,
     };
     return fallback;
   }
@@ -1401,6 +1404,7 @@ export async function findOrderByOrderNumber(orderNumber: string): Promise<Order
 
 /** ดึงข้อมูล order พร้อม LINE userId ของลูกค้า (สำหรับส่ง notification) */
 export async function getOrderWithCustomer(orderId: number) {
+  const columnSupport = await getOrderColumnSupport();
   const [row] = await db
     .select({
       orderNumber: orders.orderNumber,
@@ -1408,6 +1412,9 @@ export async function getOrderWithCustomer(orderId: number) {
       totalPrice: orders.totalPrice,
       customerId: orders.customerId,
       customerLineUserId: customers.lineUserId,
+      walletCreditUsed: columnSupport.walletCreditUsed
+        ? orders.walletCreditUsed
+        : sql<number>`0`,
     })
     .from(orders)
     .leftJoin(customers, eq(orders.customerId, customers.id))

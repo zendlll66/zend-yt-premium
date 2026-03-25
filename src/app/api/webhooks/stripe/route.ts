@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { setOrderStripePayment } from "@/features/order/order.repo";
+import { setOrderStripePayment, getOrderWithCustomer } from "@/features/order/order.repo";
+import { debitWallet } from "@/features/wallet/wallet.repo";
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -32,11 +33,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
     }
     const paymentIntentId = session.payment_intent as string | null;
-    await setOrderStripePayment(
-      parseInt(orderId, 10),
+    const numOrderId = parseInt(orderId, 10);
+    const updated = await setOrderStripePayment(
+      numOrderId,
       paymentIntentId || session.id,
       session.payment_status || "paid"
     );
+    // หักเงิน wallet หลัง Stripe ยืนยันการชำระเงินสำเร็จ
+    if (updated?.status === "paid") {
+      try {
+        const orderDetail = await getOrderWithCustomer(numOrderId);
+        if (orderDetail && orderDetail.walletCreditUsed > 0 && orderDetail.customerId) {
+          await debitWallet(orderDetail.customerId, orderDetail.walletCreditUsed, numOrderId, `ชำระ Order #${orderDetail.orderNumber}`);
+        }
+      } catch { /* ไม่ block webhook */ }
+    }
   }
 
   return NextResponse.json({ received: true });
