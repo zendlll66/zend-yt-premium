@@ -24,6 +24,8 @@ import {
   SecurityIcon,
   DatabaseIcon,
   Timer01Icon,
+  CustomerService01Icon,
+  MessageEdit01Icon,
 } from "@hugeicons/core-free-icons";
 import { canAccess, type PermissionRule } from "@/config/permissions";
 
@@ -128,6 +130,12 @@ const NAV_MAIN = [
     isActive: true,
   },
   {
+    title: "Support Tickets",
+    url: "/dashboard/support",
+    icon: <HugeiconsIcon icon={CustomerService01Icon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
     title: "ประวัติแจ้งเตือน",
     url: "/dashboard/notifications",
     icon: <HugeiconsIcon icon={Timer01Icon} strokeWidth={2} />,
@@ -141,9 +149,13 @@ const NAV_MAIN = [
   },
   {
     title: "ตั้งค่าร้าน",
-    url: "/dashboard/settings",
+    url: "#",
     icon: <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />,
     isActive: true,
+    items: [
+      { title: "ตั้งค่าทั่วไป", url: "/dashboard/settings" },
+      { title: "ข้อความ LINE", url: "/dashboard/settings/line-templates" },
+    ],
   },
   {
     title: "สิทธิ์การเข้าถึง",

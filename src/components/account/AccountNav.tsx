@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, Package, User, Wallet, Bell } from "lucide-react";
+import { ShoppingBag, Package, User, Wallet, Bell, TicketCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -10,6 +10,7 @@ const links = [
   { href: "/account/inventory", label: "รหัสของฉัน", icon: Package },
   { href: "/account/wallet", label: "Wallet", icon: Wallet },
   { href: "/account/waitlist", label: "รอ stock", icon: Bell },
+  { href: "/account/support", label: "แจ้งปัญหา", icon: TicketCheck },
   { href: "/account/profile", label: "โปรไฟล์", icon: User },
 ];
 

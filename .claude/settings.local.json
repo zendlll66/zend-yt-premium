@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -1 \"d:/zend-clone-git-tem/zend-yt-premium/drizzle/\"*.sql)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
