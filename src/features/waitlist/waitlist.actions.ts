@@ -11,6 +11,7 @@ import {
   markWaitlistNotified,
 } from "./waitlist.repo";
 import { pushLineTextMessage } from "@/lib/line-message";
+import { getLineTemplate, renderTemplate } from "@/features/support/line-template.repo";
 import { logNotification } from "@/features/notification/notification.repo";
 
 /** ลูกค้าสมัคร waitlist สินค้า */
@@ -45,10 +46,14 @@ export async function notifyWaitlistAction(formData: FormData) {
   if (waitlist.length === 0) return { ok: true, sent: 0 };
 
   let sent = 0;
-  const message = `📦 สินค้า "${productName}" มี stock ใหม่แล้ว! เข้าไปสั่งซื้อได้เลย`;
+  const tpl = await getLineTemplate("waitlist_available").catch(() => null);
+  const messageTemplate =
+    tpl?.template ?? '📦 สินค้า "{{productName}}" มี stock ใหม่แล้ว!\nเข้าไปสั่งซื้อได้เลย';
+  const isEnabled = tpl?.isEnabled !== false;
 
   for (const item of waitlist) {
-    if (item.customerLineUserId) {
+    if (item.customerLineUserId && isEnabled) {
+      const message = renderTemplate(messageTemplate, { productName });
       try {
         await pushLineTextMessage(item.customerLineUserId, message);
         await logNotification({

@@ -25,6 +25,7 @@ import {
 import { pushLineTextMessage } from "@/lib/line-message";
 import { getSessionUser } from "@/lib/auth-server";
 import { createAuditLog } from "@/features/audit/audit.repo";
+import { getLineTemplate, renderTemplate } from "@/features/support/line-template.repo";
 
 function refreshStocksPage() {
   revalidatePath("/dashboard/stocks");
@@ -226,18 +227,15 @@ export async function updateCustomerAccountStatusAction(formData: FormData) {
   const user = await getSessionUser();
   await createAuditLog({ adminUserId: user?.id, action: "stock.customer_account.status", entityType: "customer_account", entityId: String(id), details: `อัปเดตสถานะ customer account #${id} → ${status}` });
   const after = await findCustomerAccountNotifyTarget(id);
-  if (
-    before &&
-    after &&
-    before.status !== "done" &&
-    after.status === "done" &&
-    after.lineUserId
-  ) {
-    const noteLine = after.notes?.trim() ? `\nหมายเหตุ: ${after.notes.trim()}` : "";
-    await pushLineTextMessage(
-      after.lineUserId,
-      `บัญชีนี้ใช้งานได้แล้ว\nบัญชี: ${after.email}${noteLine}`
-    );
+  if (before && after && before.status !== "done" && after.status === "done" && after.lineUserId) {
+    const tpl = await getLineTemplate("customer_account_done").catch(() => null);
+    if (tpl?.isEnabled !== false) {
+      const msg = renderTemplate(
+        tpl?.template ?? "✅ บัญชีของคุณใช้งานได้แล้ว\nบัญชี: {{accountEmail}}\n{{adminNote}}",
+        { accountEmail: after.email ?? "", adminNote: after.notes?.trim() ?? "" }
+      );
+      await pushLineTextMessage(after.lineUserId, msg);
+    }
   }
   refreshStocksPage();
 }
@@ -270,12 +268,16 @@ export async function updateCustomerAccountsStatusByOrderIdAction(formData: Form
       const target = await findCustomerAccountNotifyTarget(after.id);
       if (!target?.lineUserId) continue;
 
-      const noteLine = target.notes?.trim() ? `\nหมายเหตุ: ${target.notes.trim()}` : "";
-      const message =
-        status === "processing"
-          ? `บัญชีนี้กำลังดำเนินการ\nบัญชี: ${after.email}${noteLine}`
-          : `บัญชีนี้ใช้งานได้แล้ว\nบัญชี: ${after.email}${noteLine}`;
-
+      const templateKey = status === "processing" ? "customer_account_processing" : "customer_account_done";
+      const tpl = await getLineTemplate(templateKey).catch(() => null);
+      if (tpl?.isEnabled === false) continue;
+      const message = renderTemplate(
+        tpl?.template ??
+          (status === "processing"
+            ? "⏳ บัญชีของคุณกำลังดำเนินการ\nบัญชี: {{accountEmail}}\n{{adminNote}}"
+            : "✅ บัญชีของคุณใช้งานได้แล้ว\nบัญชี: {{accountEmail}}\n{{adminNote}}"),
+        { accountEmail: after.email ?? "", adminNote: target.notes?.trim() ?? "" }
+      );
       await pushLineTextMessage(target.lineUserId, message);
     }
   }
@@ -324,18 +326,15 @@ export async function updateCustomerAccountAction(formData: FormData) {
     ...(customerId != null && { customerId }),
   });
   const after = await findCustomerAccountNotifyTarget(id);
-  if (
-    before &&
-    after &&
-    before.status !== "done" &&
-    after.status === "done" &&
-    after.lineUserId
-  ) {
-    const noteLine = after.notes?.trim() ? `\nหมายเหตุ: ${after.notes.trim()}` : "";
-    await pushLineTextMessage(
-      after.lineUserId,
-      `บัญชีนี้ใช้งานได้แล้ว\nบัญชี: ${after.email}${noteLine}`
-    );
+  if (before && after && before.status !== "done" && after.status === "done" && after.lineUserId) {
+    const tpl = await getLineTemplate("customer_account_done").catch(() => null);
+    if (tpl?.isEnabled !== false) {
+      const msg = renderTemplate(
+        tpl?.template ?? "✅ บัญชีของคุณใช้งานได้แล้ว\nบัญชี: {{accountEmail}}\n{{adminNote}}",
+        { accountEmail: after.email ?? "", adminNote: after.notes?.trim() ?? "" }
+      );
+      await pushLineTextMessage(after.lineUserId, msg);
+    }
   }
   revalidatePath("/dashboard/stocks/customer-accounts");
   refreshStocksPage();

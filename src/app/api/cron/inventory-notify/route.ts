@@ -6,6 +6,7 @@ import { customers } from "@/db/schema/customer.schema";
 import { orders } from "@/db/schema/order.schema";
 import { getShopSettings } from "@/features/settings/settings.repo";
 import { pushLineTextMessage } from "@/lib/line-message";
+import { getLineTemplate } from "@/features/support/line-template.repo";
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -47,7 +48,9 @@ function renderTemplate(
 ): string {
   return template
     .replace(/{{name}}/g, row.customerName || "")
+    .replace(/{{customerName}}/g, row.customerName || "")
     .replace(/{{title}}/g, row.title || "")
+    .replace(/{{inventoryTitle}}/g, row.title || "")
     .replace(/{{orderNumber}}/g, row.orderNumber || String(row.orderId ?? ""))
     .replace(/{{expiresAt}}/g, formatDateTh(row.expiresAt))
     .replace(/{{daysLeft}}/g, extras.daysLeft != null ? String(extras.daysLeft) : "")
@@ -123,9 +126,11 @@ export async function GET() {
             )
           );
 
+  const warningLineTpl = await getLineTemplate("inventory_expiring").catch(() => null);
   const warningTemplate =
+    (warningLineTpl?.isEnabled !== false && warningLineTpl?.template) ||
     settings.inventoryExpiryWarningMessage ||
-    "รายการ {{title}} ใกล้หมดอายุแล้ว (ออเดอร์ {{orderNumber}}) จะหมดอายุวันที่ {{expiresAt}}";
+    "⚠️ {{inventoryTitle}} ใกล้หมดอายุแล้ว\nOrder #{{orderNumber}} จะหมดอายุวันที่ {{expiresAt}} (อีก {{daysLeft}} วัน)";
 
   for (const row of expiringRows) {
     if (!row.customerLineUserId || !row.expiresAt) continue;
@@ -180,9 +185,11 @@ export async function GET() {
           .leftJoin(customers, eq(customers.id, customerInventories.customerId))
           .where(lt(customerInventories.expiresAt, todayEnd));
 
+  const expiredLineTpl = await getLineTemplate("inventory_expired").catch(() => null);
   const expiredTemplate =
+    (expiredLineTpl?.isEnabled !== false && expiredLineTpl?.template) ||
     settings.inventoryExpiredMessage ||
-    "รายการ {{title}} (ออเดอร์ {{orderNumber}}) หมดอายุแล้วตั้งแต่วันที่ {{expiresAt}}";
+    "❌ {{inventoryTitle}} หมดอายุแล้ว\nOrder #{{orderNumber}} หมดอายุวันที่ {{expiresAt}} ({{daysSinceExpired}} วันที่แล้ว)";
 
   for (const row of expiredRows) {
     if (!row.customerLineUserId || !row.expiresAt) continue;

@@ -5,8 +5,8 @@ import { db } from "@/db";
 import { customerInventories } from "@/db/schema/customer-inventory.schema";
 import { customers } from "@/db/schema/customer.schema";
 import { orders } from "@/db/schema/order.schema";
-import { getShopSettings } from "@/features/settings/settings.repo";
 import { pushLineTextMessage } from "@/lib/line-message";
+import { getLineTemplate } from "@/features/support/line-template.repo";
 import { and, eq, gte, lte } from "drizzle-orm";
 
 type InventoryNotifyRow = {
@@ -58,7 +58,9 @@ function renderTemplate(
 ): string {
   return template
     .replace(/{{name}}/g, row.customerName || "")
+    .replace(/{{customerName}}/g, row.customerName || "")
     .replace(/{{title}}/g, row.title || "")
+    .replace(/{{inventoryTitle}}/g, row.title || "")
     .replace(/{{orderNumber}}/g, row.orderNumber || String(row.orderId ?? ""))
     .replace(/{{expiresAt}}/g, formatDateTh(row.expiresAt))
     .replace(/{{daysLeft}}/g, extras.daysLeft != null ? String(extras.daysLeft) : "")
@@ -74,10 +76,11 @@ export async function sendInventoryExpiringNotificationAction(formData: FormData
   const row = await findInventoryWithCustomer(id);
   if (!row?.customerLineUserId) return;
 
-  const settings = await getShopSettings();
+  const lineTpl = await getLineTemplate("inventory_expiring").catch(() => null);
+  if (lineTpl?.isEnabled === false) return;
   const tpl =
-    settings.inventoryExpiryWarningMessage ||
-    "รายการ {{title}} ใกล้หมดอายุแล้ว (ออเดอร์ {{orderNumber}}) จะหมดอายุวันที่ {{expiresAt}}";
+    lineTpl?.template ||
+    "⚠️ {{inventoryTitle}} ใกล้หมดอายุแล้ว\nOrder #{{orderNumber}} จะหมดอายุวันที่ {{expiresAt}} (อีก {{daysLeft}} วัน)";
 
   const now = new Date();
   const expires = row.expiresAt ? new Date(row.expiresAt) : null;
@@ -95,10 +98,11 @@ export async function sendInventoryExpiredNotificationAction(formData: FormData)
   const row = await findInventoryWithCustomer(id);
   if (!row?.customerLineUserId) return;
 
-  const settings = await getShopSettings();
+  const lineTpl = await getLineTemplate("inventory_expired").catch(() => null);
+  if (lineTpl?.isEnabled === false) return;
   const tpl =
-    settings.inventoryExpiredMessage ||
-    "รายการ {{title}} (ออเดอร์ {{orderNumber}}) หมดอายุแล้วตั้งแต่วันที่ {{expiresAt}}";
+    lineTpl?.template ||
+    "❌ {{inventoryTitle}} หมดอายุแล้ว\nOrder #{{orderNumber}} หมดอายุวันที่ {{expiresAt}} ({{daysSinceExpired}} วันที่แล้ว)";
 
   const now = new Date();
   const expires = row.expiresAt ? new Date(row.expiresAt) : null;
@@ -163,10 +167,11 @@ export async function sendAllExpiringNotificationsAction(formData: FormData) {
     Number.parseInt(((formData.get("warningDays") as string) ?? "5").trim(), 10) || 5
   );
   const rows = await listExpiringForNotify(warningDays);
-  const settings = await getShopSettings();
+  const lineTpl = await getLineTemplate("inventory_expiring").catch(() => null);
+  if (lineTpl?.isEnabled === false) { revalidatePath("/dashboard/inventory/orders/expiring"); return; }
   const tpl =
-    settings.inventoryExpiryWarningMessage ||
-    "รายการ {{title}} ใกล้หมดอายุแล้ว (ออเดอร์ {{orderNumber}}) จะหมดอายุวันที่ {{expiresAt}}";
+    lineTpl?.template ||
+    "⚠️ {{inventoryTitle}} ใกล้หมดอายุแล้ว\nOrder #{{orderNumber}} จะหมดอายุวันที่ {{expiresAt}} (อีก {{daysLeft}} วัน)";
 
   const now = new Date();
   for (const row of rows) {
@@ -184,10 +189,11 @@ export async function sendAllExpiringNotificationsAction(formData: FormData) {
 
 export async function sendAllExpiredNotificationsAction() {
   const rows = await listExpiredForNotify();
-  const settings = await getShopSettings();
+  const lineTpl = await getLineTemplate("inventory_expired").catch(() => null);
+  if (lineTpl?.isEnabled === false) { revalidatePath("/dashboard/inventory/orders/expired"); return; }
   const tpl =
-    settings.inventoryExpiredMessage ||
-    "รายการ {{title}} (ออเดอร์ {{orderNumber}}) หมดอายุแล้วตั้งแต่วันที่ {{expiresAt}}";
+    lineTpl?.template ||
+    "❌ {{inventoryTitle}} หมดอายุแล้ว\nOrder #{{orderNumber}} หมดอายุวันที่ {{expiresAt}} ({{daysSinceExpired}} วันที่แล้ว)";
 
   const now = new Date();
   for (const row of rows) {

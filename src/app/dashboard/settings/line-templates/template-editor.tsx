@@ -82,27 +82,39 @@ export function TemplateEditor({ template }: { template: LineMessageTemplate }) 
         )}
         {state.error && <p className="text-xs text-destructive">{state.error}</p>}
 
-        {/* Variable chips */}
+        {/* Variable chips grouped */}
         <div>
           <p className="text-xs text-muted-foreground mb-1.5">
             คลิกตัวแปรเพื่อแทรกที่ตำแหน่ง cursor:
           </p>
-          <div className="flex flex-wrap gap-1.5">
-            {LINE_TEMPLATE_VARIABLES.map((v) => (
-              <button
-                key={v.key}
-                type="button"
-                onClick={() => insertVariable(v.key)}
-                className="inline-flex items-center gap-1 rounded-lg border border-dashed border-primary/50 bg-primary/5 px-2.5 py-1 text-xs font-mono text-primary hover:bg-primary/10 transition"
-              >
-                <span className="text-primary/50">+</span>
-                {`{{${v.key}}}`}
-                <span className="text-muted-foreground font-sans not-italic text-[10px]">
-                  {v.label}
-                </span>
-              </button>
-            ))}
-          </div>
+          {Array.from(
+            LINE_TEMPLATE_VARIABLES.reduce((map, v) => {
+              const g = (v as { key: string; label: string; group?: string }).group ?? "ทั่วไป";
+              if (!map.has(g)) map.set(g, []);
+              map.get(g)!.push(v);
+              return map;
+            }, new Map<string, typeof LINE_TEMPLATE_VARIABLES[number][]>())
+          ).map(([group, vars]) => (
+            <div key={group} className="mb-2">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{group}</p>
+              <div className="flex flex-wrap gap-1">
+                {vars.map((v) => (
+                  <button
+                    key={v.key}
+                    type="button"
+                    onClick={() => insertVariable(v.key)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-dashed border-primary/50 bg-primary/5 px-2 py-0.5 text-xs font-mono text-primary hover:bg-primary/15 transition"
+                  >
+                    <span className="text-primary/40">+</span>
+                    {`{{${v.key}}}`}
+                    <span className="text-muted-foreground font-sans not-italic text-[10px] hidden sm:inline">
+                      {v.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Textarea */}

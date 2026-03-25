@@ -9,6 +9,7 @@
 
 import { pushLineTextMessage } from "@/lib/line-message";
 import { logNotification } from "./notification.repo";
+import { getLineTemplate, renderTemplate } from "@/features/support/line-template.repo";
 import type { NotificationType } from "@/db/schema/notification-log.schema";
 
 // ----- Email via Resend API -----
@@ -81,7 +82,13 @@ export async function sendOrderConfirmNotification(params: {
 }): Promise<void> {
   const type: NotificationType = "order_confirm";
   const shopName = params.shopName || "ร้านของเรา";
-  const message = `✅ ได้รับคำสั่งซื้อ #${params.orderNumber} แล้ว\nยอด: ${formatMoney(params.totalPrice)} บาท\nกรุณาชำระเงินเพื่อดำเนินการต่อ`;
+  const tplConfirm = await getLineTemplate("order_confirm").catch(() => null);
+  const message = tplConfirm?.isEnabled !== false
+    ? renderTemplate(
+        tplConfirm?.template ?? "✅ ได้รับคำสั่งซื้อ #{{orderNumber}} แล้ว\nยอด: {{totalPrice}} บาท\nกรุณาชำระเงินเพื่อดำเนินการต่อ",
+        { orderNumber: params.orderNumber, totalPrice: formatMoney(params.totalPrice), shopName }
+      )
+    : "";
   const subject = `[${shopName}] ยืนยันคำสั่งซื้อ #${params.orderNumber}`;
   const html = wrapHtml(
     `คำสั่งซื้อ #${params.orderNumber}`,
@@ -91,7 +98,7 @@ export async function sendOrderConfirmNotification(params: {
   );
 
   // LINE
-  if (params.customerLineUserId) {
+  if (params.customerLineUserId && message) {
     try {
       await pushLineTextMessage(params.customerLineUserId, message);
       await logNotification({ type, channel: "line", recipient: params.customerLineUserId, customerId: params.customerId, orderId: params.orderId, content: message, status: "sent" });
@@ -123,7 +130,13 @@ export async function sendOrderPaidNotification(params: {
 }): Promise<void> {
   const type: NotificationType = "order_paid";
   const shopName = params.shopName || "ร้านของเรา";
-  const message = `💳 ชำระเงินสำเร็จ Order #${params.orderNumber}\nยอด: ${formatMoney(params.totalPrice)} บาท\nเราจะส่ง credentials ให้เร็วๆ นี้`;
+  const tplPaid = await getLineTemplate("order_paid").catch(() => null);
+  const message = tplPaid?.isEnabled !== false
+    ? renderTemplate(
+        tplPaid?.template ?? "💳 ชำระเงินสำเร็จ Order #{{orderNumber}}\nยอด: {{totalPrice}} บาท\nเราจะส่ง credentials ให้เร็วๆ นี้",
+        { orderNumber: params.orderNumber, totalPrice: formatMoney(params.totalPrice), shopName }
+      )
+    : "";
   const subject = `[${shopName}] ชำระเงินสำเร็จ #${params.orderNumber}`;
   const html = wrapHtml(
     `ชำระเงินสำเร็จ #${params.orderNumber}`,
@@ -132,7 +145,7 @@ export async function sendOrderPaidNotification(params: {
      <p>เราจะส่ง credentials ให้เร็วๆ นี้</p>`
   );
 
-  if (params.customerLineUserId) {
+  if (params.customerLineUserId && message) {
     try {
       await pushLineTextMessage(params.customerLineUserId, message);
       await logNotification({ type, channel: "line", recipient: params.customerLineUserId, customerId: params.customerId, orderId: params.orderId, content: message, status: "sent" });
@@ -164,7 +177,13 @@ export async function sendOrderFulfilledNotification(params: {
   const type: NotificationType = "order_fulfilled";
   const shopName = params.shopName || "ร้านของเรา";
   const accountUrl = params.accountUrl || "";
-  const message = `🎉 Order #${params.orderNumber} ส่งมอบแล้ว!\nดู credentials ได้ที่: ${accountUrl}/account/inventory`;
+  const tplFulfilled = await getLineTemplate("order_fulfilled").catch(() => null);
+  const message = tplFulfilled?.isEnabled !== false
+    ? renderTemplate(
+        tplFulfilled?.template ?? "🎉 Order #{{orderNumber}} ส่งมอบแล้ว!\nดู credentials ได้ที่: {{accountUrl}}/account/inventory",
+        { orderNumber: params.orderNumber, accountUrl, shopName }
+      )
+    : "";
   const subject = `[${shopName}] รหัสของคุณพร้อมแล้ว #${params.orderNumber}`;
   const html = wrapHtml(
     `รหัสของคุณพร้อมแล้ว`,
@@ -172,7 +191,7 @@ export async function sendOrderFulfilledNotification(params: {
      <p>ดู credentials ได้ที่: <a href="${accountUrl}/account/inventory">${accountUrl}/account/inventory</a></p>`
   );
 
-  if (params.customerLineUserId) {
+  if (params.customerLineUserId && message) {
     try {
       await pushLineTextMessage(params.customerLineUserId, message);
       await logNotification({ type, channel: "line", recipient: params.customerLineUserId, customerId: params.customerId, orderId: params.orderId, content: message, status: "sent" });
@@ -202,9 +221,20 @@ export async function sendWalletCreditNotification(params: {
   shopName?: string;
 }): Promise<void> {
   const type: NotificationType = "wallet_credit";
-  const message = `💰 เติม wallet ${formatMoney(params.amount)} บาท\n${params.description}\nยอดคงเหลือ: ${formatMoney(params.balanceAfter)} บาท`;
+  const tplWallet = await getLineTemplate("wallet_credit").catch(() => null);
+  const message = tplWallet?.isEnabled !== false
+    ? renderTemplate(
+        tplWallet?.template ?? "💰 เติม Wallet +{{amount}} บาท\n{{description}}\nยอดคงเหลือ: {{balanceAfter}} บาท",
+        {
+          amount: formatMoney(params.amount),
+          description: params.description,
+          balanceAfter: formatMoney(params.balanceAfter),
+          shopName: params.shopName || "ร้านของเรา",
+        }
+      )
+    : "";
 
-  if (params.customerLineUserId) {
+  if (params.customerLineUserId && message) {
     try {
       await pushLineTextMessage(params.customerLineUserId, message);
       await logNotification({ type, channel: "line", recipient: params.customerLineUserId, customerId: params.customerId, content: message, status: "sent" });
