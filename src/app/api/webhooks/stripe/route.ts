@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { setOrderStripePayment, getOrderWithCustomer } from "@/features/order/order.repo";
-import { debitWallet } from "@/features/wallet/wallet.repo";
+import { debitWallet, addWalletCredit } from "@/features/wallet/wallet.repo";
+import { findTopupByStripeSession, approveTopupRequest } from "@/features/wallet/wallet-topup.repo";
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -27,6 +28,28 @@ export async function POST(req: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
+    const sessionType = session.metadata?.type;
+
+    // --- wallet top-up ---
+    if (sessionType === "wallet_topup") {
+      const customerId = session.metadata?.customerId
+        ? parseInt(session.metadata.customerId, 10)
+        : null;
+      if (customerId && session.payment_status === "paid") {
+        try {
+          const topup = await findTopupByStripeSession(session.id);
+          if (topup && topup.status === "pending") {
+            await approveTopupRequest(topup.id, 0 /* system */);
+            await addWalletCredit(customerId, topup.amount, `เติมเงินผ่าน Stripe #${topup.id}`);
+          }
+        } catch (err) {
+          console.error("[wallet_topup webhook]", err);
+        }
+      }
+      return NextResponse.json({ received: true });
+    }
+
+    // --- order payment ---
     const orderId = session.metadata?.orderId;
     if (!orderId) {
       console.error("checkout.session.completed missing metadata.orderId");

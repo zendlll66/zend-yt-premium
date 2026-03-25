@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCustomerSession } from "@/lib/auth-customer-server";
 import { getOrCreateWallet, getWalletTransactions } from "@/features/wallet/wallet.repo";
-import { Wallet, ArrowUpCircle, ArrowDownCircle, RefreshCw } from "lucide-react";
+import { Wallet, ArrowUpCircle, ArrowDownCircle, RefreshCw, Plus } from "lucide-react";
 
 const TYPE_INFO: Record<string, { label: string; color: string; icon: typeof ArrowUpCircle }> = {
   credit: { label: "เติมเงิน", color: "text-green-600", icon: ArrowUpCircle },
@@ -22,7 +23,7 @@ export default async function WalletPage() {
   return (
     <div className="space-y-6">
       {/* Balance Card */}
-      <div className="rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground shadow">
+      <div className="rounded-2xl bg-linear-to-br from-primary to-primary/80 p-6 text-primary-foreground shadow">
         <div className="flex items-center gap-2 mb-2">
           <Wallet className="h-5 w-5" />
           <span className="text-sm font-medium opacity-90">ยอด Wallet ของฉัน</span>
@@ -31,6 +32,13 @@ export default async function WalletPage() {
           ฿{wallet.balance.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
         </div>
         <p className="mt-1 text-xs opacity-70">สามารถใช้ชำระคำสั่งซื้อได้โดยตรง</p>
+        <Link
+          href="/account/wallet/topup"
+          className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-white/20 px-4 py-2 text-sm font-medium hover:bg-white/30 transition"
+        >
+          <Plus className="h-4 w-4" />
+          เติม Wallet
+        </Link>
       </div>
 
       {/* Transactions */}

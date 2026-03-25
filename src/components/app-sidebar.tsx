@@ -122,6 +122,12 @@ const NAV_MAIN = [
     isActive: true,
   },
   {
+    title: "คำขอเติม Wallet",
+    url: "/dashboard/wallets/topup",
+    icon: <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
     title: "ประวัติแจ้งเตือน",
     url: "/dashboard/notifications",
     icon: <HugeiconsIcon icon={Timer01Icon} strokeWidth={2} />,
