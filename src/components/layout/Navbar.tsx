@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { User, Crown, ShoppingBag, Menu, Home, Package, LogIn, UserPlus } from "lucide-react";
+import { User, Crown, ShoppingBag, Menu, Home, Package, LogIn, UserPlus, Wallet, TicketCheck } from "lucide-react";
 import type { ShopSettings } from "@/features/settings/settings.repo";
 import type { CustomerSessionUser } from "@/lib/auth-customer-server";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -47,22 +47,32 @@ const Navbar = ({ shop, customer, hasMembership = false, cartCount = 0 }: Navbar
       </Link>
       <span className="mx-1 h-4 w-px bg-brand-border aria-hidden" aria-hidden />
       {customer ? (
-        <Link
-          href="/account/profile"
-          className={
-            hasMembership
-              ? "flex items-center gap-1.5 rounded-lg border border-brand-accent-muted/50 bg-brand-accent/20 px-3 py-2 text-sm font-medium text-brand-fg transition hover:bg-brand-accent/30"
-              : `${navLink} flex items-center gap-1.5`
-          }
-          onClick={() => setMenuOpen(false)}
-        >
-          {hasMembership ? (
-            <Crown className="h-4 w-4 text-brand-accent-muted" />
-          ) : (
-            <User className="h-4 w-4" />
-          )}
-          <span className="hidden sm:inline">{hasMembership ? "สมาชิก" : "บัญชี"}</span>
-        </Link>
+        <>
+          <Link href="/account/wallet" className={`${navLink} flex items-center gap-1.5`} onClick={() => setMenuOpen(false)}>
+            <Wallet className="h-4 w-4" />
+            <span className="hidden lg:inline">Wallet</span>
+          </Link>
+          <Link href="/account/support" className={`${navLink} flex items-center gap-1.5`} onClick={() => setMenuOpen(false)}>
+            <TicketCheck className="h-4 w-4" />
+            <span className="hidden lg:inline">แจ้งปัญหา</span>
+          </Link>
+          <Link
+            href="/account/profile"
+            className={
+              hasMembership
+                ? "flex items-center gap-1.5 rounded-lg border border-brand-accent-muted/50 bg-brand-accent/20 px-3 py-2 text-sm font-medium text-brand-fg transition hover:bg-brand-accent/30"
+                : `${navLink} flex items-center gap-1.5`
+            }
+            onClick={() => setMenuOpen(false)}
+          >
+            {hasMembership ? (
+              <Crown className="h-4 w-4 text-brand-accent-muted" />
+            ) : (
+              <User className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline">{hasMembership ? "สมาชิก" : "บัญชี"}</span>
+          </Link>
+        </>
       ) : (
         <>
           <Link href="/customer-login" className={navLink} onClick={() => setMenuOpen(false)}>
@@ -158,18 +168,36 @@ const Navbar = ({ shop, customer, hasMembership = false, cartCount = 0 }: Navbar
                 </Link>
                 <span className="my-1 h-px bg-brand-border" />
                 {customer ? (
-                  <Link
-                    href="/account/profile"
-                    className="flex items-center gap-3 rounded-xl p-4 text-base font-medium text-brand-fg transition hover:bg-white/10"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    {hasMembership ? (
-                      <Crown className="h-5 w-5 shrink-0 text-brand-accent-muted" />
-                    ) : (
-                      <User className="h-5 w-5 shrink-0 text-brand-fg/70" />
-                    )}
-                    {hasMembership ? "สมาชิก" : "บัญชี"}
-                  </Link>
+                  <>
+                    <Link
+                      href="/account/wallet"
+                      className="flex items-center gap-3 rounded-xl p-4 text-base font-medium text-brand-fg transition hover:bg-white/10"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <Wallet className="h-5 w-5 shrink-0 text-brand-fg/70" />
+                      Wallet
+                    </Link>
+                    <Link
+                      href="/account/support"
+                      className="flex items-center gap-3 rounded-xl p-4 text-base font-medium text-brand-fg transition hover:bg-white/10"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <TicketCheck className="h-5 w-5 shrink-0 text-brand-fg/70" />
+                      แจ้งปัญหา
+                    </Link>
+                    <Link
+                      href="/account/profile"
+                      className="flex items-center gap-3 rounded-xl p-4 text-base font-medium text-brand-fg transition hover:bg-white/10"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      {hasMembership ? (
+                        <Crown className="h-5 w-5 shrink-0 text-brand-accent-muted" />
+                      ) : (
+                        <User className="h-5 w-5 shrink-0 text-brand-fg/70" />
+                      )}
+                      {hasMembership ? "สมาชิก" : "บัญชี"}
+                    </Link>
+                  </>
                 ) : (
                   <>
                     <Link
