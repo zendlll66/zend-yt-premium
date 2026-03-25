@@ -6,6 +6,8 @@ import {
   deletePromotion,
   findPromotionById,
 } from "./promotion.repo";
+import { getSessionUser } from "@/lib/auth-server";
+import { createAuditLog } from "@/features/audit/audit.repo";
 
 export type SavePromotionState = { error?: string; success?: boolean };
 
@@ -43,7 +45,7 @@ export async function savePromotionAction(
   if (productIds.length === 0) return { error: "กรุณาเลือกสินค้าอย่างน้อย 1 รายการ" };
 
   try {
-    await upsertPromotion({
+    const promoId = await upsertPromotion({
       id,
       name,
       discountPercent,
@@ -51,6 +53,8 @@ export async function savePromotionAction(
       endAt,
       productIds,
     });
+    const user = await getSessionUser();
+    await createAuditLog({ adminUserId: user?.id, action: id ? "promotion.update" : "promotion.create", entityType: "promotion", entityId: String(promoId), details: `${id ? "แก้ไข" : "สร้าง"}โปรโมชัน: ${name} (${discountPercent}%)` });
     revalidatePath("/dashboard/promotions");
     revalidatePath("/");
     return { success: true };
@@ -61,8 +65,11 @@ export async function savePromotionAction(
 
 export async function deletePromotionAction(id: number): Promise<{ error?: string }> {
   try {
+    const existing = await findPromotionById(id);
     const ok = await deletePromotion(id);
     if (!ok) return { error: "ไม่พบโปรหรือลบไม่ได้" };
+    const user = await getSessionUser();
+    await createAuditLog({ adminUserId: user?.id, action: "promotion.delete", entityType: "promotion", entityId: String(id), details: `ลบโปรโมชัน: ${existing?.name ?? id}` });
     revalidatePath("/dashboard/promotions");
     revalidatePath("/");
     return {};

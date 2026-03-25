@@ -9,6 +9,8 @@ import {
 } from "./inventory-order.repo";
 import type { InventoryItemType } from "@/db/schema/customer-inventory.schema";
 import { updateCustomerInventoriesDatesByOrderIdAndType } from "./customer-inventory.repo";
+import { getSessionUser } from "@/lib/auth-server";
+import { createAuditLog } from "@/features/audit/audit.repo";
 
 const INVENTORY_ITEM_TYPES: InventoryItemType[] = [
   "individual",
@@ -77,6 +79,8 @@ export async function createInventoryOrderAction(
     return { error: "สร้างไม่สำเร็จ (ไม่พบลูกค้า หรือข้อผิดพลาดจากระบบ)" };
   }
 
+  const user = await getSessionUser();
+  await createAuditLog({ adminUserId: user?.id, action: "inventory.create", entityType: "customer_inventory", entityId: String(result.inventoryId), details: `สร้าง inventory: ${title} (customer #${customerId})` });
   revalidatePath("/dashboard/inventory/orders/active");
   revalidatePath("/dashboard/inventory/orders/expiring");
   revalidatePath("/dashboard/inventory/orders/expired");
@@ -128,6 +132,8 @@ export async function updateInventoryOrderAction(
     return;
   }
 
+  const user = await getSessionUser();
+  await createAuditLog({ adminUserId: user?.id, action: "inventory.update", entityType: "customer_inventory", entityId: String(id), details: `แก้ไข inventory #${id}: ${title}` });
   revalidatePath("/dashboard/inventory/orders/active");
   revalidatePath("/dashboard/inventory/orders/expiring");
   revalidatePath("/dashboard/inventory/orders/expired");
@@ -197,6 +203,8 @@ export async function deleteInventoryOrderAction(formData: FormData): Promise<vo
   }
   const deleted = await deleteInventoryOrderById(id);
   if (deleted) {
+    const user = await getSessionUser();
+    await createAuditLog({ adminUserId: user?.id, action: "inventory.delete", entityType: "customer_inventory", entityId: String(id), details: `ลบ inventory #${id}` });
     revalidatePath("/dashboard/inventory/orders/active");
     revalidatePath("/dashboard/inventory/orders/expiring");
     revalidatePath("/dashboard/inventory/orders/expired");

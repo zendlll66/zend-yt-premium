@@ -2,6 +2,7 @@ import { sqliteTable, integer, text, real } from "drizzle-orm/sqlite-core";
 import { adminUsers } from "./admin-user.schema";
 import { products } from "./product.schema";
 import { customers } from "./customer.schema";
+import { coupons } from "./coupon.schema";
 
 /** สถานะคำสั่งซื้อ/เช่า */
 export const ORDER_STATUSES = [
@@ -44,6 +45,14 @@ export const orders = sqliteTable("orders", {
   stripePaymentStatus: text("stripe_payment_status"),
   /** สลิปชำระเงิน (กรณีโอนธนาคาร/QR) */
   paymentSlipImageUrl: text("payment_slip_image_url"),
+  /** Coupon ที่ใช้กับ order นี้ (ถ้ามี) */
+  couponId: integer("coupon_id").references(() => coupons.id, { onDelete: "set null" }),
+  /** รหัส coupon ที่ใช้ (เก็บไว้แม้ลบ coupon แล้ว) */
+  couponCode: text("coupon_code"),
+  /** มูลค่าส่วนลดจาก coupon (บาท) */
+  couponDiscount: real("coupon_discount").notNull().default(0),
+  /** มูลค่าที่ชำระด้วย wallet (บาท) */
+  walletCreditUsed: real("wallet_credit_used").notNull().default(0),
   createdBy: integer("created_by").references(() => adminUsers.id, { onDelete: "set null" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .$defaultFn(() => new Date())

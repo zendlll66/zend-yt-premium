@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { verifyAdminLogin } from "@/features/admin/admin.service";
 import { COOKIE_NAME, signSessionCookie } from "@/lib/auth-session";
+import { createAuditLog } from "@/features/audit/audit.repo";
 
 export type LoginState = { error?: string };
 
@@ -33,6 +34,8 @@ export async function loginAction(
     path: "/",
     maxAge: 60 * 60 * 24 * 7, // 7 days
   });
+
+  await createAuditLog({ adminUserId: user.id, action: "auth.login", entityType: "admin_user", entityId: String(user.id), details: `เข้าสู่ระบบ: ${email}` });
 
   redirect(from);
 }

@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { createRentalOrderAction } from "@/features/order/order.actions";
 import { submitOrderBankSlipAction } from "@/features/order/order.actions";
+import { joinWaitlistAction, leaveWaitlistAction } from "@/features/waitlist/waitlist.actions";
 import type { MenuProduct } from "@/features/modifier/modifier.repo";
 import {
   type CartItem,
@@ -177,6 +178,11 @@ export function RentClient({
   const searchParams = useSearchParams();
   const [cart, setCart] = useState<CartItem[]>(initialCart);
   const [cartOpen, setCartOpen] = useState(false);
+  // Waitlist state: Set of productIds that the current customer is in waitlist
+  const [waitlistedProducts, setWaitlistedProducts] = useState<Set<number>>(new Set());
+  // Coupon + Wallet from cart page URL params
+  const [checkoutCoupon, setCheckoutCoupon] = useState<{ couponId: number; couponCode: string; discountAmount: number } | null>(null);
+  const [checkoutWalletCredit, setCheckoutWalletCredit] = useState(0);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [bookingProduct, setBookingProduct] = useState<MenuProduct | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
@@ -206,6 +212,16 @@ export function RentClient({
   useEffect(() => {
     if (!customer || cart.length === 0) return;
     if (searchParams.get("checkout") === "1") {
+      // อ่าน coupon/wallet params จาก cart page
+      const couponId = searchParams.get("couponId");
+      const couponCode = searchParams.get("couponCode");
+      const couponDiscount = searchParams.get("couponDiscount");
+      const walletCredit = searchParams.get("walletCredit");
+      if (couponId && couponCode && couponDiscount) {
+        setCheckoutCoupon({ couponId: Number(couponId), couponCode, discountAmount: Number(couponDiscount) });
+      }
+      if (walletCredit) setCheckoutWalletCredit(Number(walletCredit));
+
       setCheckoutOpen(true);
       setCheckoutStep(1);
       setSelectedPaymentMethod(paymentOptions.bankEnabled ? "bank" : "stripe");
@@ -353,6 +369,10 @@ export function RentClient({
       customerPhone: customer.phone?.trim() || null,
       customerId: customer.id,
       items,
+      couponId: checkoutCoupon?.couponId ?? null,
+      couponCode: checkoutCoupon?.couponCode ?? null,
+      couponDiscount: checkoutCoupon?.discountAmount ?? 0,
+      walletCreditUsed: checkoutWalletCredit,
     });
 
     if (result.error) {
@@ -544,7 +564,18 @@ export function RentClient({
                   product={product}
                   availableStock={availableStock}
                   discountPercent={productDiscountMap[product.id] ?? 0}
-                  onClick={() => setBookingProduct(product)}
+                  onClick={() => availableStock > 0 ? setBookingProduct(product) : undefined}
+                  onWaitlist={customer ? async () => {
+                    const isIn = waitlistedProducts.has(product.id);
+                    if (isIn) {
+                      await leaveWaitlistAction(product.id);
+                      setWaitlistedProducts((prev) => { const s = new Set(prev); s.delete(product.id); return s; });
+                    } else {
+                      await joinWaitlistAction(product.id);
+                      setWaitlistedProducts((prev) => new Set(prev).add(product.id));
+                    }
+                  } : undefined}
+                  inWaitlist={waitlistedProducts.has(product.id)}
                 />
               );
             })}
@@ -1414,11 +1445,15 @@ function ProductCard({
   availableStock,
   discountPercent = 0,
   onClick,
+  onWaitlist,
+  inWaitlist = false,
 }: {
   product: MenuProduct;
   availableStock: number;
   discountPercent?: number;
   onClick: () => void;
+  onWaitlist?: () => void;
+  inWaitlist?: boolean;
 }) {
   const imageSrc = product.imageUrl
     ? `/api/r2-url?key=${encodeURIComponent(product.imageUrl)}`
@@ -1451,12 +1486,15 @@ function ProductCard({
     return `คงเหลือ ${availableStock} บัญชี`;
   })();
 
+  const isOutOfStock = availableStock === 0 && product.stockType !== "customer_account";
+
   return (
     <li>
       <button
         type="button"
-        onClick={onClick}
+        onClick={isOutOfStock ? undefined : onClick}
         className="group flex w-full flex-col overflow-hidden rounded-2xl border border-neutral-100 bg-white text-left shadow-sm shadow-neutral-200/50 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-neutral-300/40 dark:border-neutral-800/80 dark:bg-neutral-900/50 dark:shadow-neutral-950/50 dark:hover:shadow-neutral-900/60"
+        style={isOutOfStock ? { cursor: "default" } : undefined}
       >
         <div className="relative aspect-square overflow-hidden bg-neutral-50 dark:bg-neutral-800/80">
           {imageSrc ? (
@@ -1499,10 +1537,30 @@ function ProductCard({
               <>{formatNum(product.price)} ฿</>
             )}
           </p>
-          <p className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary">
-            <Plus className="h-4 w-4" />
-            กดเพื่อเลือกแพ็กเกจ
-          </p>
+          {isOutOfStock ? (
+            onWaitlist ? (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => { e.stopPropagation(); onWaitlist(); }}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onWaitlist(); } }}
+                className={`mt-3 inline-flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                  inWaitlist
+                    ? "bg-primary/10 text-primary"
+                    : "border border-border bg-background text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                🔔 {inWaitlist ? "รอแจ้งเตือนอยู่" : "แจ้งเตือนเมื่อมี stock"}
+              </span>
+            ) : (
+              <p className="mt-3 text-xs text-muted-foreground">สต็อกหมดชั่วคราว</p>
+            )
+          ) : (
+            <p className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary">
+              <Plus className="h-4 w-4" />
+              กดเพื่อเลือกแพ็กเกจ
+            </p>
+          )}
         </div>
       </button>
     </li>

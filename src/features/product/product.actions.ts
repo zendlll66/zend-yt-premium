@@ -11,6 +11,8 @@ import {
   deleteProductById,
   setProductActive,
 } from "./product.repo";
+import { getSessionUser } from "@/lib/auth-server";
+import { createAuditLog } from "@/features/audit/audit.repo";
 
 export type CreateProductState = { error?: string };
 export type UpdateProductState = { error?: string };
@@ -72,6 +74,8 @@ export async function createProductAction(
   });
 
   if (!product) return { error: "สร้างสินค้าไม่สำเร็จ" };
+  const user = await getSessionUser();
+  await createAuditLog({ adminUserId: user?.id, action: "product.create", entityType: "product", entityId: String(product.id), details: `สร้างสินค้า: ${product.name}` });
   revalidatePath("/dashboard/products");
   redirect("/dashboard/products");
 }
@@ -118,6 +122,8 @@ export async function updateProductAction(
   });
 
   if (!product) return { error: "อัปเดตไม่สำเร็จ" };
+  const user = await getSessionUser();
+  await createAuditLog({ adminUserId: user?.id, action: "product.update", entityType: "product", entityId: String(id), details: `แก้ไขสินค้า: ${product.name}` });
   revalidatePath("/dashboard/products");
   redirect("/dashboard/products");
 }
@@ -133,6 +139,8 @@ export async function deleteProductAction(id: number): Promise<{ error?: string 
   const ok = await deleteProductById(id);
   revalidatePath("/dashboard/products");
   if (!ok) return { error: "ลบไม่สำเร็จ" };
+  const user = await getSessionUser();
+  await createAuditLog({ adminUserId: user?.id, action: "product.delete", entityType: "product", entityId: String(id), details: `ลบสินค้า: ${product.name}` });
   return {};
 }
 
@@ -144,6 +152,8 @@ export async function toggleProductActiveAction(
   if (!product) return { error: "ไม่พบสินค้า" };
 
   await setProductActive(id, isActive);
+  const user = await getSessionUser();
+  await createAuditLog({ adminUserId: user?.id, action: isActive ? "product.activate" : "product.deactivate", entityType: "product", entityId: String(id), details: `${isActive ? "เปิดใช้งาน" : "ปิดใช้งาน"}สินค้า: ${product.name}` });
   revalidatePath("/dashboard/products");
   return {};
 }

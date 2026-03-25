@@ -163,6 +163,7 @@ export async function findCustomerInventory(customerId: number) {
         activatedAt: customerInventories.activatedAt,
         expiresAt: customerInventories.expiresAt,
         note: customerInventories.note,
+        autoRenew: customerInventories.autoRenew,
         createdAt: customerInventories.createdAt,
       })
       .from(customerInventories)
@@ -205,6 +206,7 @@ export async function findCustomerInventory(customerId: number) {
   return rows.map(({ durationDays, ...rest }) => ({
     ...rest,
     durationMonths: durationDaysToMonthsApprox(durationDays ?? 30),
+    autoRenew: false as boolean,
   }));
 }
 

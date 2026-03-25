@@ -9,9 +9,16 @@ import {
   checkStockForItems,
   submitOrderBankSlip,
   updateOrderByAdmin,
+  getOrderWithCustomer,
 } from "./order.repo";
 import type { OrderItemInput } from "./order.repo";
 import type { OrderStatus, OrderProductType } from "@/db/schema/order.schema";
+import {
+  sendOrderPaidNotification,
+  sendOrderFulfilledNotification,
+} from "@/features/notification/notification.service";
+import { recordCouponUsage } from "@/features/coupon/coupon.repo";
+import { debitWallet } from "@/features/wallet/wallet.repo";
 
 export type CreateRentalOrderState = { orderId?: number; orderNumber?: string; error?: string };
 
@@ -24,6 +31,12 @@ export async function createRentalOrderAction(input: {
   items: OrderItemInput[];
   /** สร้างจากแดชบอร์ด = ถือว่าจ่ายแล้ว อัปเดตเป็น paid ทันที (ไม่ยิง flow ชำระเงินลูกค้า) */
   markAsPaid?: boolean;
+  /** Coupon ที่ใช้ (ถ้ามี) */
+  couponId?: number | null;
+  couponCode?: string | null;
+  couponDiscount?: number;
+  /** ยอดที่ใช้จ่ายด้วย wallet */
+  walletCreditUsed?: number;
 }): Promise<CreateRentalOrderState> {
   if (!input.items?.length) {
     return { error: "ไม่มีรายการสินค้า" };
@@ -79,6 +92,10 @@ export async function createRentalOrderAction(input: {
       customerPhone: input.customerPhone?.trim() || null,
       customerId: input.customerId ?? null,
       items: itemsWithDates,
+      couponId: input.couponId ?? null,
+      couponCode: input.couponCode ?? null,
+      couponDiscount: input.couponDiscount ?? 0,
+      walletCreditUsed: input.walletCreditUsed ?? 0,
     });
   } catch (error) {
     if (error instanceof Error && error.message === "MIXED_PRODUCT_TYPE_NOT_SUPPORTED") {
@@ -97,6 +114,20 @@ export async function createRentalOrderAction(input: {
   }
 
   if (!order) return { error: "สร้างคำสั่งเช่าไม่สำเร็จ" };
+
+  // บันทึกการใช้งาน coupon
+  if (input.couponId && input.customerId && input.couponDiscount && input.couponDiscount > 0) {
+    try {
+      await recordCouponUsage(input.couponId, input.customerId, order.id, input.couponDiscount);
+    } catch { /* ถ้า record ล้มเหลว ไม่ block order */ }
+  }
+
+  // ตัดเงินจาก wallet
+  if (input.walletCreditUsed && input.walletCreditUsed > 0 && input.customerId) {
+    try {
+      await debitWallet(input.customerId, input.walletCreditUsed, order.id, `ชำระ Order #${order.orderNumber}`);
+    } catch { /* ถ้า wallet ไม่พอ ไม่ block order */ }
+  }
 
   if (input.markAsPaid) {
     await updateOrderStatusAction(order.id, "paid");
@@ -117,6 +148,36 @@ export async function updateOrderStatusAction(orderId: number, status: OrderStat
       entityId: String(orderId),
       details: `ออเดอร์ ${order.orderNumber} → ${status}`,
     });
+
+    // ส่ง notification อัตโนมัติเมื่อสถานะเปลี่ยน
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+    try {
+      const orderDetail = await getOrderWithCustomer(orderId);
+      if (orderDetail) {
+        if (status === "paid") {
+          await sendOrderPaidNotification({
+            customerEmail: orderDetail.customerEmail,
+            customerLineUserId: orderDetail.customerLineUserId,
+            customerId: orderDetail.customerId ?? undefined,
+            orderId,
+            orderNumber: orderDetail.orderNumber,
+            totalPrice: orderDetail.totalPrice,
+            shopName: undefined,
+          });
+        } else if (status === "fulfilled") {
+          await sendOrderFulfilledNotification({
+            customerEmail: orderDetail.customerEmail,
+            customerLineUserId: orderDetail.customerLineUserId,
+            customerId: orderDetail.customerId ?? undefined,
+            orderId,
+            orderNumber: orderDetail.orderNumber,
+            accountUrl: appUrl,
+          });
+        }
+      }
+    } catch {
+      // ถ้า notification ล้มเหลว ไม่ block การเปลี่ยนสถานะ
+    }
   }
   revalidatePath("/dashboard/orders");
   revalidatePath(`/dashboard/orders/${orderId}`);

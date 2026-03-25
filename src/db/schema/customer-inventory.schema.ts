@@ -23,6 +23,8 @@ export const customerInventories = sqliteTable("customer_inventories", {
   activatedAt: integer("activated_at", { mode: "timestamp" }),
   expiresAt: integer("expires_at", { mode: "timestamp" }),
   note: text("note"),
+  /** เปิดต่ออายุอัตโนมัติเมื่อหมดอายุ (ต้องมีบัตร Stripe ผูกไว้) */
+  autoRenew: integer("auto_renew", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .$defaultFn(() => new Date())
     .notNull(),

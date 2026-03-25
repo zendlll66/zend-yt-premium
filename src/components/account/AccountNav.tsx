@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, Package, User, MapPin } from "lucide-react";
+import { ShoppingBag, Package, User, Wallet, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/account/orders", label: "ประวัติการซื้อ", icon: ShoppingBag },
   { href: "/account/inventory", label: "รหัสของฉัน", icon: Package },
+  { href: "/account/wallet", label: "Wallet", icon: Wallet },
+  { href: "/account/waitlist", label: "รอ stock", icon: Bell },
   { href: "/account/profile", label: "โปรไฟล์", icon: User },
-  // { href: "/account/addresses", label: "ที่อยู่จัดส่ง", icon: MapPin },
 ];
 
 export function AccountNav() {

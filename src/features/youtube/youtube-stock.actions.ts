@@ -23,6 +23,8 @@ import {
   updateFamilyGroupHeadAccount,
 } from "./youtube-stock.repo";
 import { pushLineTextMessage } from "@/lib/line-message";
+import { getSessionUser } from "@/lib/auth-server";
+import { createAuditLog } from "@/features/audit/audit.repo";
 
 function refreshStocksPage() {
   revalidatePath("/dashboard/stocks");
@@ -33,7 +35,9 @@ export async function createAccountStockAction(formData: FormData) {
   const password = (formData.get("password") as string)?.trim() ?? "";
   const status = ((formData.get("status") as string) || "available") as "available" | "reserved" | "sold";
   if (!email || !password) return;
-  await createAccountStock({ email, password, status });
+  const stock = await createAccountStock({ email, password, status });
+  const user = await getSessionUser();
+  await createAuditLog({ adminUserId: user?.id, action: "stock.account.create", entityType: "account_stock", entityId: stock ? String(stock.id) : undefined, details: `เพิ่ม account stock: ${email}` });
   revalidatePath("/dashboard/stocks/account-stock");
   refreshStocksPage();
   redirect("/dashboard/stocks/account-stock");
@@ -94,6 +98,8 @@ export async function deleteAccountStockAction(formData: FormData) {
   const id = parseInt((formData.get("id") as string) ?? "0", 10);
   if (!id || !Number.isFinite(id)) return;
   await deleteAccountStockById(id);
+  const user = await getSessionUser();
+  await createAuditLog({ adminUserId: user?.id, action: "stock.account.delete", entityType: "account_stock", entityId: String(id), details: `ลบ account stock #${id}` });
   refreshStocksPage();
 }
 
@@ -104,13 +110,15 @@ export async function createFamilyGroupAction(formData: FormData) {
   const headEmail = (formData.get("head_email") as string)?.trim() ?? "";
   const headPassword = (formData.get("head_password") as string)?.trim() ?? "";
   if (!name || !Number.isFinite(limit) || limit < 1) return;
-  await createFamilyGroup({
+  const group = await createFamilyGroup({
     name,
     limit,
     notes: notes || null,
     headEmail: headEmail || null,
     headPassword: headPassword || null,
   });
+  const user = await getSessionUser();
+  await createAuditLog({ adminUserId: user?.id, action: "stock.family.create", entityType: "family_group", entityId: group ? String(group.id) : undefined, details: `สร้าง family group: ${name}` });
   refreshStocksPage();
 }
 
@@ -143,6 +151,8 @@ export async function updateFamilyGroupAction(formData: FormData) {
     headEmail: headEmail || null,
     headPassword: headPassword || null,
   });
+  const user = await getSessionUser();
+  await createAuditLog({ adminUserId: user?.id, action: "stock.family.update", entityType: "family_group", entityId: String(id), details: `แก้ไข family group #${id}: ${name}` });
   refreshStocksPage();
 }
 
@@ -150,6 +160,8 @@ export async function deleteFamilyGroupAction(formData: FormData) {
   const id = parseInt((formData.get("id") as string) ?? "0", 10);
   if (!id || !Number.isFinite(id)) return;
   await deleteFamilyGroupById(id);
+  const user = await getSessionUser();
+  await createAuditLog({ adminUserId: user?.id, action: "stock.family.delete", entityType: "family_group", entityId: String(id), details: `ลบ family group #${id}` });
   refreshStocksPage();
 }
 
@@ -211,6 +223,8 @@ export async function updateCustomerAccountStatusAction(formData: FormData) {
   if (!id || !Number.isFinite(id)) return;
   const before = await findCustomerAccountNotifyTarget(id);
   await updateCustomerAccountStatus(id, status, notes || null);
+  const user = await getSessionUser();
+  await createAuditLog({ adminUserId: user?.id, action: "stock.customer_account.status", entityType: "customer_account", entityId: String(id), details: `อัปเดตสถานะ customer account #${id} → ${status}` });
   const after = await findCustomerAccountNotifyTarget(id);
   if (
     before &&

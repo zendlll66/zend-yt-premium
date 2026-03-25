@@ -12,8 +12,10 @@ import {
 } from "@/lib/cart-storage";
 import type { MenuProduct } from "@/features/modifier/modifier.repo";
 import { updateCartItemAction, updateCartInviteEmailsAction, removeCartItemAction } from "@/features/cart/cart.actions";
-import { ShoppingBag, MapPin, Store, CreditCard, Trash2 } from "lucide-react";
+import { validateCouponAction } from "@/features/coupon/coupon.actions";
+import { ShoppingBag, MapPin, Store, CreditCard, Trash2, Tag, Wallet, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { getVisibleModifiers } from "@/lib/customer-account-credentials";
 
 function formatDateShort(s: string) {
@@ -77,11 +79,26 @@ type Props = {
   productDiscountMap?: Record<number, number>;
   /** ตะกร้าจาก DB (โหลดจาก server) */
   initialCart: CartItem[];
+  /** ยอด wallet คงเหลือ */
+  walletBalance?: number;
 };
 
-export function CartClient({ menu, shopName, membership = null, productDiscountMap = {}, initialCart }: Props) {
+export function CartClient({ menu, shopName, membership = null, productDiscountMap = {}, initialCart, walletBalance = 0 }: Props) {
   const router = useRouter();
   const [cart, setCart] = useState<CartItem[]>(initialCart);
+
+  // Coupon state
+  const [couponInput, setCouponInput] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    couponId: number;
+    discountAmount: number;
+  } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  // Wallet state
+  const [useWallet, setUseWallet] = useState(false);
 
   useEffect(() => {
     setCart(initialCart);
@@ -110,7 +127,37 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
   const cartTotal = cartTotalAfter;
   const showDiscountTotal = cartTotalAfter < cartTotalOriginal;
 
+  const couponDiscount = appliedCoupon?.discountAmount ?? 0;
+  const walletUsed = useWallet ? Math.min(walletBalance, Math.max(0, cartTotal - couponDiscount)) : 0;
+  const finalTotal = Math.max(0, cartTotal - couponDiscount - walletUsed);
+
   const count = cart.reduce((s, i) => s + i.quantity, 0);
+
+  async function applyCoupon() {
+    if (!couponInput.trim()) return;
+    setCouponLoading(true);
+    setCouponError(null);
+    try {
+      const result = await validateCouponAction(couponInput, cartTotal);
+      if (result.ok && result.discountAmount != null) {
+        setAppliedCoupon({
+          code: result.couponCode!,
+          couponId: result.couponId!,
+          discountAmount: result.discountAmount,
+        });
+      } else {
+        setCouponError(result.error ?? "ไม่สามารถใช้ coupon นี้ได้");
+      }
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  function removeCoupon() {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponError(null);
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
@@ -268,26 +315,98 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
             })}
           </ul>
 
-          <div className="mt-8 rounded-xl border border-border bg-card p-6">
-            <div className="mb-6 flex items-center justify-between">
-              <span className="text-muted-foreground">รวมทั้งสิ้น</span>
-              {showDiscountTotal ? (
-                <span className="flex flex-col items-end gap-0">
-                  <span className="text-muted-foreground line-through text-sm tabular-nums">{formatMoney(cartTotalOriginal)} ฿</span>
-                  <span className="text-2xl font-bold tabular-nums">{formatMoney(cartTotal)} ฿</span>
-                </span>
+          <div className="mt-8 rounded-xl border border-border bg-card p-6 space-y-5">
+            {/* Coupon Input */}
+            <div>
+              <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+                <Tag className="h-4 w-4" /> รหัส Coupon
+              </p>
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between rounded-lg border border-green-300 bg-green-50 px-3 py-2 dark:border-green-800 dark:bg-green-950/40">
+                  <span className="flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-400">
+                    <Check className="h-4 w-4" />
+                    {appliedCoupon.code} (ลด ฿{formatMoney(appliedCoupon.discountAmount)})
+                  </span>
+                  <button onClick={removeCoupon} className="text-muted-foreground hover:text-destructive">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               ) : (
-                <span className="text-2xl font-bold tabular-nums">
-                  {formatMoney(cartTotal)} ฿
-                </span>
+                <div className="flex gap-2">
+                  <Input
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    placeholder="กรอกรหัส coupon"
+                    className="uppercase"
+                    onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
+                    disabled={couponLoading}
+                  />
+                  <Button onClick={applyCoupon} disabled={couponLoading || !couponInput.trim()} variant="outline" size="sm" className="shrink-0">
+                    {couponLoading ? "ตรวจสอบ…" : "ใช้"}
+                  </Button>
+                </div>
               )}
+              {couponError && <p className="mt-1 text-xs text-destructive">{couponError}</p>}
             </div>
+
+            {/* Wallet */}
+            {walletBalance > 0 && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setUseWallet((v) => !v)}
+                  className="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition hover:bg-muted/50"
+                >
+                  <span className="flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-primary" />
+                    ใช้ Wallet (คงเหลือ ฿{formatMoney(walletBalance)})
+                  </span>
+                  <span className={`h-5 w-9 rounded-full transition-colors ${useWallet ? "bg-primary" : "bg-muted"}`} />
+                </button>
+                {useWallet && walletUsed > 0 && (
+                  <p className="mt-1 text-xs text-green-600">ใช้ wallet ฿{formatMoney(walletUsed)}</p>
+                )}
+              </div>
+            )}
+
+            {/* Total breakdown */}
+            <div className="space-y-1.5 border-t pt-3">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>ราคารวม</span>
+                <span className={showDiscountTotal ? "line-through" : ""}>{formatMoney(cartTotalOriginal)} ฿</span>
+              </div>
+              {showDiscountTotal && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>หลังส่วนลดสมาชิก/โปร</span>
+                  <span>{formatMoney(cartTotal)} ฿</span>
+                </div>
+              )}
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>ส่วนลด Coupon ({appliedCoupon?.code})</span>
+                  <span>-{formatMoney(couponDiscount)} ฿</span>
+                </div>
+              )}
+              {walletUsed > 0 && (
+                <div className="flex justify-between text-sm text-blue-600">
+                  <span>ชำระด้วย Wallet</span>
+                  <span>-{formatMoney(walletUsed)} ฿</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between border-t pt-2">
+                <span className="font-medium">ยอดที่ต้องชำระ</span>
+                <span className="text-2xl font-bold tabular-nums">{formatMoney(finalTotal)} ฿</span>
+              </div>
+            </div>
+
             <Button
               className="w-full gap-2 py-6 text-base"
               size="lg"
               asChild
             >
-              <Link href="/rent?checkout=1">
+              <Link
+                href={`/rent?checkout=1${appliedCoupon ? `&couponId=${appliedCoupon.couponId}&couponCode=${appliedCoupon.code}&couponDiscount=${appliedCoupon.discountAmount}` : ""}${walletUsed > 0 ? `&walletCredit=${walletUsed}` : ""}`}
+              >
                 <CreditCard className="h-5 w-5" />
                 ดำเนินการชำระเงิน
               </Link>

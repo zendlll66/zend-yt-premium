@@ -62,6 +62,8 @@ const NAV_MAIN = [
       { title: "เพิ่มสินค้า", url: "/dashboard/products/add" },
       { title: "ตัวเลือก (Modifiers)", url: "/dashboard/modifiers" },
       { title: "จัดโปร", url: "/dashboard/promotions" },
+      { title: "Coupon / รหัสส่วนลด", url: "/dashboard/coupons" },
+      { title: "Waitlist", url: "/dashboard/waitlist" },
     ],
   },
   {
@@ -111,6 +113,18 @@ const NAV_MAIN = [
     title: "รายการลูกค้า",
     url: "/dashboard/customers",
     icon: <HugeiconsIcon icon={UserMultipleIcon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
+    title: "Wallet ลูกค้า",
+    url: "/dashboard/wallets",
+    icon: <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
+    title: "ประวัติแจ้งเตือน",
+    url: "/dashboard/notifications",
+    icon: <HugeiconsIcon icon={Timer01Icon} strokeWidth={2} />,
     isActive: true,
   },
   {

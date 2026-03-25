@@ -45,6 +45,12 @@ export type CreateRentalOrderInput = {
   customerId?: number | null;
   createdBy?: number | null;
   items: OrderItemInput[];
+  /** Coupon ที่ใช้ */
+  couponId?: number | null;
+  couponCode?: string | null;
+  couponDiscount?: number;
+  /** ยอดที่ชำระด้วย wallet */
+  walletCreditUsed?: number;
 };
 
 export type CreateYoutubeOrderInput = {
@@ -349,13 +355,17 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
   }, 0);
 
   const orderId = await db.transaction(async (tx) => {
+    const couponDiscount = data.couponDiscount ?? 0;
+    const walletCreditUsed = data.walletCreditUsed ?? 0;
+    const finalTotal = Math.max(0, orderTotal - couponDiscount - walletCreditUsed);
+
     const [order] = await tx
       .insert(orders)
       .values({
         orderNumber: orderNum,
         status: "pending",
         productType: columnSupport.productType ? inferredProductType : undefined,
-        totalPrice: orderTotal,
+        totalPrice: finalTotal,
         depositAmount,
         rentalStart: orderStart,
         rentalEnd: orderEnd,
@@ -363,6 +373,10 @@ export async function createRentalOrder(data: CreateRentalOrderInput): Promise<O
         customerEmail: data.customerEmail,
         customerPhone: data.customerPhone ?? null,
         customerId: columnSupport.customerId ? (data.customerId ?? null) : undefined,
+        couponId: data.couponId ?? null,
+        couponCode: data.couponCode ?? null,
+        couponDiscount,
+        walletCreditUsed,
         createdBy: data.createdBy ?? null,
       })
       .returning({ id: orders.id });
@@ -1382,4 +1396,22 @@ export async function findOrderByOrderNumber(orderNumber: string): Promise<Order
     .limit(1);
   if (!row) return null;
   return findOrderById(row.id);
+}
+
+
+/** ดึงข้อมูล order พร้อม LINE userId ของลูกค้า (สำหรับส่ง notification) */
+export async function getOrderWithCustomer(orderId: number) {
+  const [row] = await db
+    .select({
+      orderNumber: orders.orderNumber,
+      customerEmail: orders.customerEmail,
+      totalPrice: orders.totalPrice,
+      customerId: orders.customerId,
+      customerLineUserId: customers.lineUserId,
+    })
+    .from(orders)
+    .leftJoin(customers, eq(orders.customerId, customers.id))
+    .where(eq(orders.id, orderId))
+    .limit(1);
+  return row ?? null;
 }

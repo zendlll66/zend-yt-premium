@@ -4,6 +4,7 @@ import { getCustomerSession } from "@/lib/auth-customer-server";
 import { findCustomerInventory } from "@/features/inventory/customer-inventory.repo";
 import { renewInventoryItemAction } from "@/features/inventory/inventory-renewal.actions";
 import { Button } from "@/components/ui/button";
+import { AutoRenewToggle } from "./auto-renew-toggle";
 
 function getTypeConfig(type: string): { label: string; icon: typeof Package; className: string } {
   switch (type) {
@@ -111,6 +112,9 @@ export default async function AccountInventoryPage() {
                           </Button>
                         </form>
                       )}
+                      <div className="mt-2">
+                        <AutoRenewToggle inventoryId={item.id} autoRenew={item.autoRenew ?? false} />
+                      </div>
                       <h2 className="mt-3 font-semibold text-foreground">{item.title}</h2>
                       {item.orderNumber && (
                         <p className="mt-1 text-xs text-muted-foreground">
