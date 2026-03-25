@@ -3,25 +3,15 @@ import { deleteFamilyGroupAction } from "@/features/youtube/youtube-stock.action
 import { findFamilyGroupsWithMembers } from "@/features/youtube/youtube-stock.repo";
 import { getShopSettings } from "@/features/settings/settings.repo";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
-
-function daysLeft(expiresAt: Date | null) {
-  if (!expiresAt) return null;
-  const now = new Date();
-  const diff = expiresAt.getTime() - now.getTime();
-  return Math.floor(diff / (24 * 60 * 60 * 1000));
-}
+import { daysLeft, getInventoryExpiryWarningDays } from "@/lib/inventory-expiry";
 
 export default async function FamilyGroupsPage() {
   const [familyData, settings] = await Promise.all([
     findFamilyGroupsWithMembers(),
     getShopSettings(),
   ]);
-  const warningDays = Math.max(
-    1,
-    Number.parseInt(settings.inventoryExpiryWarningDays || "5", 10) || 5
-  );
+  const warningDays = getInventoryExpiryWarningDays(settings);
 
   return (
     <div className="flex flex-1 flex-col gap-4">

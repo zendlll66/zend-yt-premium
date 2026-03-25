@@ -281,6 +281,48 @@
       "when": 1773700000003,
       "tag": "0045_family_members_recipient_email",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "6",
+      "when": 1773800000000,
+      "tag": "0046_products_duration_months",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1773800000001,
+      "tag": "0047_products_backfill_duration_months",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1773800000002,
+      "tag": "0048_customer_inventories_duration_months",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "6",
+      "when": 1773800000003,
+      "tag": "0049_customer_inventories_backfill_duration_months",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "6",
+      "when": 1773800000004,
+      "tag": "0050_products_drop_duration_days",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "6",
+      "when": 1773800000005,
+      "tag": "0051_customer_inventories_drop_duration_days",
+      "breakpoints": true
     }
   ]
 }

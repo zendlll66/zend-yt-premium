@@ -7,6 +7,7 @@ import { customers } from "@/db/schema/customer.schema";
 import { customerInventories } from "@/db/schema/customer-inventory.schema";
 import { familyGroups, familyMembers } from "@/db/schema/family.schema";
 import { orders } from "@/db/schema/order.schema";
+import { effectiveInventoryExpiresAt } from "@/lib/inventory-expiry";
 
 const familyGroupsLegacy = sqliteTable("family_groups", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -41,6 +42,57 @@ export type FamilyMemberWithStatus = {
   customerLinePictureUrl: string | null;
 };
 
+function normalizeInventoryLoginEmail(s: string) {
+  return s.trim().toLowerCase();
+}
+
+type InventoryInvRow = {
+  orderId: number;
+  loginEmail: string | null;
+  expiresAt: Date | null;
+  activatedAt: Date | null;
+  durationMonths: number;
+};
+
+/** จับคู่วันหมดอายุ inventory กับ stock (individual / customer_account) — รองรับ login_email ว่าง และคำนวณจากเดือนเมื่อยังไม่มี expires_at */
+function resolveInventoryExpiresAtByOrderAndEmail(
+  stockEmail: string,
+  orderId: number | null,
+  byOrderId: Map<number, InventoryInvRow[]>
+): Date | null {
+  if (!orderId) return null;
+  const list = byOrderId.get(orderId) ?? [];
+  if (list.length === 0) return null;
+
+  const pickLatestExpires = (rows: InventoryInvRow[]) =>
+    rows.reduce<Date | null>((best, r) => {
+      const eff = effectiveInventoryExpiresAt({
+        expiresAt: r.expiresAt,
+        activatedAt: r.activatedAt,
+        durationMonths: r.durationMonths,
+      });
+      if (!eff) return best;
+      if (!best || eff > best) return eff;
+      return best;
+    }, null);
+
+  const stockNorm = normalizeInventoryLoginEmail(stockEmail);
+  const matchedByEmail = list.filter(
+    (r) => r.loginEmail != null && normalizeInventoryLoginEmail(r.loginEmail) === stockNorm
+  );
+  if (matchedByEmail.length > 0) return pickLatestExpires(matchedByEmail);
+
+  if (list.length === 1) {
+    return effectiveInventoryExpiresAt({
+      expiresAt: list[0].expiresAt,
+      activatedAt: list[0].activatedAt,
+      durationMonths: list[0].durationMonths,
+    });
+  }
+
+  return pickLatestExpires(list);
+}
+
 async function getFamilyGroupColumnSupport(): Promise<{ headAccount: boolean }> {
   if (familyGroupColumnSupportCache?.headAccount) return familyGroupColumnSupportCache;
   try {
@@ -68,7 +120,6 @@ export async function findAccountStocks(limit = 100) {
       orderId: accountStock.orderId,
       reservedAt: accountStock.reservedAt,
       soldAt: accountStock.soldAt,
-      expiresAt: customerInventories.expiresAt,
       createdAt: accountStock.createdAt,
       updatedAt: accountStock.updatedAt,
       customerId: customers.id,
@@ -79,16 +130,6 @@ export async function findAccountStocks(limit = 100) {
     })
     .from(accountStock)
     .leftJoin(orders, eq(accountStock.orderId, orders.id))
-    .leftJoin(
-      customerInventories,
-      and(
-        eq(customerInventories.orderId, accountStock.orderId),
-        eq(customerInventories.itemType, "individual"),
-        // ป้องกัน row ซ้ำ: ผูกเฉพาะ inventory แถวของ account นี้ด้วย loginEmail
-        // (accountStock.email มักเท่ากับ customer_inventories.login_email)
-        eq(customerInventories.loginEmail, accountStock.email)
-      )
-    )
     .leftJoin(
       customers,
       or(
@@ -102,22 +143,42 @@ export async function findAccountStocks(limit = 100) {
   // กันกรณี join ทำให้ได้ row ซ้ำ id เดิม (React key ต้อง unique)
   const byId = new Map<number, (typeof rows)[number]>();
   for (const row of rows) {
-    const prev = byId.get(row.id);
-    if (!prev) {
-      byId.set(row.id, row);
-      continue;
-    }
-    // เลือก expiresAt ที่มากสุด (ล่าสุด) เผื่อมี inventory ซ้ำหลายแถว
-    if (row.expiresAt) {
-      if (!prev.expiresAt || row.expiresAt > prev.expiresAt) {
-        byId.set(row.id, row);
-      }
-    }
+    if (!byId.has(row.id)) byId.set(row.id, row);
   }
 
-  return Array.from(byId.values()).sort(
+  const list = Array.from(byId.values()).sort(
     (a, b) => (b.createdAt?.getTime?.() ?? 0) - (a.createdAt?.getTime?.() ?? 0)
   );
+
+  const orderIds = [...new Set(list.map((r) => r.orderId).filter((id): id is number => id != null))];
+  if (orderIds.length === 0) {
+    return list.map((row) => ({ ...row, expiresAt: null as Date | null }));
+  }
+
+  const invRows = await db
+    .select({
+      orderId: customerInventories.orderId,
+      loginEmail: customerInventories.loginEmail,
+      expiresAt: customerInventories.expiresAt,
+      activatedAt: customerInventories.activatedAt,
+      durationMonths: customerInventories.durationMonths,
+    })
+    .from(customerInventories)
+    .where(
+      and(inArray(customerInventories.orderId, orderIds), eq(customerInventories.itemType, "individual"))
+    );
+
+  const byOrderId = new Map<number, InventoryInvRow[]>();
+  for (const r of invRows) {
+    const arr = byOrderId.get(r.orderId) ?? [];
+    arr.push(r);
+    byOrderId.set(r.orderId, arr);
+  }
+
+  return list.map((row) => ({
+    ...row,
+    expiresAt: resolveInventoryExpiresAtByOrderAndEmail(row.email, row.orderId, byOrderId),
+  }));
 }
 
 export async function findAccountStockById(id: number) {
@@ -260,6 +321,8 @@ export async function findFamilyGroupsWithMembers() {
       .select({
         orderId: customerInventories.orderId,
         expiresAt: customerInventories.expiresAt,
+        activatedAt: customerInventories.activatedAt,
+        durationMonths: customerInventories.durationMonths,
       })
       .from(customerInventories)
       .where(
@@ -270,7 +333,11 @@ export async function findFamilyGroupsWithMembers() {
       );
     for (const r of invRows) {
       if (r.orderId == null) continue;
-      const next = r.expiresAt ?? null;
+      const next = effectiveInventoryExpiresAt({
+        expiresAt: r.expiresAt,
+        activatedAt: r.activatedAt,
+        durationMonths: r.durationMonths,
+      });
       if (!next) continue;
       const prev = expiresByOrderId.get(r.orderId);
       if (prev == null || next > prev) expiresByOrderId.set(r.orderId, next);
@@ -556,7 +623,7 @@ export async function findFamilyMemberById(id: number) {
 }
 
 export async function findCustomerAccounts(limit = 200) {
-  return db
+  const rows = await db
     .select({
       id: customerAccounts.id,
       customerId: customerAccounts.customerId,
@@ -567,25 +634,48 @@ export async function findCustomerAccounts(limit = 200) {
       notes: customerAccounts.notes,
       createdAt: customerAccounts.createdAt,
       updatedAt: customerAccounts.updatedAt,
-      expiresAt: customerInventories.expiresAt,
       customerName: customers.name,
       customerEmail: customers.email,
       customerLineDisplayName: customers.lineDisplayName,
       customerLinePictureUrl: customers.linePictureUrl,
     })
     .from(customerAccounts)
-    .leftJoin(
-      customerInventories,
-      and(
-        eq(customerInventories.orderId, customerAccounts.orderId),
-        eq(customerInventories.itemType, "customer_account"),
-        // ผูกด้วย loginEmail (customerAccounts.email) เพื่อลด row ซ้ำ
-        eq(customerInventories.loginEmail, customerAccounts.email)
-      )
-    )
     .leftJoin(customers, eq(customerAccounts.customerId, customers.id))
     .orderBy(desc(customerAccounts.createdAt))
     .limit(limit);
+
+  const orderIds = [...new Set(rows.map((r) => r.orderId))];
+  if (orderIds.length === 0) {
+    return rows.map((r) => ({ ...r, expiresAt: null as Date | null }));
+  }
+
+  const invRows = await db
+    .select({
+      orderId: customerInventories.orderId,
+      loginEmail: customerInventories.loginEmail,
+      expiresAt: customerInventories.expiresAt,
+      activatedAt: customerInventories.activatedAt,
+      durationMonths: customerInventories.durationMonths,
+    })
+    .from(customerInventories)
+    .where(
+      and(
+        inArray(customerInventories.orderId, orderIds),
+        eq(customerInventories.itemType, "customer_account")
+      )
+    );
+
+  const byOrderId = new Map<number, InventoryInvRow[]>();
+  for (const r of invRows) {
+    const arr = byOrderId.get(r.orderId) ?? [];
+    arr.push(r);
+    byOrderId.set(r.orderId, arr);
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    expiresAt: resolveInventoryExpiresAtByOrderAndEmail(row.email, row.orderId, byOrderId),
+  }));
 }
 
 export async function findCustomerAccountsByOrderId(orderId: number) {

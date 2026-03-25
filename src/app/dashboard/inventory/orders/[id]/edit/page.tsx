@@ -115,15 +115,15 @@ export default async function EditInventoryOrderPage({
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="durationDays" className="mb-1.5 block text-sm font-medium">
-                ระยะเวลา (วัน) *
+              <label htmlFor="durationMonths" className="mb-1.5 block text-sm font-medium">
+                จำนวนเดือน *
               </label>
               <Input
-                id="durationDays"
-                name="durationDays"
+                id="durationMonths"
+                name="durationMonths"
                 type="number"
                 min={1}
-                defaultValue={row.durationDays}
+                defaultValue={row.durationMonths}
                 className="w-full"
               />
             </div>

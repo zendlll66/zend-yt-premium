@@ -1,12 +1,13 @@
 import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
 import { customers } from "./customer.schema";
 import { orders } from "./order.schema";
+import { INVENTORY_ITEM_TYPES } from "./customer-inventory.schema";
 
-export const INVENTORY_ITEM_TYPES = ["individual", "family", "invite", "customer_account"] as const;
-export type InventoryItemType = (typeof INVENTORY_ITEM_TYPES)[number];
-
-/** ข้อมูลที่ส่งมอบให้ลูกค้าหลังจ่ายเงิน สำรองไว้เปิดดูย้อนหลัง */
-export const customerInventories = sqliteTable("customer_inventories", {
+/**
+ * สคีมาเดียวกับ `customer_inventories` แต่ใช้ `duration_days` แทน `duration_months`
+ * สำหรับ DB ที่ยังไม่รัน migrate ล่าสุด
+ */
+export const customerInventoriesHybrid = sqliteTable("customer_inventories", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   customerId: integer("customer_id")
     .notNull()
@@ -19,7 +20,7 @@ export const customerInventories = sqliteTable("customer_inventories", {
   loginEmail: text("login_email"),
   loginPassword: text("login_password"),
   inviteLink: text("invite_link"),
-  durationMonths: integer("duration_months").notNull().default(1),
+  durationDays: integer("duration_days").notNull().default(30),
   activatedAt: integer("activated_at", { mode: "timestamp" }),
   expiresAt: integer("expires_at", { mode: "timestamp" }),
   note: text("note"),
@@ -27,4 +28,3 @@ export const customerInventories = sqliteTable("customer_inventories", {
     .$defaultFn(() => new Date())
     .notNull(),
 });
-

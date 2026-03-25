@@ -1,0 +1,1 @@
+ALTER TABLE `products` ADD COLUMN `duration_months` integer NOT NULL DEFAULT 1;

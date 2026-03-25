@@ -45,9 +45,9 @@ export async function createInventoryOrderAction(
   const customerId = parseId((formData.get("customerId") as string) ?? null);
   const itemType = parseItemType((formData.get("itemType") as string) ?? null);
   const title = (formData.get("title") as string)?.trim() ?? "";
-  const durationDays = Math.max(
+  const durationMonths = Math.max(
     1,
-    parseInt((formData.get("durationDays") as string) ?? "30", 10) || 30
+    parseInt((formData.get("durationMonths") as string) ?? "1", 10) || 1
   );
   const activatedAt = parseDate((formData.get("activatedAt") as string) ?? null);
   const expiresAt = parseDate((formData.get("expiresAt") as string) ?? null);
@@ -67,7 +67,7 @@ export async function createInventoryOrderAction(
     loginEmail,
     loginPassword,
     inviteLink,
-    durationDays,
+    durationMonths,
     activatedAt: activatedAt ?? undefined,
     expiresAt: expiresAt ?? undefined,
     note,
@@ -90,9 +90,9 @@ export async function updateInventoryOrderAction(
   const id = parseId((formData.get("id") as string) ?? null);
   const itemType = parseItemType((formData.get("itemType") as string) ?? null);
   const title = (formData.get("title") as string)?.trim() ?? "";
-  const durationDays = Math.max(
+  const durationMonths = Math.max(
     1,
-    parseInt((formData.get("durationDays") as string) ?? "30", 10) || 30
+    parseInt((formData.get("durationMonths") as string) ?? "1", 10) || 1
   );
   const activatedAt = parseDate((formData.get("activatedAt") as string) ?? null);
   const expiresAt = parseDate((formData.get("expiresAt") as string) ?? null);
@@ -116,7 +116,7 @@ export async function updateInventoryOrderAction(
     loginEmail,
     loginPassword,
     inviteLink,
-    durationDays,
+    durationMonths,
     activatedAt,
     expiresAt,
     note,

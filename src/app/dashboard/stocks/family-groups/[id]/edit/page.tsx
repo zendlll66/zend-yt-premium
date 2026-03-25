@@ -2,18 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { removeFamilyMemberAction, updateFamilyGroupAction } from "@/features/youtube/youtube-stock.actions";
 import { findFamilyGroupsWithMembers } from "@/features/youtube/youtube-stock.repo";
+import { getShopSettings } from "@/features/settings/settings.repo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { AddFamilyMemberForm } from "./add-family-member-form";
-
-function daysLeft(expiresAt: Date | null) {
-  if (!expiresAt) return null;
-  const now = new Date();
-  const diff = expiresAt.getTime() - now.getTime();
-  return Math.floor(diff / (24 * 60 * 60 * 1000));
-}
+import { getDaysLeftDisplay, getInventoryExpiryWarningDays } from "@/lib/inventory-expiry";
 
 export default async function EditFamilyGroupPage({
   params,
@@ -24,7 +19,11 @@ export default async function EditFamilyGroupPage({
   const groupId = parseInt(id, 10);
   if (!Number.isFinite(groupId)) notFound();
 
-  const familyData = await findFamilyGroupsWithMembers();
+  const [familyData, settings] = await Promise.all([
+    findFamilyGroupsWithMembers(),
+    getShopSettings(),
+  ]);
+  const warningDays = getInventoryExpiryWarningDays(settings);
   const group = familyData.groups.find((g) => g.id === groupId);
   if (!group) notFound();
   const members = familyData.membersByGroup[groupId] ?? [];
@@ -250,14 +249,11 @@ export default async function EditFamilyGroupPage({
                       </td>
                       <td className="px-3 py-2">
                         {(() => {
-                          const d = daysLeft((m as { expiresAt?: Date | null }).expiresAt ?? null);
-                          if (d == null) return <span className="text-muted-foreground">-</span>;
-                          if (d < 0) return <span className="text-destructive font-medium">หมดอายุ</span>;
-                          return (
-                            <span className={d <= 3 ? "text-amber-600 font-medium" : ""}>
-                              {d} วัน
-                            </span>
+                          const ui = getDaysLeftDisplay(
+                            (m as { expiresAt?: Date | null }).expiresAt ?? null,
+                            warningDays
                           );
+                          return <span className={ui.className}>{ui.text}</span>;
                         })()}
                       </td>
                       <td className="px-3 py-2 text-right">

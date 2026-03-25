@@ -1,11 +1,10 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { getCustomerSession } from "@/lib/auth-customer-server";
 import { createYoutubeOrder } from "@/features/order/order.repo";
 import { orderItems, orderItemModifiers, type OrderProductType } from "@/db/schema/order.schema";
-import { products } from "@/db/schema/product.schema";
+import { selectRenewalProduct } from "@/features/product/product.repo";
 import { findCustomerInventoryById } from "./customer-inventory.repo";
 import type { InventoryItemType } from "@/db/schema/customer-inventory.schema";
 import { INVENTORY_RENEWAL_TARGET_MODIFIER_PREFIX } from "@/lib/inventory-renewal";
@@ -31,20 +30,9 @@ export async function renewInventoryItemAction(formData: FormData) {
   if (!expiresAt || expiresAt.getTime() > Date.now()) redirect("/account/inventory");
 
   const itemType = inventoryRow.itemType as InventoryItemType;
-  const durationDays = inventoryRow.durationDays;
+  const durationMonths = inventoryRow.durationMonths;
 
-  const product = await db
-    .select({ id: products.id, name: products.name, price: products.price })
-    .from(products)
-    .where(and(eq(products.stockType, itemType), eq(products.durationDays, durationDays)))
-    .limit(1);
-
-  const renewalProduct = product[0] ??
-    (await db
-      .select({ id: products.id, name: products.name, price: products.price })
-      .from(products)
-      .where(eq(products.stockType, itemType))
-      .limit(1))[0];
+  const renewalProduct = await selectRenewalProduct(itemType, durationMonths);
 
   if (!renewalProduct) redirect("/account/inventory");
 

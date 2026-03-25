@@ -18,8 +18,8 @@ export const products = sqliteTable("products", {
   barcode: text("barcode"),
   imageUrl: text("image_url"),
   description: text("description"),
-  /** อายุแพ็กเกจ (วัน) เช่น 30 / 90 / 365 */
-  durationDays: integer("duration_days").notNull().default(30),
+  /** อายุแพ็กเกจ (จำนวนเดือน) — คำนวณวันหมดอายุแบบบวกเดือนตามปฏิทิน */
+  durationMonths: integer("duration_months").notNull().default(1),
   /** ประเภท stock ที่จะใช้ตอนจ่ายเงิน/assign stock */
   stockType: text("stock_type", { enum: PRODUCT_STOCK_TYPES }).notNull().default("individual"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),

@@ -9,6 +9,7 @@ import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { CustomerSelectField } from "@/app/dashboard/stocks/account-stock/[id]/edit/customer-select-field";
 import type { CustomerProfile } from "@/features/customer/customer.repo";
 import { INVENTORY_ITEM_TYPES } from "@/db/schema/customer-inventory.schema";
+import { addCalendarMonths } from "@/lib/calendar-months";
 
 function toDatetimeLocal(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -22,7 +23,7 @@ function toDatetimeLocal(d: Date): string {
 
 export function InventoryOrderAddForm({ customers }: { customers: CustomerProfile[] }) {
   const now = new Date();
-  const defaultExpires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const defaultExpires = addCalendarMonths(now, 1);
   const [state, formAction, isPending] = useActionState(createInventoryOrderAction, {
     error: undefined,
   } as { error?: string });
@@ -101,15 +102,15 @@ export function InventoryOrderAddForm({ customers }: { customers: CustomerProfil
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="durationDays" className="mb-1.5 block text-sm font-medium">
-            ระยะเวลา (วัน) *
+          <label htmlFor="durationMonths" className="mb-1.5 block text-sm font-medium">
+            จำนวนเดือน *
           </label>
           <Input
-            id="durationDays"
-            name="durationDays"
+            id="durationMonths"
+            name="durationMonths"
             type="number"
             min={1}
-            defaultValue={30}
+            defaultValue={1}
             disabled={isPending}
             className="w-full"
           />
@@ -130,7 +131,7 @@ export function InventoryOrderAddForm({ customers }: { customers: CustomerProfil
       </div>
       <div>
         <label htmlFor="expiresAt" className="mb-1.5 block text-sm font-medium">
-          วันที่หมดอายุ (expiresAt) — ว่างไว้ใช้ เริ่มต้น + ระยะเวลา
+          วันที่หมดอายุ (expiresAt) — ว่างไว้ใช้ เริ่มต้น + จำนวนเดือน (ตามปฏิทิน)
         </label>
         <Input
           id="expiresAt"

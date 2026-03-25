@@ -1,0 +1,1 @@
+ALTER TABLE `customer_inventories` ADD COLUMN `duration_months` integer NOT NULL DEFAULT 1;

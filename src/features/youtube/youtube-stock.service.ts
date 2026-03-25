@@ -5,12 +5,18 @@ import { customerAccounts } from "@/db/schema/customer-account.schema";
 import { customers } from "@/db/schema/customer.schema";
 import { familyGroups, familyMembers } from "@/db/schema/family.schema";
 import { orderItemModifiers, orderItems, orders, type OrderProductType } from "@/db/schema/order.schema";
-import { products } from "@/db/schema/product.schema";
+import { getProductDurationMonthsByProductId } from "@/features/product/product.repo";
 import { customerInventories } from "@/db/schema/customer-inventory.schema";
+import { customerInventoriesHybrid } from "@/db/schema/customer-inventory-hybrid.schema";
+import {
+  getCustomerInventoryDurationSupport,
+  monthsToDurationDaysApprox,
+} from "@/features/inventory/customer-inventory-duration-support";
 import { addCustomerInventoryItem } from "@/features/inventory/customer-inventory.repo";
 import { pushLineTextMessage } from "@/lib/line-message";
 import { extractCustomerAccountCredentials } from "@/lib/customer-account-credentials";
 import { INVENTORY_RENEWAL_TARGET_MODIFIER_PREFIX, parseInventoryRenewalTargetId } from "@/lib/inventory-renewal";
+import { addCalendarMonths } from "@/lib/calendar-months";
 import {
   familyMemberCredentialOnlySql,
   familyMemberHasInviteUrlSql,
@@ -264,23 +270,17 @@ async function sendLineInventoryMessage(
   await pushLineTextMessage(lineUserId, message);
 }
 
-async function resolveOrderDurationDays(conn: typeof db, orderId: number): Promise<number> {
+async function resolveOrderDurationMonths(conn: typeof db, orderId: number): Promise<number> {
   try {
     const [orderItem] = await conn
       .select({ productId: orderItems.productId })
       .from(orderItems)
       .where(eq(orderItems.orderId, orderId))
       .limit(1);
-    if (!orderItem?.productId) return 30;
-    const [product] = await conn
-      .select({ durationDays: products.durationDays })
-      .from(products)
-      .where(eq(products.id, orderItem.productId))
-      .limit(1);
-    if (!product?.durationDays || product.durationDays < 1) return 30;
-    return product.durationDays;
+    if (!orderItem?.productId) return 1;
+    return getProductDurationMonthsByProductId(conn, orderItem.productId);
   } catch {
-    return 30;
+    return 1;
   }
 }
 
@@ -319,7 +319,7 @@ async function resolveCustomerAccountCredentialsFromOrder(
 async function writeInventoryForAssignedStock(conn: typeof db, ctx: AssignContext, stock: AssignedStock) {
   const customerId = await resolveCustomerId(conn, ctx);
   if (!customerId) return;
-  const durationDays = await resolveOrderDurationDays(conn, ctx.orderId);
+  const durationMonths = await resolveOrderDurationMonths(conn, ctx.orderId);
 
   if (stock.kind === "individual") {
     await addCustomerInventoryItem({
@@ -329,7 +329,7 @@ async function writeInventoryForAssignedStock(conn: typeof db, ctx: AssignContex
       title: "Individual Account",
       loginEmail: stock.email,
       loginPassword: stock.password,
-      durationDays,
+      durationMonths,
       tx: conn,
     });
     await sendLineInventoryMessage(
@@ -350,7 +350,7 @@ async function writeInventoryForAssignedStock(conn: typeof db, ctx: AssignContex
       loginEmail: stock.email,
       loginPassword: invite ? null : stock.password ?? undefined,
       inviteLink: invite || null,
-      durationDays,
+      durationMonths,
       note: `family_group_id=${stock.familyGroupId}`,
       tx: conn,
     });
@@ -372,7 +372,7 @@ async function writeInventoryForAssignedStock(conn: typeof db, ctx: AssignContex
       itemType: "invite",
       title: "Invite Link",
       inviteLink: stock.link,
-      durationDays,
+      durationMonths,
       tx: conn,
     });
     await sendLineInventoryMessage(
@@ -424,7 +424,7 @@ async function writeInventoryForAssignedStock(conn: typeof db, ctx: AssignContex
     title: "Customer Account",
     loginEmail,
     loginPassword,
-    durationDays,
+    durationMonths,
     note: "pending",
     tx: conn,
   });
@@ -474,24 +474,43 @@ export async function assignStockForPaidOrder(input: {
     : null;
 
   if (parsedRenewalTargetId) {
-    const [target] = await conn
-      .select({
-        id: customerInventories.id,
-        customerId: customerInventories.customerId,
-        itemType: customerInventories.itemType,
-        title: customerInventories.title,
-        activatedAt: customerInventories.activatedAt,
-        expiresAt: customerInventories.expiresAt,
-        durationDays: customerInventories.durationDays,
-        note: customerInventories.note,
-      })
-      .from(customerInventories)
-      .where(eq(customerInventories.id, parsedRenewalTargetId))
-      .limit(1);
+    const durSupport = await getCustomerInventoryDurationSupport();
+    if (!durSupport.useDurationMonthsColumn && !durSupport.useHybridDurationDays) {
+      return { kind: "renewal", inventoryId: parsedRenewalTargetId };
+    }
+
+    const [target] = durSupport.useDurationMonthsColumn
+      ? await conn
+          .select({
+            id: customerInventories.id,
+            customerId: customerInventories.customerId,
+            itemType: customerInventories.itemType,
+            title: customerInventories.title,
+            activatedAt: customerInventories.activatedAt,
+            expiresAt: customerInventories.expiresAt,
+            durationMonths: customerInventories.durationMonths,
+            note: customerInventories.note,
+          })
+          .from(customerInventories)
+          .where(eq(customerInventories.id, parsedRenewalTargetId))
+          .limit(1)
+      : await conn
+          .select({
+            id: customerInventoriesHybrid.id,
+            customerId: customerInventoriesHybrid.customerId,
+            itemType: customerInventoriesHybrid.itemType,
+            title: customerInventoriesHybrid.title,
+            activatedAt: customerInventoriesHybrid.activatedAt,
+            expiresAt: customerInventoriesHybrid.expiresAt,
+            note: customerInventoriesHybrid.note,
+          })
+          .from(customerInventoriesHybrid)
+          .where(eq(customerInventoriesHybrid.id, parsedRenewalTargetId))
+          .limit(1);
 
     if (!target) return { kind: "renewal", inventoryId: parsedRenewalTargetId };
 
-    const durationDays = await resolveOrderDurationDays(conn, ctx.orderId);
+    const durationMonths = await resolveOrderDurationMonths(conn, ctx.orderId);
     const now = new Date();
     const base =
       target.expiresAt && target.expiresAt instanceof Date
@@ -500,16 +519,27 @@ export async function assignStockForPaidOrder(input: {
           : now
         : now;
 
-    const newExpiresAt = new Date(base.getTime() + durationDays * 24 * 60 * 60 * 1000);
+    const newExpiresAt = addCalendarMonths(base, durationMonths);
 
-    await conn
-      .update(customerInventories)
-      .set({
-        activatedAt: base,
-        expiresAt: newExpiresAt,
-        durationDays,
-      })
-      .where(eq(customerInventories.id, parsedRenewalTargetId));
+    if (durSupport.useDurationMonthsColumn) {
+      await conn
+        .update(customerInventories)
+        .set({
+          activatedAt: base,
+          expiresAt: newExpiresAt,
+          durationMonths,
+        })
+        .where(eq(customerInventories.id, parsedRenewalTargetId));
+    } else {
+      await conn
+        .update(customerInventoriesHybrid)
+        .set({
+          activatedAt: base,
+          expiresAt: newExpiresAt,
+          durationDays: monthsToDurationDaysApprox(durationMonths),
+        })
+        .where(eq(customerInventoriesHybrid.id, parsedRenewalTargetId));
+    }
 
     if (target.customerId != null) {
       await sendLineInventoryMessage(
@@ -535,7 +565,7 @@ export async function assignStockForPaidOrder(input: {
     }
     const customerId = await resolveCustomerId(conn, ctx);
     if (customerId && stocks.length > 0) {
-      const durationDays = await resolveOrderDurationDays(conn, ctx.orderId);
+      const durationMonths = await resolveOrderDurationMonths(conn, ctx.orderId);
       for (let idx = 0; idx < stocks.length; idx++) {
         const stock = stocks[idx];
         await addCustomerInventoryItem({
@@ -545,7 +575,7 @@ export async function assignStockForPaidOrder(input: {
           title: stocks.length > 1 ? `Individual Account (${idx + 1}/${stocks.length})` : "Individual Account",
           loginEmail: stock.email,
           loginPassword: stock.password,
-          durationDays,
+          durationMonths,
           insertOnly: idx > 0,
           tx: conn,
         });
@@ -571,7 +601,7 @@ export async function assignStockForPaidOrder(input: {
     }
     const customerId = await resolveCustomerId(conn, ctx);
     if (customerId && links.length > 0) {
-      const durationDays = await resolveOrderDurationDays(conn, ctx.orderId);
+      const durationMonths = await resolveOrderDurationMonths(conn, ctx.orderId);
       for (let idx = 0; idx < links.length; idx++) {
         await addCustomerInventoryItem({
           customerId,
@@ -579,7 +609,7 @@ export async function assignStockForPaidOrder(input: {
           itemType: "invite",
           title: links.length > 1 ? `Invite Link (${idx + 1}/${links.length})` : "Invite Link",
           inviteLink: links[idx],
-          durationDays,
+          durationMonths,
           insertOnly: idx > 0,
           tx: conn,
         });
@@ -619,7 +649,7 @@ export async function assignStockForPaidOrder(input: {
     }
     const customerId = await resolveCustomerId(conn, ctx);
     if (customerId && slots.length > 0) {
-      const durationDays = await resolveOrderDurationDays(conn, ctx.orderId);
+      const durationMonths = await resolveOrderDurationMonths(conn, ctx.orderId);
       for (let idx = 0; idx < slots.length; idx++) {
         const slot = slots[idx];
         const invite = slot.inviteLink?.trim() ?? "";
@@ -634,7 +664,7 @@ export async function assignStockForPaidOrder(input: {
           loginEmail: slot.email,
           loginPassword: invite ? undefined : slot.password ?? undefined,
           inviteLink: invite || undefined,
-          durationDays,
+          durationMonths,
           insertOnly: idx > 0,
           tx: conn,
         });
@@ -719,7 +749,7 @@ export async function createCustomerAccountForOrder(
       title: "Customer Account",
       loginEmail: row.email,
       loginPassword: row.password,
-      durationDays: await resolveOrderDurationDays(db, ctx.orderId),
+      durationMonths: await resolveOrderDurationMonths(db, ctx.orderId),
       note: "pending",
     });
     await sendLineInventoryMessage(

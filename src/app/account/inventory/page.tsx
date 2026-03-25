@@ -27,12 +27,12 @@ function getRemainingDays(expiresAt: Date | null): number | null {
   return Math.max(0, diffDays);
 }
 
-function ExpiryBadge({ expiresAt, durationDays }: { expiresAt: Date | null; durationDays: number }) {
+function ExpiryBadge({ expiresAt, durationMonths }: { expiresAt: Date | null; durationMonths: number }) {
   const days = getRemainingDays(expiresAt);
   if (days === null) {
     return (
       <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-        อายุ {durationDays} วัน
+        อายุ {durationMonths} เดือน
       </span>
     );
   }
@@ -101,7 +101,7 @@ export default async function AccountInventoryPage() {
                           <TypeIcon className="h-3.5 w-3.5" />
                           {typeConfig.label}
                         </span>
-                        <ExpiryBadge expiresAt={item.expiresAt} durationDays={item.durationDays} />
+                        <ExpiryBadge expiresAt={item.expiresAt} durationMonths={item.durationMonths} />
                       </div>
                       {item.expiresAt && new Date(item.expiresAt).getTime() <= now && (
                         <form action={renewInventoryItemAction} className="mt-3">

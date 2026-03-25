@@ -79,7 +79,7 @@ export async function seedProducts(): Promise<void> {
       if (existing) continue;
 
       const stockType = inferStockType(productName, catName);
-      const durationDays = inferDurationDays(productName);
+      const durationMonths = inferDurationMonths(productName);
       await db.insert(products).values({
         name: productName,
         categoryId,
@@ -90,7 +90,7 @@ export async function seedProducts(): Promise<void> {
         barcode: null,
         imageUrl: null,
         description: `แพ็กเกจในหมวด ${catName}`,
-        durationDays,
+        durationMonths,
         stockType,
         isActive: true,
       });
@@ -110,11 +110,11 @@ function inferStockType(productName: string, categoryName: string): ProductStock
   return "individual";
 }
 
-function inferDurationDays(productName: string): number {
+function inferDurationMonths(productName: string): number {
   const text = productName.toLowerCase();
-  if (text.includes("1 ปี") || text.includes("12 เดือน")) return 365;
-  if (text.includes("3 เดือน")) return 90;
-  return 30;
+  if (text.includes("1 ปี") || text.includes("12 เดือน")) return 12;
+  if (text.includes("3 เดือน")) return 3;
+  return 1;
 }
 
 const isMain = process.argv[1]?.replace(/\\/g, "/").endsWith("seed-products.ts");

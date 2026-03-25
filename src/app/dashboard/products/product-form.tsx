@@ -19,7 +19,7 @@ type ProductRow = {
   barcode: string | null;
   imageUrl: string | null;
   description: string | null;
-  durationDays: number;
+  durationMonths: number;
   stockType?: "individual" | "family" | "invite" | "customer_account";
   isActive: boolean;
 };
@@ -144,19 +144,22 @@ export function ProductForm({ categories, product, action }: Props) {
       </div>
 
       <div>
-        <label htmlFor="duration_days" className="mb-1.5 block text-sm font-medium">
-          อายุแพ็กเกจ (วัน) *
+        <label htmlFor="duration_months" className="mb-1.5 block text-sm font-medium">
+          อายุแพ็กเกจ (จำนวนเดือน) *
         </label>
         <Input
-          id="duration_days"
-          name="duration_days"
+          id="duration_months"
+          name="duration_months"
           type="number"
           min={1}
           step={1}
-          defaultValue={product?.durationDays ?? 30}
+          defaultValue={product?.durationMonths ?? 1}
           required
           disabled={isPending}
         />
+        <p className="mt-1 text-xs text-muted-foreground">
+          วันหมดอายุคำนวณจากวันที่เปิดใช้งาน โดยบวกเดือนตามปฏิทิน (เช่น ซื้อวันที่ 23 ของเดือน → หมดวันที่ 23 ของเดือนถัดไป)
+        </p>
       </div>
 
       <div>

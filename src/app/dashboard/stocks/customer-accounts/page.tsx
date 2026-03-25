@@ -3,9 +3,11 @@ import {
   deleteCustomerAccountAction,
 } from "@/features/youtube/youtube-stock.actions";
 import { findCustomerAccounts } from "@/features/youtube/youtube-stock.repo";
+import { getShopSettings } from "@/features/settings/settings.repo";
 import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PasswordToggle } from "@/components/ui/password-toggle";
+import { getDaysLeftDisplay, getInventoryExpiryWarningDays } from "@/lib/inventory-expiry";
 
 function formatDate(d: Date | null) {
   if (!d) return "-";
@@ -17,13 +19,6 @@ function formatDate(d: Date | null) {
     minute: "2-digit",
     hour12: false,
   });
-}
-
-function daysLeft(expiresAt: Date | null) {
-  if (!expiresAt) return null;
-  const now = new Date();
-  const diff = expiresAt.getTime() - now.getTime();
-  return Math.floor(diff / (24 * 60 * 60 * 1000));
 }
 
 function getStatusBadge(status: string) {
@@ -55,7 +50,11 @@ function getStatusBadge(status: string) {
 }
 
 export default async function CustomerAccountsPage() {
-  const rows = await findCustomerAccounts(500);
+  const [rows, settings] = await Promise.all([
+    findCustomerAccounts(500),
+    getShopSettings(),
+  ]);
+  const warningDays = getInventoryExpiryWarningDays(settings);
   const pendingCount = rows.filter((r) => r.status === "pending").length;
   const processingCount = rows.filter((r) => r.status === "processing").length;
   const doneCount = rows.filter((r) => r.status === "done").length;
@@ -79,6 +78,9 @@ export default async function CustomerAccountsPage() {
           <div className="rounded-lg border bg-card p-3 text-sm">
             เสร็จแล้ว: <b>{doneCount}</b>
           </div>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          เกณฑ์วันเหลือง (ใกล้หมดอายุ): <b>{warningDays}</b> วัน
         </div>
         <Button asChild>
           <Link href="/dashboard/stocks/customer-accounts/add">เพิ่ม customer account</Link>
@@ -161,14 +163,11 @@ export default async function CustomerAccountsPage() {
                   </td>
                   <td className="px-3 py-2">
                     {(() => {
-                      const d = daysLeft((row as { expiresAt?: Date | null }).expiresAt ?? null);
-                      if (d == null) return <span className="text-muted-foreground">-</span>;
-                      if (d < 0) return <span className="text-destructive font-medium">หมดอายุ</span>;
-                      return (
-                        <span className={d <= 3 ? "text-amber-600 font-medium" : ""}>
-                          {d} วัน
-                        </span>
+                      const ui = getDaysLeftDisplay(
+                        (row as { expiresAt?: Date | null }).expiresAt ?? null,
+                        warningDays
                       );
+                      return <span className={ui.className}>{ui.text}</span>;
                     })()}
                   </td>
                   <td className="px-3 py-2 max-w-[120px] truncate text-muted-foreground" title={row.notes ?? undefined}>
