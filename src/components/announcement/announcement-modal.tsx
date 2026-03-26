@@ -24,7 +24,7 @@ export function AnnouncementModal() {
   const [open, setOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false, watchDrag: false });
 
   // Sync selectedIndex with embla
   const onSelect = useCallback(() => {
@@ -121,11 +121,11 @@ export function AnnouncementModal() {
             </div>
 
             {/* Carousel */}
-            <div className="overflow-hidden" ref={emblaRef}>
-              <div className="flex">
+            <div className="h-[60vh] overflow-hidden sm:h-[65vh]" ref={emblaRef}>
+              <div className="flex h-full">
                 {items.map((ann) => (
-                  <div key={ann.id} className="min-w-0 flex-[0_0_100%]">
-                    <div className="max-h-[70vh] overflow-y-auto px-6 py-5 sm:max-h-[75vh] sm:px-8">
+                  <div key={ann.id} className="h-full min-w-0 flex-[0_0_100%]">
+                    <div className="h-full overflow-y-auto px-6 py-5 sm:px-8">
                       <h3 className="mb-3 text-base font-semibold text-brand-fg">{ann.title}</h3>
                       <WysiwygContent
                         html={ann.content}
