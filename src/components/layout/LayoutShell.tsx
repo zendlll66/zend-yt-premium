@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { AnnouncementModal } from "@/components/announcement/announcement-modal";
 import type { ShopSettings } from "@/features/settings/settings.repo";
 import type { CustomerSessionUser } from "@/lib/auth-customer-server";
 
@@ -25,6 +26,7 @@ export function LayoutShell({ shop, customer, hasMembership = false, cartCount =
 
   return (
     <>
+      <AnnouncementModal />
       {shop && <Navbar shop={shop} customer={customer} hasMembership={hasMembership} cartCount={cartCount} />}
       <main className="min-h-screen mt-14">{children}</main>
       {shop && <Footer shop={shop} customer={customer} />}

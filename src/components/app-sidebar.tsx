@@ -148,6 +148,12 @@ const NAV_MAIN = [
     isActive: true,
   },
   {
+    title: "ประกาศ",
+    url: "/dashboard/announcements",
+    icon: <HugeiconsIcon icon={MessageEdit01Icon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
     title: "ตั้งค่าร้าน",
     url: "#",
     icon: <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />,
@@ -155,6 +161,7 @@ const NAV_MAIN = [
     items: [
       { title: "ตั้งค่าทั่วไป", url: "/dashboard/settings" },
       { title: "ข้อความ LINE", url: "/dashboard/settings/line-templates" },
+      { title: "ช่องทางติดต่อ", url: "/dashboard/settings/contact" },
     ],
   },
   {

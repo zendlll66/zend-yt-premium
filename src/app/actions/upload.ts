@@ -2,7 +2,7 @@
 
 import { uploadToR2, deleteFromR2, getR2PublicUrl } from "@/lib/r2";
 
-export type UploadImageResult = { key?: string; error?: string };
+export type UploadImageResult = { key?: string; url?: string; error?: string };
 
 export async function uploadImageAction(
   formData: FormData
@@ -23,7 +23,7 @@ export async function uploadImageAction(
   );
 
   if (!key) return { error: "อัปโหลดไม่สำเร็จ" };
-  return { key };
+  return { key, url: getR2PublicUrl(key) };
 }
 
 export type DeleteImageResult = { ok?: boolean; error?: string };

@@ -344,6 +344,13 @@
       "when": 1774467654200,
       "tag": "0048_white_lucky_pierre",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "6",
+      "when": 1774471990575,
+      "tag": "0049_lame_toad_men",
+      "breakpoints": true
     }
   ]
 }
