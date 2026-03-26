@@ -58,6 +58,7 @@ export default async function ExpiringInventoryOrdersPage() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
+                <th className="px-3 py-2 text-muted-foreground font-mono text-xs">Order ID</th>
                 <th className="px-3 py-2">Order</th>
                 <th className="px-3 py-2">ลูกค้า</th>
                 <th className="px-3 py-2">ประเภท</th>
@@ -71,7 +72,7 @@ export default async function ExpiringInventoryOrdersPage() {
               {rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-3 py-6 text-center text-sm text-muted-foreground"
                   >
                     ยังไม่มี order ที่ใกล้หมดอายุใน {warningDays} วัน
@@ -82,6 +83,9 @@ export default async function ExpiringInventoryOrdersPage() {
                   const d = daysLeft(row.expiresAt);
                   return (
                     <tr key={row.id} className="border-b last:border-0">
+                      <td className="px-3 py-2 font-mono text-xs text-muted-foreground select-all">
+                        {row.orderId ?? row.id}
+                      </td>
                       <td className="px-3 py-2">
                         {row.orderId ? (
                           <Link

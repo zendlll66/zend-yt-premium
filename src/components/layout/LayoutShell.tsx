@@ -28,7 +28,7 @@ export function LayoutShell({ shop, customer, hasMembership = false, cartCount =
     <>
       <AnnouncementModal />
       {shop && <Navbar shop={shop} customer={customer} hasMembership={hasMembership} cartCount={cartCount} />}
-      <main className="min-h-screen">{children}</main>
+      <main className="min-h-screen mt-14">{children}</main>
       {shop && <Footer shop={shop} customer={customer} />}
     </>
   );

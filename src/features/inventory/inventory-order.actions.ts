@@ -57,6 +57,7 @@ export async function createInventoryOrderAction(
   const loginPassword = (formData.get("loginPassword") as string)?.trim() || null;
   const inviteLink = (formData.get("inviteLink") as string)?.trim() || null;
   const note = (formData.get("note") as string)?.trim() || null;
+  const redirectTo = parseRedirectTo((formData.get("redirectTo") as string) ?? null, "");
 
   if (!customerId || !itemType || !title) {
     return { error: "กรุณาเลือกลูกค้า ประเภท และกรอก Title" };
@@ -85,6 +86,10 @@ export async function createInventoryOrderAction(
   revalidatePath("/dashboard/inventory/orders/expiring");
   revalidatePath("/dashboard/inventory/orders/expired");
   revalidatePath("/dashboard");
+  if (redirectTo) {
+    revalidatePath(redirectTo);
+    redirect(redirectTo);
+  }
   redirect(`/dashboard/inventory/orders/${result.inventoryId}/edit`);
 }
 
@@ -141,11 +146,12 @@ export async function updateInventoryOrderAction(
   redirect(`/dashboard/inventory/orders/${id}/edit`);
 }
 
-function parseRedirectTo(value: string | null): string {
+function parseRedirectTo(value: string | null, fallback = "/dashboard/stocks"): string {
   const v = (value ?? "").trim();
   if (v.startsWith("/dashboard/stocks/account-stock/") && v.endsWith("/edit")) return v;
   if (v.startsWith("/dashboard/stocks/family-members/") && v.endsWith("/edit")) return v;
-  return "/dashboard/stocks";
+  if (v.startsWith("/dashboard/customers/") && v.includes("/inventory")) return v;
+  return fallback;
 }
 
 export async function updateInventoryDatesAction(formData: FormData) {
@@ -197,6 +203,7 @@ export async function updateInventoryDatesByOrderAction(formData: FormData) {
 
 export async function deleteInventoryOrderAction(formData: FormData): Promise<void> {
   const id = parseId((formData.get("id") as string) ?? null);
+  const redirectTo = parseRedirectTo((formData.get("redirectTo") as string) ?? null, "");
   if (!id) {
     redirect("/dashboard/inventory/orders/active");
     return;
@@ -209,6 +216,7 @@ export async function deleteInventoryOrderAction(formData: FormData): Promise<vo
     revalidatePath("/dashboard/inventory/orders/expiring");
     revalidatePath("/dashboard/inventory/orders/expired");
     revalidatePath("/dashboard");
+    if (redirectTo) revalidatePath(redirectTo);
   }
-  redirect("/dashboard/inventory/orders/active");
+  redirect(redirectTo || "/dashboard/inventory/orders/active");
 }

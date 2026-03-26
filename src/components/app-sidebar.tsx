@@ -130,6 +130,12 @@ const NAV_MAIN = [
     isActive: true,
   },
   {
+    title: "คำขอย้ายข้อมูล",
+    url: "/dashboard/migration-requests",
+    icon: <HugeiconsIcon icon={DatabaseIcon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
     title: "Support Tickets",
     url: "/dashboard/support",
     icon: <HugeiconsIcon icon={CustomerService01Icon} strokeWidth={2} />,

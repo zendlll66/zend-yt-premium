@@ -2,37 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { findAllCustomers } from "@/features/customer/customer.repo";
 import { findAccountStockById } from "@/features/youtube/youtube-stock.repo";
-import { updateAccountStockAction } from "@/features/youtube/youtube-stock.actions";
-import { updateInventoryDatesAction } from "@/features/inventory/inventory-order.actions";
 import { findCustomerInventoryForOrderItem } from "@/features/inventory/customer-inventory.repo";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { FormSubmitButton } from "@/components/ui/form-submit-button";
-import { CustomerSelectField } from "./customer-select-field";
-import { PasswordInput } from "@/components/ui/password-input";
-
-function toDatetimeLocal(d: Date | null): string {
-  if (!d) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const y = d.getFullYear();
-  const m = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  const h = pad(d.getHours());
-  const min = pad(d.getMinutes());
-  return `${y}-${m}-${day}T${h}:${min}`;
-}
-
-function formatDateTimeTH(d: Date | null): string {
-  if (!d) return "--/--/---- --:--";
-  return new Date(d).toLocaleString("th-TH", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
+import { EditAccountStockForm } from "./edit-account-stock-form";
 
 export default async function EditAccountStockPage({
   params,
@@ -66,164 +38,30 @@ export default async function EditAccountStockPage({
         </Button>
       </div>
       <h1 className="text-xl font-semibold">แก้ไข Account Stock #{stock.id}</h1>
-      <form
-        action={updateAccountStockAction}
-        className="flex max-w-md flex-col gap-4 rounded-xl border bg-card p-6"
-      >
-        <input type="hidden" name="id" value={stock.id} />
-        <div>
-          <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
-            Email / Username *
-          </label>
-          <Input
-            id="email"
-            name="email"
-            defaultValue={stock.email}
-            placeholder="email หรือ username สำหรับล็อกอิน"
-            required
-            className="w-full"
-          />
-        </div>
-        <div>
-          <PasswordInput
-            id="password"
-            name="password"
-            label="Password *"
-            defaultValue={stock.password}
-            placeholder="รหัสผ่าน"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="status" className="mb-1.5 block text-sm font-medium">
-            สถานะ
-          </label>
-          <select
-            id="status"
-            name="status"
-            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            defaultValue={stock.status}
-          >
-            <option value="available">available</option>
-            <option value="reserved">reserved</option>
-            <option value="sold">sold</option>
-          </select>
-        </div>
-        <div>
-          <label htmlFor="orderId" className="mb-1.5 block text-sm font-medium">
-            Order ID
-          </label>
-          <Input
-            id="orderId"
-            name="orderId"
-            type="number"
-            min={1}
-            step={1}
-            placeholder="ว่างไว้ถ้าไม่มี"
-            defaultValue={stock.orderId ?? ""}
-            className="w-full"
-          />
-        </div>
-        <CustomerSelectField
-          customers={customers}
-          initialCustomerId={stock.customerId ?? null}
-        />
-        <div>
-          <label htmlFor="soldAt" className="mb-1.5 block text-sm font-medium">
-            เวลาขายแล้ว (soldAt)
-          </label>
-          <Input
-            id="soldAt"
-            name="soldAt"
-            type="datetime-local"
-            lang="th-TH"
-            defaultValue={toDatetimeLocal(stock.soldAt)}
-            className="w-full"
-          />
-          <div className="mt-1 text-xs text-muted-foreground">{formatDateTimeTH(stock.soldAt)}</div>
-        </div>
-        <div>
-          <label htmlFor="updatedAt" className="mb-1.5 block text-sm font-medium">
-            แก้ไขล่าสุด (updatedAt)
-          </label>
-          <Input
-            id="updatedAt"
-            name="updatedAt"
-            type="datetime-local"
-            lang="th-TH"
-            defaultValue={toDatetimeLocal(stock.updatedAt)}
-            className="w-full"
-          />
-          <div className="mt-1 text-xs text-muted-foreground">{formatDateTimeTH(stock.updatedAt)}</div>
-        </div>
-        <div className="flex gap-2">
-          <FormSubmitButton loadingText="กำลังบันทึก…">บันทึก</FormSubmitButton>
-          <Button type="button" variant="outline" asChild>
-            <Link href="/dashboard/stocks/account-stock">ยกเลิก</Link>
-          </Button>
-        </div>
-      </form>
 
-      {inventoryRow && (
-        <form
-          action={updateInventoryDatesAction}
-          className="flex max-w-xl flex-col gap-4 rounded-xl border bg-card p-6"
-        >
-          <input type="hidden" name="id" value={inventoryRow.id} />
-          <input
-            type="hidden"
-            name="redirectTo"
-            value={`/dashboard/stocks/account-stock/${stock.id}/edit`}
-          />
-
-          <h2 className="text-sm font-semibold">แก้ไขวันเริ่ม/หมดอายุ</h2>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="activatedAt" className="mb-1.5 block text-sm font-medium">
-                วันที่เริ่ม (activatedAt)
-              </label>
-              <Input
-                id="activatedAt"
-                name="activatedAt"
-                type="datetime-local"
-                lang="th-TH"
-                defaultValue={toDatetimeLocal(inventoryRow.activatedAt)}
-                className="w-full"
-              />
-            </div>
-            <div>
-              <label htmlFor="expiresAt" className="mb-1.5 block text-sm font-medium">
-                วันที่หมดอายุ (expiresAt) — แก้เลื่อนต่ออายุได้
-              </label>
-              <Input
-                id="expiresAt"
-                name="expiresAt"
-                type="datetime-local"
-                lang="th-TH"
-                defaultValue={toDatetimeLocal(inventoryRow.expiresAt)}
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="note" className="mb-1.5 block text-sm font-medium">
-              หมายเหตุ
-            </label>
-            <Input
-              id="note"
-              name="note"
-              defaultValue={inventoryRow.note ?? ""}
-              className="w-full"
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <FormSubmitButton loadingText="กำลังบันทึก…">บันทึกวันเริ่ม/หมดอายุ</FormSubmitButton>
-          </div>
-        </form>
-      )}
+      <EditAccountStockForm
+        stock={{
+          id: stock.id,
+          email: stock.email,
+          password: stock.password,
+          status: stock.status,
+          orderId: stock.orderId ?? null,
+          customerId: stock.customerId ?? null,
+          soldAt: stock.soldAt ? stock.soldAt.toISOString() : null,
+          updatedAt: stock.updatedAt ? stock.updatedAt.toISOString() : null,
+        }}
+        inventory={
+          inventoryRow
+            ? {
+                id: inventoryRow.id,
+                activatedAt: inventoryRow.activatedAt ? inventoryRow.activatedAt.toISOString() : null,
+                expiresAt: inventoryRow.expiresAt ? inventoryRow.expiresAt.toISOString() : null,
+                note: inventoryRow.note ?? null,
+              }
+            : null
+        }
+        customers={customers}
+      />
     </div>
   );
 }

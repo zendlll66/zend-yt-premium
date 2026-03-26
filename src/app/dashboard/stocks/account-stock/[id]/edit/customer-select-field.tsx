@@ -7,11 +7,17 @@ import { Input } from "@/components/ui/input";
 type Props = {
   customers: CustomerProfile[];
   initialCustomerId: number | null;
+  onSelect?: (id: number | null) => void;
 };
 
-export function CustomerSelectField({ customers, initialCustomerId }: Props) {
+export function CustomerSelectField({ customers, initialCustomerId, onSelect }: Props) {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(initialCustomerId);
+
+  function handleSelect(id: number | null) {
+    setSelectedId(id);
+    onSelect?.(id);
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -51,7 +57,7 @@ export function CustomerSelectField({ customers, initialCustomerId }: Props) {
             <li>
               <button
                 type="button"
-                onClick={() => setSelectedId(null)}
+                onClick={() => handleSelect(null)}
                 className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted/50 ${
                   selectedId === null ? "bg-primary/10" : ""
                 }`}
@@ -63,7 +69,7 @@ export function CustomerSelectField({ customers, initialCustomerId }: Props) {
               <li key={c.id}>
                 <button
                   type="button"
-                  onClick={() => setSelectedId(c.id)}
+                  onClick={() => handleSelect(c.id)}
                   className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted/50 ${
                     selectedId === c.id ? "bg-primary/10" : ""
                   }`}

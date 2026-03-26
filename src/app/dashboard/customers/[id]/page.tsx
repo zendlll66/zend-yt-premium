@@ -35,6 +35,9 @@ export default async function DashboardCustomerDetailPage({
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/customers">← กลับรายการลูกค้า</Link>
         </Button>
+        <Button variant="outline" size="sm" asChild>
+          <Link href={`/dashboard/customers/${customerId}/inventory`}>Inventory</Link>
+        </Button>
       </div>
 
       <div className="rounded-xl border bg-card p-4">

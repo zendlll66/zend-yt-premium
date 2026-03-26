@@ -44,6 +44,7 @@ export default async function ExpiredInventoryOrdersPage() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
+                <th className="px-3 py-2 text-muted-foreground font-mono text-xs">Order ID</th>
                 <th className="px-3 py-2">Order</th>
                 <th className="px-3 py-2">ลูกค้า</th>
                 <th className="px-3 py-2">ประเภท</th>
@@ -56,7 +57,7 @@ export default async function ExpiredInventoryOrdersPage() {
               {rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-3 py-6 text-center text-sm text-muted-foreground"
                   >
                     ยังไม่มี order ที่หมดอายุ
@@ -65,6 +66,9 @@ export default async function ExpiredInventoryOrdersPage() {
               ) : (
                 rows.map((row) => (
                   <tr key={row.id} className="border-b last:border-0">
+                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground select-all">
+                      {row.orderId ?? row.id}
+                    </td>
                     <td className="px-3 py-2">
                       {row.orderId ? (
                         <Link

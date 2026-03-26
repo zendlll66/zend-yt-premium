@@ -21,7 +21,9 @@ import {
   updateFamilyGroupById,
   updateFamilyMemberById,
   updateFamilyGroupHeadAccount,
+  findAccountStockById,
 } from "./youtube-stock.repo";
+import { createInventoryOrder, updateInventoryOrderCustomer } from "@/features/inventory/inventory-order.repo";
 import { pushLineTextMessage } from "@/lib/line-message";
 import { getSessionUser } from "@/lib/auth-server";
 import { createAuditLog } from "@/features/audit/audit.repo";
@@ -34,14 +36,113 @@ function refreshStocksPage() {
 export async function createAccountStockAction(formData: FormData) {
   const email = (formData.get("email") as string)?.trim() ?? "";
   const password = (formData.get("password") as string)?.trim() ?? "";
-  const status = ((formData.get("status") as string) || "available") as "available" | "reserved" | "sold";
+  const customerId = parseOptionalInt((formData.get("customerId") as string) ?? null);
+  const activatedAt = parseOptionalDate((formData.get("activatedAt") as string) ?? null);
+  const expiresAt = parseOptionalDate((formData.get("expiresAt") as string) ?? null);
+  const title = (formData.get("title") as string)?.trim() || null;
+  const note = (formData.get("note") as string)?.trim() || null;
+  const durationMonths = Math.max(1, parseInt((formData.get("durationMonths") as string) ?? "1", 10) || 1);
+
+  // ถ้ามีลูกค้า → auto sold, ไม่ก็ใช้ค่าที่กรอก
+  const status: "available" | "reserved" | "sold" = customerId
+    ? "sold"
+    : (((formData.get("status") as string) || "available") as "available" | "reserved" | "sold");
+
   if (!email || !password) return;
+
   const stock = await createAccountStock({ email, password, status });
+
+  // ถ้ามีลูกค้า → สร้าง inventory order และ link กับ stock
+  if (stock && customerId) {
+    const result = await createInventoryOrder({
+      customerId,
+      itemType: "individual",
+      title: title || email,
+      loginEmail: email,
+      loginPassword: password,
+      durationMonths,
+      activatedAt: activatedAt ?? undefined,
+      expiresAt: expiresAt ?? undefined,
+      note: note ?? null,
+    });
+
+    if (result) {
+      await updateAccountStockById({
+        id: stock.id,
+        email,
+        password,
+        status: "sold",
+        orderId: result.orderId,
+        customerId,
+        soldAt: new Date(),
+      });
+    }
+  }
+
   const user = await getSessionUser();
-  await createAuditLog({ adminUserId: user?.id, action: "stock.account.create", entityType: "account_stock", entityId: stock ? String(stock.id) : undefined, details: `เพิ่ม account stock: ${email}` });
+  await createAuditLog({
+    adminUserId: user?.id,
+    action: "stock.account.create",
+    entityType: "account_stock",
+    entityId: stock ? String(stock.id) : undefined,
+    details: `เพิ่ม account stock: ${email}${customerId ? ` (assign customer #${customerId})` : ""}`,
+  });
   revalidatePath("/dashboard/stocks/account-stock");
   refreshStocksPage();
   redirect("/dashboard/stocks/account-stock");
+}
+
+/** สร้าง Inventory สำหรับ stock ที่มีลูกค้าแล้วแต่ยังไม่มี inventory */
+export async function createStockInventoryAction(formData: FormData) {
+  const stockId = parseOptionalInt((formData.get("stockId") as string) ?? null);
+  const customerId = parseOptionalInt((formData.get("customerId") as string) ?? null);
+  const activatedAt = parseOptionalDate((formData.get("activatedAt") as string) ?? null);
+  const expiresAt = parseOptionalDate((formData.get("expiresAt") as string) ?? null);
+  const title = (formData.get("title") as string)?.trim() || null;
+  const note = (formData.get("note") as string)?.trim() || null;
+  const durationMonths = Math.max(1, parseInt((formData.get("durationMonths") as string) ?? "1", 10) || 1);
+
+  if (!stockId || !customerId) return;
+
+  const stock = await findAccountStockById(stockId);
+  if (!stock) return;
+
+  const result = await createInventoryOrder({
+    customerId,
+    itemType: "individual",
+    title: title || stock.email,
+    loginEmail: stock.email,
+    loginPassword: stock.password,
+    durationMonths,
+    activatedAt: activatedAt ?? undefined,
+    expiresAt: expiresAt ?? undefined,
+    note: note ?? null,
+  });
+
+  if (result) {
+    await updateAccountStockById({
+      id: stockId,
+      email: stock.email,
+      password: stock.password,
+      status: "sold",
+      orderId: result.orderId,
+      customerId,
+      soldAt: stock.soldAt ?? new Date(),
+    });
+    const user = await getSessionUser();
+    await createAuditLog({
+      adminUserId: user?.id,
+      action: "stock.account.assign",
+      entityType: "account_stock",
+      entityId: String(stockId),
+      details: `สร้าง inventory สำหรับ account stock #${stockId} (customer #${customerId})`,
+    });
+  }
+
+  revalidatePath(`/dashboard/stocks/account-stock/${stockId}/edit`);
+  revalidatePath("/dashboard/stocks/account-stock");
+  refreshStocksPage();
+  redirect(`/dashboard/stocks/account-stock/${stockId}/edit`);
 }
 
 export async function updateAccountStockStatusAction(formData: FormData) {
@@ -78,6 +179,12 @@ export async function updateAccountStockAction(formData: FormData) {
   const createdAt = parseOptionalDate((formData.get("createdAt") as string) ?? null);
   const updatedAt = parseOptionalDate((formData.get("updatedAt") as string) ?? null);
   if (!id || !Number.isFinite(id) || !email || !password) return;
+
+  // อ่านค่าเก่าก่อนอัปเดต เพื่อตรวจว่า customerId เปลี่ยนหรือไม่
+  const prevStock = await findAccountStockById(id);
+  const prevCustomerId = prevStock?.customerId ?? null;
+  const prevOrderId = prevStock?.orderId ?? null;
+
   await updateAccountStockById({
     id,
     email,
@@ -90,9 +197,25 @@ export async function updateAccountStockAction(formData: FormData) {
     createdAt,
     updatedAt,
   });
+
+  // ถ้าเปลี่ยนลูกค้า → อัปเดต customerId ใน inventory + order ด้วย
+  const effectiveOrderId = orderId ?? prevOrderId;
+  if (effectiveOrderId && customerId && customerId !== prevCustomerId) {
+    await updateInventoryOrderCustomer(effectiveOrderId, customerId);
+  }
+
+  const user = await getSessionUser();
+  await createAuditLog({
+    adminUserId: user?.id,
+    action: "stock.account.update",
+    entityType: "account_stock",
+    entityId: String(id),
+    details: `แก้ไข account stock #${id}: ${email}${customerId !== prevCustomerId ? ` (เปลี่ยนลูกค้า → #${customerId})` : ""}`,
+  });
   revalidatePath("/dashboard/stocks/account-stock");
+  revalidatePath(`/dashboard/stocks/account-stock/${id}/edit`);
   refreshStocksPage();
-  redirect("/dashboard/stocks/account-stock");
+  redirect(`/dashboard/stocks/account-stock/${id}/edit`);
 }
 
 export async function deleteAccountStockAction(formData: FormData) {

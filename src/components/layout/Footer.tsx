@@ -104,6 +104,11 @@ const Footer = ({ shop, customer }: FooterProps) => {
                 </Link>
               </li>
               <li>
+                <Link href="/migrate" className="hover:text-brand-fg">
+                  ย้ายข้อมูลจากระบบเดิม
+                </Link>
+              </li>
+              <li>
                 <Link href="/login" className="hover:text-brand-fg">
                   พนักงาน
                 </Link>

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { customerInventories } from "@/db/schema/customer-inventory.schema";
 import { customerInventoriesHybrid } from "@/db/schema/customer-inventory-hybrid.schema";
@@ -394,4 +394,123 @@ export async function createInventoryOrder(
   });
 
   return result;
+}
+
+/** ดึง inventory ทั้งหมดของลูกค้าคนนั้น */
+export async function findInventoryByCustomerId(
+  customerId: number
+): Promise<InventoryOrderDetail[]> {
+  const s = await getCustomerInventoryDurationSupport();
+
+  if (s.useDurationMonthsColumn) {
+    const rows = await db
+      .select({
+        id: customerInventories.id,
+        customerId: customerInventories.customerId,
+        orderId: customerInventories.orderId,
+        orderNumber: orders.orderNumber,
+        orderStatus: orders.status,
+        itemType: customerInventories.itemType,
+        title: customerInventories.title,
+        loginEmail: customerInventories.loginEmail,
+        loginPassword: customerInventories.loginPassword,
+        inviteLink: customerInventories.inviteLink,
+        durationMonths: customerInventories.durationMonths,
+        activatedAt: customerInventories.activatedAt,
+        expiresAt: customerInventories.expiresAt,
+        note: customerInventories.note,
+        customerName: customers.name,
+        customerEmail: customers.email,
+      })
+      .from(customerInventories)
+      .leftJoin(orders, eq(customerInventories.orderId, orders.id))
+      .leftJoin(customers, eq(customerInventories.customerId, customers.id))
+      .where(eq(customerInventories.customerId, customerId))
+      .orderBy(desc(customerInventories.id));
+    return rows.map((row) => ({
+      id: row.id,
+      customerId: row.customerId,
+      orderId: row.orderId,
+      orderNumber: row.orderNumber ?? "",
+      orderStatus: row.orderStatus ?? "paid",
+      itemType: row.itemType,
+      title: row.title,
+      loginEmail: row.loginEmail,
+      loginPassword: row.loginPassword,
+      inviteLink: row.inviteLink,
+      durationMonths: row.durationMonths,
+      activatedAt: row.activatedAt,
+      expiresAt: row.expiresAt,
+      note: row.note,
+      customerName: row.customerName ?? "",
+      customerEmail: row.customerEmail ?? "",
+    }));
+  }
+
+  const rows = await db
+    .select({
+      id: customerInventoriesHybrid.id,
+      customerId: customerInventoriesHybrid.customerId,
+      orderId: customerInventoriesHybrid.orderId,
+      orderNumber: orders.orderNumber,
+      orderStatus: orders.status,
+      itemType: customerInventoriesHybrid.itemType,
+      title: customerInventoriesHybrid.title,
+      loginEmail: customerInventoriesHybrid.loginEmail,
+      loginPassword: customerInventoriesHybrid.loginPassword,
+      inviteLink: customerInventoriesHybrid.inviteLink,
+      durationDays: customerInventoriesHybrid.durationDays,
+      activatedAt: customerInventoriesHybrid.activatedAt,
+      expiresAt: customerInventoriesHybrid.expiresAt,
+      note: customerInventoriesHybrid.note,
+      customerName: customers.name,
+      customerEmail: customers.email,
+    })
+    .from(customerInventoriesHybrid)
+    .leftJoin(orders, eq(customerInventoriesHybrid.orderId, orders.id))
+    .leftJoin(customers, eq(customerInventoriesHybrid.customerId, customers.id))
+    .where(eq(customerInventoriesHybrid.customerId, customerId))
+    .orderBy(desc(customerInventoriesHybrid.id));
+  return rows.map((row) => ({
+    id: row.id,
+    customerId: row.customerId,
+    orderId: row.orderId,
+    orderNumber: row.orderNumber ?? "",
+    orderStatus: row.orderStatus ?? "paid",
+    itemType: row.itemType,
+    title: row.title,
+    loginEmail: row.loginEmail,
+    loginPassword: row.loginPassword,
+    inviteLink: row.inviteLink,
+    durationMonths: durationDaysToMonthsApprox(row.durationDays ?? 30),
+    activatedAt: row.activatedAt,
+    expiresAt: row.expiresAt,
+    note: row.note,
+    customerName: row.customerName ?? "",
+    customerEmail: row.customerEmail ?? "",
+  }));
+}
+
+/** อัปเดต customerId ใน inventory + order เมื่อ stock ถูกย้ายลูกค้า */
+export async function updateInventoryOrderCustomer(
+  orderId: number,
+  customerId: number
+): Promise<void> {
+  const s = await getCustomerInventoryDurationSupport();
+
+  // อัปเดต order
+  await db.update(orders).set({ customerId }).where(eq(orders.id, orderId));
+
+  // อัปเดต inventory
+  if (s.useDurationMonthsColumn) {
+    await db
+      .update(customerInventories)
+      .set({ customerId })
+      .where(eq(customerInventories.orderId, orderId));
+  } else {
+    await db
+      .update(customerInventoriesHybrid)
+      .set({ customerId })
+      .where(eq(customerInventoriesHybrid.orderId, orderId));
+  }
 }

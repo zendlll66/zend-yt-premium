@@ -87,6 +87,9 @@ export function CustomersTable({ customers }: { customers: CustomerProfile[] }) 
                           <Link href={`/dashboard/customers/${c.id}`}>โปรไฟล์</Link>
                         </Button>
                         <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/dashboard/customers/${c.id}/inventory`}>Inventory</Link>
+                        </Button>
+                        <Button variant="ghost" size="sm" asChild>
                           <Link href={`/dashboard/orders?customer=${c.email}`}>คำสั่งซื้อ</Link>
                         </Button>
                       </div>

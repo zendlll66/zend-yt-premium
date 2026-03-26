@@ -11,7 +11,8 @@
       "Bash(grep -v \"\\\\.ts$\")",
       "Bash(ls -1 /d/zend-clone-git-tem/zend-yt-premium/src/db/schema/*.ts)",
       "Bash(grep -E \"\\\\.schema\\\\.ts$\")",
-      "Bash(find /d/zend-clone-git-tem/zend-yt-premium/src -type f -name *timeline* -o -name *history* -o -name *status*log* -o -name *order-log*)"
+      "Bash(find /d/zend-clone-git-tem/zend-yt-premium/src -type f -name *timeline* -o -name *history* -o -name *status*log* -o -name *order-log*)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")"
     ]
   }
 }
