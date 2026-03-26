@@ -11,7 +11,7 @@ export function AutoRenewToggle({
   inventoryId: number;
   autoRenew: boolean;
 }) {
-  const [state, formAction, isPending] = useActionState(toggleAutoRenewAction, {});
+  const [state, formAction, isPending] = useActionState(toggleAutoRenewAction, { success: false });
 
   return (
     <form action={formAction}>

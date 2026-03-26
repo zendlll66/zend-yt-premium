@@ -10,7 +10,7 @@ import {
 } from "./announcement.repo";
 
 export async function createAnnouncementAction(
-  _prev: Record<string, unknown>,
+  _prev: { error?: string },
   formData: FormData
 ): Promise<{ error?: string }> {
   const admin = await getSessionUser();
@@ -40,7 +40,7 @@ export async function createAnnouncementAction(
 }
 
 export async function updateAnnouncementAction(
-  _prev: Record<string, unknown>,
+  _prev: { error?: string },
   formData: FormData
 ): Promise<{ error?: string }> {
   const admin = await getSessionUser();
@@ -71,7 +71,7 @@ export async function updateAnnouncementAction(
 }
 
 export async function deleteAnnouncementAction(
-  _prev: Record<string, unknown>,
+  _prev: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
   const admin = await getSessionUser();
@@ -86,7 +86,7 @@ export async function deleteAnnouncementAction(
 }
 
 export async function toggleAnnouncementAction(
-  _prev: Record<string, unknown>,
+  _prev: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
   const admin = await getSessionUser();

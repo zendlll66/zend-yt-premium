@@ -11,7 +11,7 @@ import {
 
 /** ลูกค้าส่งคำขอย้ายข้อมูล */
 export async function submitMigrationRequestAction(
-  _prev: Record<string, unknown>,
+  _prev: { error?: string; success?: boolean; requestId?: number },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean; requestId?: number }> {
   // ไม่บังคับ login
@@ -49,7 +49,7 @@ export async function submitMigrationRequestAction(
 
 /** Admin อัปเดตสถานะคำขอ */
 export async function updateMigrationStatusAction(
-  _prev: Record<string, unknown>,
+  _prev: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
   const admin = await getSessionUser();

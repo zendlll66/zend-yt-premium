@@ -44,7 +44,7 @@ export default async function EditAccountStockPage({
           id: stock.id,
           email: stock.email,
           password: stock.password,
-          status: stock.status,
+          status: stock.status as "available" | "sold" | "reserved",
           orderId: stock.orderId ?? null,
           customerId: stock.customerId ?? null,
           soldAt: stock.soldAt ? stock.soldAt.toISOString() : null,

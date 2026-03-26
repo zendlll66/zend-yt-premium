@@ -6,7 +6,7 @@ import { updateLineTemplate } from "./line-template.repo";
 
 /** Admin บันทึกเทมเพลต LINE */
 export async function saveLineTemplateAction(
-  _prev: Record<string, unknown>,
+  _prev: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
   const admin = await getSessionUser();

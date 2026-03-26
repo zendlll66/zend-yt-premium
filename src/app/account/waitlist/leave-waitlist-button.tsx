@@ -13,7 +13,7 @@ export function LeaveWaitlistButton({ productId }: { productId: number }) {
       size="sm"
       disabled={isPending}
       onClick={() =>
-        startTransition(() => leaveWaitlistAction(productId))
+        startTransition(async () => { await leaveWaitlistAction(productId); })
       }
     >
       {isPending ? "กำลังยกเลิก…" : "ยกเลิก"}

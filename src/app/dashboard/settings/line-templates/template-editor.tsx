@@ -8,7 +8,7 @@ import type { LineMessageTemplate } from "@/db/schema/line-message-template.sche
 import { CheckCircle2, Loader2, Eye } from "lucide-react";
 
 export function TemplateEditor({ template }: { template: LineMessageTemplate }) {
-  const [state, formAction, isPending] = useActionState(saveLineTemplateAction, {});
+  const [state, formAction, isPending] = useActionState(saveLineTemplateAction, { success: false });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState(template.template);
   const [isEnabled, setIsEnabled] = useState(template.isEnabled);

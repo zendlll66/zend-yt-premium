@@ -6,7 +6,7 @@ import { approveTopupAction, rejectTopupAction } from "@/features/wallet/wallet-
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 export function TopupApproveButton({ topupId }: { topupId: number }) {
-  const [state, formAction, isPending] = useActionState(approveTopupAction, {});
+  const [state, formAction, isPending] = useActionState(approveTopupAction, { success: false });
 
   if (state.success) {
     return <span className="text-xs text-green-600 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />อนุมัติแล้ว</span>;
@@ -24,7 +24,7 @@ export function TopupApproveButton({ topupId }: { topupId: number }) {
 }
 
 export function TopupRejectButton({ topupId }: { topupId: number }) {
-  const [state, formAction, isPending] = useActionState(rejectTopupAction, {});
+  const [state, formAction, isPending] = useActionState(rejectTopupAction, { success: false });
 
   if (state.success) {
     return <span className="text-xs text-red-600 flex items-center gap-1"><XCircle className="h-3 w-3" />ปฏิเสธแล้ว</span>;

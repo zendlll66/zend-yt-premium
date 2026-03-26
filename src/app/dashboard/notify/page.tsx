@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, Users } from "lucide-react";
 
 export default function NotifyPage() {
-  const [state, formAction, pending] = useActionState(bulkNotifyAction, {});
+  const [state, formAction, pending] = useActionState(bulkNotifyAction, { success: false });
 
   return (
     <div className="max-w-xl space-y-6 p-6">

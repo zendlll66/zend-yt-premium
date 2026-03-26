@@ -11,6 +11,7 @@ import {
   type SerializedLexicalNode,
   type Spread,
 } from "lexical"
+import type { ReactElement } from "react"
 import { Suspense } from "react"
 
 export type SerializedImageNode = Spread<
@@ -30,7 +31,7 @@ function ImageComponent({ src, altText }: { src: string; altText: string }) {
   )
 }
 
-export class ImageNode extends DecoratorNode<JSX.Element> {
+export class ImageNode extends DecoratorNode<ReactElement> {
   __src: string
   __altText: string
 
@@ -91,7 +92,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
     return false
   }
 
-  decorate(): JSX.Element {
+  decorate(): ReactElement {
     return (
       <Suspense fallback={null}>
         <ImageComponent src={this.__src} altText={this.__altText} />

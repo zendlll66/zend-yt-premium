@@ -23,13 +23,13 @@ import {
 
 class SlashOption extends MenuOption {
   title: string
-  icon: React.ReactNode
+  icon: React.ReactElement | undefined
   keywords: string[]
   onSelect: () => void
 
   constructor(
     title: string,
-    opts: { icon: React.ReactNode; keywords?: string[]; onSelect: () => void }
+    opts: { icon: React.ReactElement | undefined; keywords?: string[]; onSelect: () => void }
   ) {
     super(title)
     this.title = title

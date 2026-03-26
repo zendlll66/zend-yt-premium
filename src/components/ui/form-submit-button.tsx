@@ -1,11 +1,11 @@
 "use client";
 
+import * as React from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { ButtonProps } from "@/components/ui/button";
 
-type FormSubmitButtonProps = ButtonProps & {
+type FormSubmitButtonProps = React.ComponentProps<typeof Button> & {
   /** ข้อความตอนกำลังส่ง (loading) */
   loadingText?: string;
 };

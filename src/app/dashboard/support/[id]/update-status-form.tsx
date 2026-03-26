@@ -15,7 +15,7 @@ export function UpdateStatusForm({
   currentStatus: TicketStatus;
   currentNote?: string | null;
 }) {
-  const [state, formAction, isPending] = useActionState(updateTicketStatusAction, {});
+  const [state, formAction, isPending] = useActionState(updateTicketStatusAction, { success: false });
 
   if (state.success) {
     return (

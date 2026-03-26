@@ -5,7 +5,7 @@ import { toggleAnnouncementAction } from "@/features/announcement/announcement.a
 import { Eye, EyeOff } from "lucide-react";
 
 export function ToggleAnnouncementButton({ id, isEnabled }: { id: number; isEnabled: boolean }) {
-  const [, formAction, pending] = useActionState(toggleAnnouncementAction, {});
+  const [, formAction, pending] = useActionState(toggleAnnouncementAction, { success: false });
   return (
     <form action={formAction}>
       <input type="hidden" name="id" value={id} />

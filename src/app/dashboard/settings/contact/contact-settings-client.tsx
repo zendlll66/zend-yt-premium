@@ -42,7 +42,7 @@ function SocialForm({
   action: (prev: Record<string, unknown>, fd: FormData) => Promise<{ error?: string; success?: boolean }>;
   onDone: () => void;
 }) {
-  const [state, formAction, pending] = useActionState(action, {});
+  const [state, formAction, pending] = useActionState(action, { success: false });
 
   if (state.success) {
     onDone();
@@ -127,7 +127,7 @@ function SocialForm({
 }
 
 function DeleteButton({ id }: { id: number }) {
-  const [, formAction, pending] = useActionState(deleteContactSocialAction, {});
+  const [, formAction, pending] = useActionState(deleteContactSocialAction, { success: false });
   return (
     <form action={formAction}>
       <input type="hidden" name="id" value={id} />

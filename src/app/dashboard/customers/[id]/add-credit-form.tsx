@@ -7,7 +7,7 @@ import { adminAddCreditAction } from "@/features/wallet/wallet.actions";
 
 export function AddCreditForm({ customerId }: { customerId: number }) {
   const [open, setOpen] = useState(false);
-  const [state, formAction, isPending] = useActionState(adminAddCreditAction, {});
+  const [state, formAction, isPending] = useActionState(adminAddCreditAction, { success: false });
 
   if (!open) {
     return (

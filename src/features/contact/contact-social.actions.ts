@@ -9,7 +9,7 @@ import {
 } from "./contact-social.repo";
 
 export async function createContactSocialAction(
-  _prev: Record<string, unknown>,
+  _prev: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
   const admin = await getSessionUser();
@@ -30,7 +30,7 @@ export async function createContactSocialAction(
 }
 
 export async function updateContactSocialAction(
-  _prev: Record<string, unknown>,
+  _prev: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
   const admin = await getSessionUser();
@@ -53,7 +53,7 @@ export async function updateContactSocialAction(
 }
 
 export async function deleteContactSocialAction(
-  _prev: Record<string, unknown>,
+  _prev: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
   const admin = await getSessionUser();

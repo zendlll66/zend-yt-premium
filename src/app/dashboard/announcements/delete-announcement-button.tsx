@@ -5,7 +5,7 @@ import { deleteAnnouncementAction } from "@/features/announcement/announcement.a
 import { Trash2 } from "lucide-react";
 
 export function DeleteAnnouncementButton({ id }: { id: number }) {
-  const [, formAction, pending] = useActionState(deleteAnnouncementAction, {});
+  const [, formAction, pending] = useActionState(deleteAnnouncementAction, { success: false });
   return (
     <form action={formAction}>
       <input type="hidden" name="id" value={id} />

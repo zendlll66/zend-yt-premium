@@ -12,7 +12,11 @@
       "Bash(ls -1 /d/zend-clone-git-tem/zend-yt-premium/src/db/schema/*.ts)",
       "Bash(grep -E \"\\\\.schema\\\\.ts$\")",
       "Bash(find /d/zend-clone-git-tem/zend-yt-premium/src -type f -name *timeline* -o -name *history* -o -name *status*log* -o -name *order-log*)",
-      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")"
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(sed -i 's/useActionState\\(createAnnouncementAction, { success: false }\\)/useActionState\\(createAnnouncementAction, {}\\)/' src/app/dashboard/announcements/new/new-announcement-form.tsx)",
+      "Bash(sed -i 's/useActionState\\(updateAnnouncementAction, { success: false }\\)/useActionState\\(updateAnnouncementAction, {}\\)/' \"src/app/dashboard/announcements/[id]/edit/edit-announcement-form.tsx\")",
+      "Bash(sed -i 's/useActionState\\(createTicketAction, { success: false }\\)/useActionState\\(createTicketAction, {}\\)/' src/app/account/support/new/new-ticket-form.tsx)",
+      "Bash(sed -i 's/useActionState\\(submitMigrationRequestAction, { success: false }\\)/useActionState\\(submitMigrationRequestAction, {}\\)/' src/app/migrate/page.tsx)"
     ]
   }
 }

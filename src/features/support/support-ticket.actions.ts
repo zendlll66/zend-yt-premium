@@ -17,7 +17,7 @@ import type { TicketStatus } from "@/db/schema/support-ticket.schema";
 
 /** ลูกค้าสร้าง ticket ใหม่ */
 export async function createTicketAction(
-  _prev: Record<string, unknown>,
+  _prev: { error?: string; ticketId?: number },
   formData: FormData
 ): Promise<{ error?: string; ticketId?: number }> {
   const customer = await getCustomerSession();
@@ -73,7 +73,7 @@ export async function createTicketAction(
 
 /** Admin อัปเดตสถานะ ticket */
 export async function updateTicketStatusAction(
-  _prev: Record<string, unknown>,
+  _prev: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
   const admin = await getSessionUser();

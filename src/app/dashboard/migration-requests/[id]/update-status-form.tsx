@@ -13,7 +13,7 @@ export function UpdateStatusForm({
   currentStatus: MigrationStatus;
   currentAdminNote: string;
 }) {
-  const [state, action, pending] = useActionState(updateMigrationStatusAction, {});
+  const [state, action, pending] = useActionState(updateMigrationStatusAction, { success: false });
 
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
