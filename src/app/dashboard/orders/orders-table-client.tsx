@@ -6,6 +6,31 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { updateOrderStatusAction } from "@/features/order/order.actions";
 import type { DashboardOrderListItem } from "@/features/order/order.repo";
+import { Download } from "lucide-react";
+
+function exportOrdersCsv(orders: DashboardOrderListItem[]) {
+  const header = ["เลขที่", "ลูกค้า", "อีเมล", "ประเภท", "สินค้า", "สถานะ", "ยอดรวม", "วันที่"];
+  const rows = orders.map((o) => [
+    o.orderNumber,
+    o.customerName ?? "",
+    o.customerEmail ?? "",
+    getProductTypeLabel(o.productType),
+    o.items.map((i) => i.productName).join(" / "),
+    STATUS_LABELS[o.status] ?? o.status,
+    o.totalPrice,
+    o.createdAt ? new Date(o.createdAt).toLocaleDateString("th-TH") : "",
+  ]);
+  const csv = [header, ...rows]
+    .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `orders_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "รอชำระเงิน",
@@ -200,6 +225,14 @@ export function OrdersTableClient({ orders }: Props) {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">แสดง {filteredOrders.length} รายการ</p>
+        <Button variant="outline" size="sm" onClick={() => exportOrdersCsv(filteredOrders)}>
+          <Download className="mr-1.5 h-3.5 w-3.5" />
+          Export CSV
+        </Button>
       </div>
 
       <div className="rounded-xl border bg-card">

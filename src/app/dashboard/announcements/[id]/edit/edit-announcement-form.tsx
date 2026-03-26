@@ -7,6 +7,8 @@ import { Editor } from "@/components/blocks/editor-x/editor-no-ssr";
 import type { AnnouncementRow } from "@/features/announcement/announcement.repo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { WysiwygContent } from "@/components/wysiwyg-content";
+import { Eye, EyeOff } from "lucide-react";
 
 const selectCls =
   "h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
@@ -29,6 +31,8 @@ function isLexicalJson(s: string): boolean {
 
 export function EditAnnouncementForm({ announcement }: { announcement: AnnouncementRow }) {
   const [content, setContent] = useState(announcement.content ?? "");
+  const [title, setTitle] = useState(announcement.title);
+  const [showPreview, setShowPreview] = useState(false);
   const [state, formAction, pending] = useActionState(updateAnnouncementAction, {});
 
   const handleSerializedChange = (s: SerializedEditorState) => {
@@ -41,20 +45,52 @@ export function EditAnnouncementForm({ announcement }: { announcement: Announcem
     : { initialHtml: announcement.content || "" };
 
   return (
-    <form action={formAction} className="max-w-2xl space-y-5">
+    <div className="max-w-2xl space-y-5">
+      {showPreview && (
+        <div className="rounded-2xl border border-brand-border bg-brand-bg p-6 shadow-xl">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-brand-accent" />
+            <span className="text-sm font-semibold text-brand-fg">ตัวอย่างประกาศ</span>
+          </div>
+          <h3 className="mb-2 text-base font-semibold text-brand-fg">{title || "(ยังไม่มีหัวข้อ)"}</h3>
+          {content ? (
+            <WysiwygContent html={content} className="text-brand-fg/80" />
+          ) : (
+            <p className="text-sm text-brand-fg/40">(ยังไม่มีเนื้อหา)</p>
+          )}
+        </div>
+      )}
+
+    <form action={formAction} className="space-y-5">
       <input type="hidden" name="id" value={announcement.id} />
 
       <div>
         <label className="mb-1.5 block text-sm font-medium text-foreground">
           ชื่อประกาศ <span className="text-destructive">*</span>
         </label>
-        <Input type="text" name="title" defaultValue={announcement.title} placeholder="เช่น ประกาศปิดปรับปรุง" />
+        <Input
+          type="text"
+          name="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="เช่น ประกาศปิดปรับปรุง"
+        />
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-foreground">เนื้อหา</label>
+        <div className="mb-1.5 flex items-center justify-between">
+          <label className="text-sm font-medium text-foreground">เนื้อหา</label>
+          <button
+            type="button"
+            onClick={() => setShowPreview((v) => !v)}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          >
+            {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            {showPreview ? "ซ่อน Preview" : "ดู Preview"}
+          </button>
+        </div>
         <input type="hidden" name="content" value={content} />
-        <Editor {...editorProps} onSerializedChange={handleSerializedChange} />
+        <Editor {...editorProps} onSerializedChange={handleSerializedChange} imageFolder="announcements" />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -94,5 +130,6 @@ export function EditAnnouncementForm({ announcement }: { announcement: Announcem
         {pending ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
       </Button>
     </form>
+    </div>
   );
 }

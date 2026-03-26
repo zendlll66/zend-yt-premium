@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useEditorConfig } from "@/components/editor/context/editor-config-context"
 import {
   CHECK_LIST,
   ELEMENT_TRANSFORMERS,
@@ -107,6 +108,7 @@ export function Plugins({}) {
   const [floatingAnchorElem, setFloatingAnchorElem] =
     useState<HTMLDivElement | null>(null)
   const [isLinkEditMode, setIsLinkEditMode] = useState<boolean>(false)
+  const { minHeight } = useEditorConfig()
 
   const onRef = (_floatingAnchorElem: HTMLDivElement) => {
     if (_floatingAnchorElem !== null) {
@@ -167,10 +169,12 @@ export function Plugins({}) {
           contentEditable={
             <div className="">
               <div className="" ref={onRef}>
-                <ContentEditable
-                  placeholder={placeholder}
-                  className="ContentEditable__root relative block h-[calc(100vh-90px)] min-h-72 overflow-auto px-8 py-4 focus:outline-none"
-                />
+                <div style={minHeight ? { minHeight } : { height: "calc(100vh - 90px)", minHeight: "18rem" }}>
+                  <ContentEditable
+                    placeholder={placeholder}
+                    className="ContentEditable__root relative block h-full overflow-auto px-8 py-4 focus:outline-none"
+                  />
+                </div>
               </div>
             </div>
           }

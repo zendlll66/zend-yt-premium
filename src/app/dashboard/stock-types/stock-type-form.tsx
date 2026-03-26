@@ -5,7 +5,8 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageUpload } from "@/components/image-upload";
-import { RichTextEditor } from "@/components/rich-text-editor";
+import { Editor } from "@/components/blocks/editor-x/editor-no-ssr";
+import type { SerializedEditorState } from "lexical";
 import { saveStockTypeDescriptionAction, type SaveStockTypeDescriptionState } from "@/features/stock-type-descriptions/stock-type-descriptions.actions";
 import type { StockTypeDescription } from "@/features/stock-type-descriptions/stock-type-descriptions.repo";
 import type { ProductStockType } from "@/db/schema/product.schema";
@@ -18,6 +19,15 @@ const STOCK_TYPE_LABELS: Record<ProductStockType, string> = {
 };
 
 const FOLDER = "stock-types";
+
+function isLexicalJson(s: string): boolean {
+  try {
+    const p = JSON.parse(s);
+    return p && typeof p === "object" && "root" in p;
+  } catch {
+    return false;
+  }
+}
 
 type Props = { item: StockTypeDescription };
 
@@ -65,11 +75,12 @@ export function StockTypeForm({ item }: Props) {
 
       <div>
         <label className="mb-1.5 block text-sm font-medium">คำอธิบาย (รองรับข้อความและรูปในเนื้อหา)</label>
-        <RichTextEditor
-          value={description}
-          onChange={setDescription}
-          placeholder="อธิบายว่าประเภทนี้คืออะไร ใช้ยังไง..."
-          disabled={isPending}
+        <Editor
+          {...(isLexicalJson(description)
+            ? { editorSerializedState: JSON.parse(description) as SerializedEditorState }
+            : description ? { initialHtml: description } : {})}
+          onSerializedChange={(s) => setDescription(JSON.stringify(s))}
+          imageFolder="stock-types"
           minHeight="180px"
         />
       </div>

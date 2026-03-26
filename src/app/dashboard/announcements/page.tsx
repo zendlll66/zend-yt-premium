@@ -7,6 +7,23 @@ import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "ประกาศ" };
 
+function getContentPreview(content: string): string {
+  try {
+    const p = JSON.parse(content);
+    if (p && typeof p === "object" && "root" in p) {
+      // Extract plain text from Lexical JSON nodes
+      function extractText(node: any): string {
+        if (node.text) return node.text;
+        if (node.children) return node.children.map(extractText).join(" ");
+        return "";
+      }
+      return extractText(p.root).replace(/\s+/g, " ").trim();
+    }
+  } catch {}
+  // Strip HTML tags for legacy content
+  return content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function formatDate(d: Date | null) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" });
@@ -51,7 +68,12 @@ export default async function AnnouncementsPage() {
                 <tr key={ann.id} className="transition hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <p className="font-medium text-foreground">{ann.title}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    {ann.content && (
+                      <p className="mt-0.5 max-w-xs truncate text-xs text-muted-foreground">
+                        {getContentPreview(ann.content)}
+                      </p>
+                    )}
+                    <p className="mt-0.5 text-xs text-muted-foreground/60">
                       {new Date(ann.createdAt).toLocaleDateString("th-TH")}
                     </p>
                   </td>

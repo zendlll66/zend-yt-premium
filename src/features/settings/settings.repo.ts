@@ -32,6 +32,10 @@ export const SETTING_KEYS = {
   inventoryExpiredMessage: "inventory_expired_message",
   inventoryExpiredMode: "inventory_expired_mode",
   inventoryExpiredRepeatDays: "inventory_expired_repeat_days",
+  /** "1" = เปิดโหมดปิดปรับปรุง, "0" = ปกติ */
+  maintenanceMode: "maintenance_mode",
+  /** ข้อความที่แสดงเมื่อปิดปรับปรุง */
+  maintenanceMessage: "maintenance_message",
 } as const;
 
 /** ค่าที่ใช้ได้สำหรับ theme (ต้องตรงกับ [data-theme] ใน globals.css) */
@@ -68,6 +72,8 @@ const DEFAULTS: Record<string, string> = {
     "รายการ {{title}} (ออเดอร์ {{orderNumber}}) หมดอายุแล้วตั้งแต่วันที่ {{expiresAt}}",
   [SETTING_KEYS.inventoryExpiredMode]: "once",
   [SETTING_KEYS.inventoryExpiredRepeatDays]: "3",
+  [SETTING_KEYS.maintenanceMode]: "0",
+  [SETTING_KEYS.maintenanceMessage]: "ขณะนี้ระบบอยู่ระหว่างปิดปรับปรุง กรุณากลับมาใหม่ภายหลัง",
 };
 
 export type ShopSettings = {
@@ -108,6 +114,9 @@ export type ShopSettings = {
   inventoryExpiredMode: string;
   /** จำนวนวันหลังหมดอายุที่จะส่งซ้ำ (ใช้กับโหมด daily) */
   inventoryExpiredRepeatDays: string;
+  /** "1" = ปิดปรับปรุง, "0" = ปกติ */
+  maintenanceMode: string;
+  maintenanceMessage: string;
 };
 
 export async function getShopSettings(): Promise<ShopSettings> {
@@ -154,6 +163,10 @@ export async function getShopSettings(): Promise<ShopSettings> {
     inventoryExpiredRepeatDays:
       map.get(SETTING_KEYS.inventoryExpiredRepeatDays) ??
       DEFAULTS[SETTING_KEYS.inventoryExpiredRepeatDays],
+    maintenanceMode:
+      map.get(SETTING_KEYS.maintenanceMode) ?? DEFAULTS[SETTING_KEYS.maintenanceMode],
+    maintenanceMessage:
+      map.get(SETTING_KEYS.maintenanceMessage) ?? DEFAULTS[SETTING_KEYS.maintenanceMessage],
   };
 }
 
@@ -209,6 +222,10 @@ export async function saveShopSettings(data: Partial<ShopSettings>): Promise<voi
       SETTING_KEYS.inventoryExpiredRepeatDays,
       String(data.inventoryExpiredRepeatDays),
     ]);
+  if (data.maintenanceMode !== undefined)
+    entries.push([SETTING_KEYS.maintenanceMode, String(data.maintenanceMode)]);
+  if (data.maintenanceMessage !== undefined)
+    entries.push([SETTING_KEYS.maintenanceMessage, String(data.maintenanceMessage)]);
 
   for (const [key, value] of entries) {
     await db

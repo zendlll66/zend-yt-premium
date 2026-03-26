@@ -13,6 +13,7 @@ export const NOTIFICATION_TYPES = [
   "waitlist_available", // สินค้า waitlist มี stock แล้ว
   "wallet_credit",      // เติม wallet
   "wallet_debit",       // ใช้ wallet
+  "bulk_notify",        // ส่งข้อความหาลูกค้าจาก admin
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

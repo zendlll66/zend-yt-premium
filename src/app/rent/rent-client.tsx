@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { WysiwygContent } from "@/components/wysiwyg-content";
 import { createRentalOrderAction } from "@/features/order/order.actions";
 import { submitOrderBankSlipAction } from "@/features/order/order.actions";
 import { joinWaitlistAction, leaveWaitlistAction } from "@/features/waitlist/waitlist.actions";
@@ -1180,10 +1181,12 @@ function BookingModal({
                       </div>
                     )}
                     {stockTypeDescription.description ? (
-                      <div
-                        className="prose prose-sm max-w-none rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-3 text-muted-foreground dark:border-neutral-700 dark:bg-neutral-800/50 dark:prose-invert prose-p:my-1.5 prose-ul:my-1.5 prose-li:my-0"
-                        dangerouslySetInnerHTML={{ __html: stockTypeDescription.description }}
-                      />
+                      <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-3 dark:border-neutral-700 dark:bg-neutral-800/50">
+                        <WysiwygContent
+                          html={stockTypeDescription.description}
+                          className="prose prose-sm max-w-none text-muted-foreground dark:prose-invert prose-p:my-1.5 prose-ul:my-1.5 prose-li:my-0"
+                        />
+                      </div>
                     ) : (
                       <p className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-muted-foreground dark:border-neutral-700 dark:bg-neutral-800/50">
                         ประเภทนี้ใช้กับสินค้าที่คุณเลือก — กดถัดไปเพื่อดูรายละเอียดแพ็กเกจ

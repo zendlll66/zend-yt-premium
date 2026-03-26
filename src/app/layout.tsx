@@ -7,6 +7,7 @@ import { getCustomerSession } from "@/lib/auth-customer-server";
 import { findActiveMembershipByCustomerId } from "@/features/membership/membership.repo";
 import { getCartCountByCustomerId } from "@/features/cart/cart.repo";
 import { LayoutShell } from "@/components/layout/LayoutShell";
+import { MaintenanceBanner } from "@/components/maintenance-banner";
 import "./globals.css";
 
 const googleSans = localFont({
@@ -118,6 +119,9 @@ export default async function RootLayout({
         className={`${googleSans.className} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <TooltipProvider>
+          {shop?.maintenanceMode === "1" && (
+            <MaintenanceBanner message={shop.maintenanceMessage} />
+          )}
           <LayoutShell shop={shop} customer={customer} hasMembership={hasMembership} cartCount={cartCount}>
             {children}
           </LayoutShell>

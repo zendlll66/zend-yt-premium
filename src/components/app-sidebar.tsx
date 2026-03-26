@@ -154,6 +154,12 @@ const NAV_MAIN = [
     isActive: true,
   },
   {
+    title: "ส่งข้อความแจ้งเตือน",
+    url: "/dashboard/notify",
+    icon: <HugeiconsIcon icon={MessageEdit01Icon} strokeWidth={2} />,
+    isActive: true,
+  },
+  {
     title: "ตั้งค่าร้าน",
     url: "#",
     icon: <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />,

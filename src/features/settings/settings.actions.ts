@@ -44,6 +44,10 @@ export async function saveSettingsAction(
       ((formData.get("inventoryExpiredMode") as string) || "once") as string,
     inventoryExpiredRepeatDays:
       (formData.get("inventoryExpiredRepeatDays") as string)?.trim() ?? "3",
+    maintenanceMode: formData.get("maintenanceMode") === "1" ? "1" : "0",
+    maintenanceMessage:
+      (formData.get("maintenanceMessage") as string)?.trim() ??
+      "ขณะนี้ระบบอยู่ระหว่างปิดปรับปรุง กรุณากลับมาใหม่ภายหลัง",
   };
 
   await saveShopSettings(data);

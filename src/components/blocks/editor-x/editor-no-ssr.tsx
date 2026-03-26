@@ -20,6 +20,8 @@ export function Editor(props: {
   onSerializedChange?: (editorSerializedState: SerializedEditorState) => void
   onHtmlChange?: (html: string) => void
   initialHtml?: string
+  imageFolder?: string
+  minHeight?: string
 }) {
   return <EditorDynamic {...props} />
 }

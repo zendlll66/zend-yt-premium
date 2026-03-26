@@ -8,6 +8,7 @@ import { findCustomerAccountsByOrderId } from "@/features/youtube/youtube-stock.
 import { updateCustomerAccountsStatusByOrderIdAction } from "@/features/youtube/youtube-stock.actions";
 import { parseInventoryRenewalTargetId } from "@/lib/inventory-renewal";
 import { Check } from "lucide-react";
+import { OrderTimeline } from "@/components/order-timeline";
 
 function formatDate(d: Date | null) {
   if (!d) return "-";
@@ -112,6 +113,8 @@ export default async function OrderDetailPage({
           <Link href={`/dashboard/orders/${order.id}/edit`}>แก้ไขคำสั่งซื้อ</Link>
         </Button>
       </div>
+
+      <OrderTimeline status={order.status as any} />
 
       {order.paymentSlipImageUrl && (
         <div className="rounded-xl border bg-card p-4">

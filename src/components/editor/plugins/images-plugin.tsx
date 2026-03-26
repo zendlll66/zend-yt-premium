@@ -38,6 +38,7 @@ import {
 } from "@/components/editor/nodes/image-node"
 import { CAN_USE_DOM } from "@/components/editor/shared/can-use-dom"
 import { uploadImageAction } from "@/app/actions/upload"
+import { useEditorConfig } from "@/components/editor/context/editor-config-context"
 import { Button } from "@/components/ui/button"
 import { DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -112,6 +113,7 @@ export function InsertImageUploadedDialogBody({
   const [altText, setAltText] = useState("")
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState("")
+  const { imageFolder } = useEditorConfig()
 
   const isDisabled = src === "" || uploading
 
@@ -123,7 +125,7 @@ export function InsertImageUploadedDialogBody({
     try {
       const fd = new FormData()
       fd.append("file", file)
-      fd.append("folder", "editor-images")
+      fd.append("folder", imageFolder)
       const result = await uploadImageAction(fd)
       if (result.url) {
         setSrc(result.url)

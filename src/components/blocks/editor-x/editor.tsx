@@ -13,6 +13,7 @@ import { $getRoot, $insertNodes } from "lexical"
 
 import { editorTheme } from "@/components/editor/themes/editor-theme"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { EditorConfigProvider } from "@/components/editor/context/editor-config-context"
 
 import { nodes } from "./nodes"
 import { Plugins } from "./plugins"
@@ -37,6 +38,8 @@ export function Editor({
   onSerializedChange,
   onHtmlChange,
   initialHtml,
+  imageFolder,
+  minHeight,
 }: {
   editorState?: EditorState
   editorSerializedState?: SerializedEditorState
@@ -44,6 +47,8 @@ export function Editor({
   onSerializedChange?: (editorSerializedState: SerializedEditorState) => void
   onHtmlChange?: (html: string) => void
   initialHtml?: string
+  imageFolder?: string
+  minHeight?: string
 }) {
   const editorConfig: InitialConfigType = {
     namespace: "Editor",
@@ -73,17 +78,19 @@ export function Editor({
     <div className="bg-background overflow-hidden rounded-lg border shadow">
       <LexicalComposer initialConfig={editorConfig}>
         <TooltipProvider>
-          <Plugins />
+          <EditorConfigProvider imageFolder={imageFolder} minHeight={minHeight}>
+            <Plugins />
 
-          <OnChangePlugin
-            ignoreSelectionChange={true}
-            onChange={(editorState) => {
-              onChange?.(editorState)
-              onSerializedChange?.(editorState.toJSON())
-            }}
-          />
+            <OnChangePlugin
+              ignoreSelectionChange={true}
+              onChange={(editorState) => {
+                onChange?.(editorState)
+                onSerializedChange?.(editorState.toJSON())
+              }}
+            />
 
-          {onHtmlChange && <HtmlExportPlugin onHtmlChange={onHtmlChange} />}
+            {onHtmlChange && <HtmlExportPlugin onHtmlChange={onHtmlChange} />}
+          </EditorConfigProvider>
         </TooltipProvider>
       </LexicalComposer>
     </div>

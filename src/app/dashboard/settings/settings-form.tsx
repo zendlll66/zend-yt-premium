@@ -496,6 +496,34 @@ export function SettingsForm({ initial }: Props) {
         </div>
       </section>
 
+      {/* โหมดปิดปรับปรุง */}
+      <section className="rounded-xl border bg-card p-6">
+        <h2 className="mb-4 font-semibold">โหมดปิดปรับปรุง (Maintenance Mode)</h2>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <select
+              name="maintenanceMode"
+              defaultValue={initial.maintenanceMode}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              disabled={isPending}
+            >
+              <option value="0">ปิดใช้งาน (ปกติ)</option>
+              <option value="1">เปิดโหมดปิดปรับปรุง</option>
+            </select>
+            <span className="text-sm text-muted-foreground">แสดง banner ปิดปรับปรุงบนหน้าลูกค้า</span>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">ข้อความที่แสดง</label>
+            <Input
+              name="maintenanceMessage"
+              defaultValue={initial.maintenanceMessage}
+              placeholder="ขณะนี้ระบบอยู่ระหว่างปิดปรับปรุง กรุณากลับมาใหม่ภายหลัง"
+              disabled={isPending}
+            />
+          </div>
+        </div>
+      </section>
+
       {state?.error && (
         <p className="text-sm text-destructive" role="alert">
           {state.error}

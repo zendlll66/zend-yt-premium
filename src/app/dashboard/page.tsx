@@ -13,7 +13,7 @@ import { DashboardRecentOrders } from "./_components/dashboard-recent-orders";
 import { DashboardDateFilter } from "./_components/dashboard-date-filter";
 import { DashboardLowStockAlert } from "./_components/dashboard-low-stock-alert";
 import { Button } from "@/components/ui/button";
-import { ReceiptText, Package, Settings, Tv, FileDown, Timer } from "lucide-react";
+import { ReceiptText, Package, Settings, Tv, FileDown, Timer, Bell } from "lucide-react";
 
 const DAYS_LABEL = 7;
 
@@ -85,6 +85,12 @@ export default async function Page({ searchParams }: PageProps) {
           <Link href="/dashboard/inventory/orders/active">
             <Timer className="mr-1.5 h-4 w-4" />
             Inventory Orders
+          </Link>
+        </Button>
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/dashboard/notify">
+            <Bell className="mr-1.5 h-4 w-4" />
+            ส่งข้อความแจ้งเตือน
           </Link>
         </Button>
       </div>

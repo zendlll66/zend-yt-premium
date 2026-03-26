@@ -1,6 +1,6 @@
 # FEATURES.md — คู่มือ AI สำหรับระบบ Zend YouTube Premium
 
-> อัปเดตล่าสุด: 2026-03-26
+> อัปเดตล่าสุด: 2026-03-27
 > ใช้ไฟล์นี้เป็น context เมื่อ AI เข้ามาทำงานใน session ใหม่
 
 ---
@@ -144,7 +144,7 @@ NOTIFICATION_EMAIL_FROM=noreply@yourdomain.com
 ```
 
 ### Types notification:
-`order_confirm`, `order_paid`, `order_fulfilled`, `order_cancelled`, `inventory_expiring`, `inventory_expired`, `waitlist_available`, `wallet_credit`, `wallet_debit`
+`order_confirm`, `order_paid`, `order_fulfilled`, `order_cancelled`, `inventory_expiring`, `inventory_expired`, `waitlist_available`, `wallet_credit`, `wallet_debit`, `bulk_notify` ✨ NEW
 
 ---
 
@@ -226,6 +226,8 @@ Call: `GET /api/cron/auto-renewal` with header `Authorization: Bearer {CRON_SECR
   - Waitlist → `/dashboard/waitlist`
 - **Wallet ลูกค้า** → `/dashboard/wallets`
 - **ประวัติแจ้งเตือน** → `/dashboard/notifications`
+- **ส่งข้อความแจ้งเตือน** → `/dashboard/notify` ✨ NEW
+- **ประกาศ** → `/dashboard/announcements` ✨ NEW
 
 ## Account Nav (เพิ่มใหม่)
 
@@ -307,6 +309,146 @@ CRON_SECRET=your_secure_random_secret
 3. **Coupon + Wallet ในหน้า Checkout ของ Admin** — ปัจจุบันใช้ได้แค่ผ่านหน้า customer cart เท่านั้น
 4. **Email notification templates** — ปัจจุบัน hardcode ใน service, ควรย้ายไปเป็น settings/template
 5. **Waitlist notification via Email** — ปัจจุบันส่งแค่ LINE, ควรเพิ่ม email
+6. **Multi-image products** — ปัจจุบันรองรับรูปเดียว
+7. **Waitlist auto-notify** — ปัจจุบัน admin กด manual; auto-trigger เมื่อ stock ถูกเพิ่มยังไม่มี
+
+---
+
+---
+
+## Feature 6: Rich Text Editor (Lexical editor-x) ✨ NEW
+
+### ไฟล์หลัก:
+- Editor: `src/components/blocks/editor-x/editor.tsx` + `editor-no-ssr.tsx`
+- Plugins: `src/components/blocks/editor-x/plugins.tsx`
+- Context: `src/components/editor/context/editor-config-context.tsx`
+- Viewer (read-only): `src/components/blocks/editor-00/viewer.tsx`
+- Display wrapper: `src/components/wysiwyg-content.tsx`
+
+### Props ของ Editor:
+```tsx
+<Editor
+  editorSerializedState={...}  // โหลดเนื้อหาจาก Lexical JSON
+  initialHtml="..."            // โหลดจาก HTML เก่า (backward compat)
+  onSerializedChange={(s) => setContent(JSON.stringify(s))}
+  imageFolder="announcements"  // folder ใน R2 สำหรับอัปโหลดรูป
+  minHeight="200px"            // ความสูงของ editor (default = full page)
+/>
+```
+
+### การเก็บเนื้อหา:
+- บันทึกเป็น Lexical JSON (`SerializedEditorState`) ใน DB
+- ตรวจว่า JSON หรือ HTML: `JSON.parse(s)?.root !== undefined`
+- แสดงผลผ่าน `<WysiwygContent html={content} />` (auto-detect)
+
+### ที่ใช้งาน:
+| หน้า | imageFolder | minHeight |
+|------|-------------|-----------|
+| Announcements new/edit | `"announcements"` | default |
+| Stock type descriptions | `"stock-types"` | `"180px"` |
+| (ทั่วไป) | `"editor-images"` | default |
+
+---
+
+## Feature 7: Announcements (ประกาศ) ✨ NEW
+
+### ไฟล์หลัก:
+- Schema: `src/db/schema/announcement.schema.ts`
+- Repo: `src/features/announcement/announcement.repo.ts`
+- Actions: `src/features/announcement/announcement.actions.ts`
+- Admin: `src/app/dashboard/announcements/`
+- Public API: `src/app/api/announcements/route.ts`
+- Modal: `src/components/announcement/announcement-modal.tsx`
+
+### การทำงาน:
+1. Admin สร้างประกาศที่ `/dashboard/announcements/new` ด้วย editor-x (บันทึกเป็น Lexical JSON)
+2. API `/api/announcements` คืนรายการที่ active (ตรวจ `starts_at` / `ends_at`)
+3. `AnnouncementModal` โหลด API ตอน client mount — แสดง modal ถ้ามีประกาศ
+4. ลูกค้ากด "ไม่แสดงวันนี้" → บันทึกวันที่ใน `localStorage` (key: `announcement_dismissed`)
+5. รองรับหลายประกาศด้วย Embla carousel, scroll แต่ละ slide ได้อิสระ
+
+### Admin list features:
+- แสดง preview text ของเนื้อหา (extract จาก Lexical JSON)
+- ปุ่ม toggle เปิด/ปิดแต่ละประกาศ
+
+### Preview ก่อน publish:
+- ปุ่ม "ดู Preview" บน new/edit form — แสดง panel จำลองหน้าตาประกาศจริง
+
+---
+
+## Feature 8: Maintenance Mode ✨ NEW
+
+### ไฟล์หลัก:
+- Settings keys: `maintenance_mode`, `maintenance_message` (ใน `settings` table)
+- Repo: `src/features/settings/settings.repo.ts`
+- Actions: `src/features/settings/settings.actions.ts`
+- Banner: `src/components/maintenance-banner.tsx`
+- Layout: `src/app/layout.tsx`
+
+### การทำงาน:
+- Admin ไปที่ `/dashboard/settings` → เลือก "เปิดโหมดปิดปรับปรุง" + ใส่ข้อความ
+- เมื่อ `maintenance_mode = "1"` จะแสดง amber banner ด้านบนทุกหน้า (รวม dashboard)
+
+---
+
+## Feature 9: Bulk Notify ✨ NEW
+
+### ไฟล์หลัก:
+- Page: `src/app/dashboard/notify/page.tsx`
+- Action: `src/app/dashboard/notify/notify.actions.ts`
+
+### การทำงาน:
+- Admin พิมพ์ข้อความ → กด "ส่งข้อความ"
+- ส่ง LINE push ไปยังลูกค้าทุกคนที่มี `lineUserId` (ใช้ `pushLineTextMessage`)
+- บันทึก log ใน `notification_logs` ด้วย `type: "bulk_notify"`
+- แสดงจำนวนส่งสำเร็จ / ล้มเหลว
+
+---
+
+## Feature 10: Order Status Timeline ✨ NEW
+
+### ไฟล์หลัก:
+- Component: `src/components/order-timeline.tsx`
+- ใช้ใน: `src/app/dashboard/orders/[id]/page.tsx`
+
+### การทำงาน:
+- แสดง step bar: `รอยืนยัน → รอชำระเงิน → ชำระแล้ว → ส่งมอบแล้ว → เสร็จสิ้น`
+- step ที่ผ่านแล้ว = สีเขียว + checkmark
+- step ปัจจุบัน = outline + clock icon
+- ถ้า `cancelled` / `refunded` แสดง badge แดง/เหลืองแทน
+
+---
+
+## Feature 11: Customer Search ✨ NEW
+
+### ไฟล์หลัก:
+- Component: `src/app/dashboard/customers/customers-table.tsx`
+- Page: `src/app/dashboard/customers/page.tsx`
+
+### การทำงาน:
+- ค้นหา live โดย: ชื่อ, อีเมล, เบอร์โทร, LINE display name
+- แสดง LINE profile picture + link ไปโปรไฟล์ลูกค้า
+
+---
+
+## Feature 12: Orders CSV Export ✨ NEW
+
+### ไฟล์:
+- `src/app/dashboard/orders/orders-table-client.tsx`
+
+### การทำงาน:
+- ปุ่ม "Export CSV" export เฉพาะ order ที่กรองอยู่ตอนนี้
+- UTF-8 BOM เพื่อรองรับ Thai ใน Excel
+- Fields: เลขที่, ลูกค้า, อีเมล, ประเภท, สินค้า, สถานะ, ยอดรวม, วันที่
+
+---
+
+## Feature 13: Stock Type Descriptions (WYSIWYG) ✨ UPDATED
+
+### การเปลี่ยนแปลง:
+- `src/app/dashboard/stock-types/stock-type-form.tsx` — เปลี่ยนจาก Tiptap `RichTextEditor` → Lexical `editor-x`
+- บันทึกเป็น Lexical JSON, backward compat กับ HTML เก่า
+- `src/app/rent/rent-client.tsx` — แสดงผลผ่าน `WysiwygContent` แทน `dangerouslySetInnerHTML`
 
 ---
 
