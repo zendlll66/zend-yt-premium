@@ -13,7 +13,7 @@ import {
 import type { MenuProduct } from "@/features/modifier/modifier.repo";
 import { updateCartItemAction, updateCartInviteEmailsAction, removeCartItemAction } from "@/features/cart/cart.actions";
 import { validateCouponAction } from "@/features/coupon/coupon.actions";
-import { ShoppingBag, MapPin, Store, CreditCard, Trash2, Tag, Wallet, X, Check } from "lucide-react";
+import { ShoppingBag, MapPin, Store, CreditCard, Trash2, Tag, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getVisibleModifiers } from "@/lib/customer-account-credentials";
@@ -79,11 +79,9 @@ type Props = {
   productDiscountMap?: Record<number, number>;
   /** ตะกร้าจาก DB (โหลดจาก server) */
   initialCart: CartItem[];
-  /** ยอด wallet คงเหลือ */
-  walletBalance?: number;
 };
 
-export function CartClient({ menu, shopName, membership = null, productDiscountMap = {}, initialCart, walletBalance = 0 }: Props) {
+export function CartClient({ menu, shopName, membership = null, productDiscountMap = {}, initialCart }: Props) {
   const router = useRouter();
   const [cart, setCart] = useState<CartItem[]>(initialCart);
 
@@ -96,9 +94,6 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
     discountAmount: number;
   } | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
-
-  // Wallet state
-  const [useWallet, setUseWallet] = useState(false);
 
   useEffect(() => {
     setCart(initialCart);
@@ -128,8 +123,7 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
   const showDiscountTotal = cartTotalAfter < cartTotalOriginal;
 
   const couponDiscount = appliedCoupon?.discountAmount ?? 0;
-  const walletUsed = useWallet ? Math.min(walletBalance, Math.max(0, cartTotal - couponDiscount)) : 0;
-  const finalTotal = Math.max(0, cartTotal - couponDiscount - walletUsed);
+  const finalTotal = Math.max(0, cartTotal - couponDiscount);
 
   const count = cart.reduce((s, i) => s + i.quantity, 0);
 
@@ -349,26 +343,6 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
               {couponError && <p className="mt-1 text-xs text-destructive">{couponError}</p>}
             </div>
 
-            {/* Wallet */}
-            {walletBalance > 0 && (
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setUseWallet((v) => !v)}
-                  className="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition hover:bg-muted/50"
-                >
-                  <span className="flex items-center gap-2">
-                    <Wallet className="h-4 w-4 text-primary" />
-                    ใช้ Wallet (คงเหลือ ฿{formatMoney(walletBalance)})
-                  </span>
-                  <span className={`h-5 w-9 rounded-full transition-colors ${useWallet ? "bg-primary" : "bg-muted"}`} />
-                </button>
-                {useWallet && walletUsed > 0 && (
-                  <p className="mt-1 text-xs text-green-600">ใช้ wallet ฿{formatMoney(walletUsed)}</p>
-                )}
-              </div>
-            )}
-
             {/* Total breakdown */}
             <div className="space-y-1.5 border-t pt-3">
               <div className="flex justify-between text-sm text-muted-foreground">
@@ -387,12 +361,6 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
                   <span>-{formatMoney(couponDiscount)} ฿</span>
                 </div>
               )}
-              {walletUsed > 0 && (
-                <div className="flex justify-between text-sm text-blue-600">
-                  <span>ชำระด้วย Wallet</span>
-                  <span>-{formatMoney(walletUsed)} ฿</span>
-                </div>
-              )}
               <div className="flex items-center justify-between border-t pt-2">
                 <span className="font-medium">ยอดที่ต้องชำระ</span>
                 <span className="text-2xl font-bold tabular-nums">{formatMoney(finalTotal)} ฿</span>
@@ -405,7 +373,7 @@ export function CartClient({ menu, shopName, membership = null, productDiscountM
               asChild
             >
               <Link
-                href={`/rent?checkout=1${appliedCoupon ? `&couponId=${appliedCoupon.couponId}&couponCode=${appliedCoupon.code}&couponDiscount=${appliedCoupon.discountAmount}` : ""}${walletUsed > 0 ? `&walletCredit=${walletUsed}` : ""}`}
+                href={`/rent?checkout=1${appliedCoupon ? `&couponId=${appliedCoupon.couponId}&couponCode=${appliedCoupon.code}&couponDiscount=${appliedCoupon.discountAmount}` : ""}`}
               >
                 <CreditCard className="h-5 w-5" />
                 ดำเนินการชำระเงิน

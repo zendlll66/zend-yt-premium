@@ -19,6 +19,7 @@ import {
 } from "@/features/notification/notification.service";
 import { recordCouponUsage } from "@/features/coupon/coupon.repo";
 import { debitWallet } from "@/features/wallet/wallet.repo";
+import { WALLET_FEATURE_ENABLED } from "@/lib/feature-flags";
 
 export type CreateRentalOrderState = { orderId?: number; orderNumber?: string; error?: string };
 
@@ -95,7 +96,7 @@ export async function createRentalOrderAction(input: {
       couponId: input.couponId ?? null,
       couponCode: input.couponCode ?? null,
       couponDiscount: input.couponDiscount ?? 0,
-      walletCreditUsed: input.walletCreditUsed ?? 0,
+      walletCreditUsed: WALLET_FEATURE_ENABLED ? (input.walletCreditUsed ?? 0) : 0,
     });
   } catch (error) {
     if (error instanceof Error && error.message === "MIXED_PRODUCT_TYPE_NOT_SUPPORTED") {
@@ -149,7 +150,11 @@ export async function updateOrderStatusAction(orderId: number, status: OrderStat
       if (orderDetail) {
         if (status === "paid") {
           // หักเงิน wallet เมื่อชำระเงินสำเร็จ (admin mark paid / bank transfer confirmed)
-          if (orderDetail.walletCreditUsed > 0 && orderDetail.customerId) {
+          if (
+            WALLET_FEATURE_ENABLED &&
+            orderDetail.walletCreditUsed > 0 &&
+            orderDetail.customerId
+          ) {
             try {
               await debitWallet(orderDetail.customerId, orderDetail.walletCreditUsed, orderId, `ชำระ Order #${orderDetail.orderNumber}`);
             } catch { /* wallet ไม่พอหรือ debit ซ้ำ ไม่ block */ }

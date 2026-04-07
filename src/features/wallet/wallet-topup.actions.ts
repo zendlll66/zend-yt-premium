@@ -11,12 +11,15 @@ import {
   rejectTopupRequest,
   findTopupById,
 } from "./wallet-topup.repo";
+import { WALLET_FEATURE_ENABLED } from "@/lib/feature-flags";
 
 /** ลูกค้าอัปโหลดสลิปโอนเงิน */
 export async function uploadTopupSlipAction(
   _prev: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
+  if (!WALLET_FEATURE_ENABLED) return { error: "ระบบ Wallet ปิดใช้งานชั่วคราว" };
+
   const customer = await getCustomerSession();
   if (!customer) return { error: "กรุณาเข้าสู่ระบบ" };
 
@@ -44,6 +47,8 @@ export async function approveTopupAction(
 ): Promise<{ error?: string; success?: boolean }> {
   const user = await getSessionUser();
   if (!user) return { error: "ไม่มีสิทธิ์" };
+
+  if (!WALLET_FEATURE_ENABLED) return { error: "ระบบ Wallet ปิดใช้งานชั่วคราว" };
 
   const topupId = parseInt(formData.get("topupId") as string, 10);
   const adminNote = (formData.get("adminNote") as string)?.trim() || undefined;
@@ -77,6 +82,8 @@ export async function rejectTopupAction(
 ): Promise<{ error?: string; success?: boolean }> {
   const user = await getSessionUser();
   if (!user) return { error: "ไม่มีสิทธิ์" };
+
+  if (!WALLET_FEATURE_ENABLED) return { error: "ระบบ Wallet ปิดใช้งานชั่วคราว" };
 
   const topupId = parseInt(formData.get("topupId") as string, 10);
   const adminNote = (formData.get("adminNote") as string)?.trim() || undefined;

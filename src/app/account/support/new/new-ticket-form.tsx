@@ -11,6 +11,8 @@ interface Order {
   id: number;
   orderNumber: string;
   status: string;
+  customerEmail?: string | null;
+  packageTitle?: string | null;
 }
 
 export function NewTicketForm({ orders }: { orders: Order[] }) {
@@ -45,6 +47,8 @@ export function NewTicketForm({ orders }: { orders: Order[] }) {
           {orders.map((o) => (
             <option key={o.id} value={o.id}>
               #{o.orderNumber} ({o.status})
+              {o.customerEmail ? ` · ${o.customerEmail}` : ""}
+              {o.packageTitle ? ` · ${o.packageTitle}` : ""}
             </option>
           ))}
         </select>

@@ -1,7 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { listWalletsAdmin } from "@/features/wallet/wallet.repo";
+import { WALLET_FEATURE_ENABLED } from "@/lib/feature-flags";
 
 export default async function WalletsPage() {
+  if (!WALLET_FEATURE_ENABLED) redirect("/dashboard");
+
   const wallets = await listWalletsAdmin();
 
   return (

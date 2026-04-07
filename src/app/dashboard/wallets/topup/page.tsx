@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { listAllTopupRequests } from "@/features/wallet/wallet-topup.repo";
 import { TopupApproveButton, TopupRejectButton } from "./topup-action-buttons";
+import { WALLET_FEATURE_ENABLED } from "@/lib/feature-flags";
 
 export const metadata = { title: "คำขอเติม Wallet | แดชบอร์ด" };
 
@@ -15,6 +17,8 @@ const METHOD_LABEL: Record<string, string> = {
 };
 
 export default async function WalletTopupPage() {
+  if (!WALLET_FEATURE_ENABLED) redirect("/dashboard");
+
   const requests = await listAllTopupRequests();
 
   return (

@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { customerInventories } from "@/db/schema/customer-inventory.schema";
 import { customerInventoriesHybrid } from "@/db/schema/customer-inventory-hybrid.schema";
@@ -174,7 +174,11 @@ export async function findCustomerInventory(customerId: number) {
           inArray(orders.status, ["paid", "fulfilled", "completed"])
         )
       )
-      .orderBy(desc(customerInventories.createdAt));
+      .orderBy(
+        asc(sql`case when ${customerInventories.expiresAt} is null then 1 else 0 end`),
+        asc(customerInventories.expiresAt),
+        desc(customerInventories.createdAt)
+      );
   }
 
   const rows = await db
@@ -201,7 +205,11 @@ export async function findCustomerInventory(customerId: number) {
         inArray(orders.status, ["paid", "fulfilled", "completed"])
       )
     )
-    .orderBy(desc(customerInventoriesHybrid.createdAt));
+    .orderBy(
+      asc(sql`case when ${customerInventoriesHybrid.expiresAt} is null then 1 else 0 end`),
+      asc(customerInventoriesHybrid.expiresAt),
+      desc(customerInventoriesHybrid.createdAt)
+    );
 
   return rows.map(({ durationDays, ...rest }) => ({
     ...rest,

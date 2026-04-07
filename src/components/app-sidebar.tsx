@@ -28,6 +28,7 @@ import {
   MessageEdit01Icon,
 } from "@hugeicons/core-free-icons";
 import { canAccess, type PermissionRule } from "@/config/permissions";
+import { WALLET_FEATURE_ENABLED } from "@/lib/feature-flags";
 
 const NAV_MAIN = [
   {
@@ -215,7 +216,12 @@ function filterNavByPermission(
 }
 
 export function AppSidebar({ user, permissions, ...props }: AppSidebarProps) {
-  const navMain = filterNavByPermission(NAV_MAIN, user.role ?? "", permissions);
+  const navSource = WALLET_FEATURE_ENABLED
+    ? NAV_MAIN
+    : NAV_MAIN.filter(
+        (g) => g.url !== "/dashboard/wallets" && g.url !== "/dashboard/wallets/topup"
+      );
+  const navMain = filterNavByPermission(navSource, user.role ?? "", permissions);
 
   return (
     <Sidebar variant="inset" {...props}>

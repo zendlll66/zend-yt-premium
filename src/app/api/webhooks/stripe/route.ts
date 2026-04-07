@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { setOrderStripePayment, getOrderWithCustomer } from "@/features/order/order.repo";
 import { debitWallet, addWalletCredit } from "@/features/wallet/wallet.repo";
 import { findTopupByStripeSession, approveTopupRequest } from "@/features/wallet/wallet-topup.repo";
+import { WALLET_FEATURE_ENABLED } from "@/lib/feature-flags";
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -32,18 +33,20 @@ export async function POST(req: NextRequest) {
 
     // --- wallet top-up ---
     if (sessionType === "wallet_topup") {
-      const customerId = session.metadata?.customerId
-        ? parseInt(session.metadata.customerId, 10)
-        : null;
-      if (customerId && session.payment_status === "paid") {
-        try {
-          const topup = await findTopupByStripeSession(session.id);
-          if (topup && topup.status === "pending") {
-            await approveTopupRequest(topup.id, 0 /* system */);
-            await addWalletCredit(customerId, topup.amount, `เติมเงินผ่าน Stripe #${topup.id}`);
+      if (WALLET_FEATURE_ENABLED) {
+        const customerId = session.metadata?.customerId
+          ? parseInt(session.metadata.customerId, 10)
+          : null;
+        if (customerId && session.payment_status === "paid") {
+          try {
+            const topup = await findTopupByStripeSession(session.id);
+            if (topup && topup.status === "pending") {
+              await approveTopupRequest(topup.id, 0 /* system */);
+              await addWalletCredit(customerId, topup.amount, `เติมเงินผ่าน Stripe #${topup.id}`);
+            }
+          } catch (err) {
+            console.error("[wallet_topup webhook]", err);
           }
-        } catch (err) {
-          console.error("[wallet_topup webhook]", err);
         }
       }
       return NextResponse.json({ received: true });
@@ -66,7 +69,12 @@ export async function POST(req: NextRequest) {
     if (updated?.status === "paid") {
       try {
         const orderDetail = await getOrderWithCustomer(numOrderId);
-        if (orderDetail && orderDetail.walletCreditUsed > 0 && orderDetail.customerId) {
+        if (
+          WALLET_FEATURE_ENABLED &&
+          orderDetail &&
+          orderDetail.walletCreditUsed > 0 &&
+          orderDetail.customerId
+        ) {
           await debitWallet(orderDetail.customerId, orderDetail.walletCreditUsed, numOrderId, `ชำระ Order #${orderDetail.orderNumber}`);
         }
       } catch { /* ไม่ block webhook */ }

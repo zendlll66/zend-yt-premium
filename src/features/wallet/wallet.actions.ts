@@ -10,6 +10,7 @@ import {
   addWalletCredit,
   refundToWallet,
 } from "./wallet.repo";
+import { WALLET_FEATURE_ENABLED } from "@/lib/feature-flags";
 
 /** ดึงข้อมูล wallet ของลูกค้าที่ login (เรียกจากหน้า account) */
 export async function getMyWalletAction() {
@@ -25,6 +26,8 @@ export async function adminAddCreditAction(
   _prev: { success?: boolean; error?: string },
   formData: FormData
 ) {
+  if (!WALLET_FEATURE_ENABLED) return { error: "ระบบ Wallet ปิดใช้งานชั่วคราว" };
+
   const user = await getSessionUser();
   if (!user) return { error: "ไม่มีสิทธิ์" };
 
@@ -55,6 +58,8 @@ export async function adminRefundToWalletAction(
   _prev: { success?: boolean; error?: string },
   formData: FormData
 ) {
+  if (!WALLET_FEATURE_ENABLED) return { error: "ระบบ Wallet ปิดใช้งานชั่วคราว" };
+
   const user = await getSessionUser();
   if (!user) return { error: "ไม่มีสิทธิ์" };
 

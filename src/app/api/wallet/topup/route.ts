@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { getCustomerSession } from "@/lib/auth-customer-server";
 import { getShopSettings } from "@/features/settings/settings.repo";
 import { createTopupRequest } from "@/features/wallet/wallet-topup.repo";
+import { WALLET_FEATURE_ENABLED } from "@/lib/feature-flags";
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -11,6 +12,13 @@ const stripe = process.env.STRIPE_SECRET_KEY
 const ALLOWED_AMOUNTS = [100, 200, 500, 1000, 2000, 5000];
 
 export async function POST(req: NextRequest) {
+  if (!WALLET_FEATURE_ENABLED) {
+    return NextResponse.json(
+      { error: "ระบบ Wallet ปิดใช้งานชั่วคราว" },
+      { status: 503 }
+    );
+  }
+
   const customer = await getCustomerSession();
   if (!customer) {
     return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { findCustomerById } from "@/features/customer/customer.repo";
 import { findOrdersByCustomerEmailWithItems } from "@/features/order/order.repo";
 import { getOrCreateWallet, getWalletTransactions } from "@/features/wallet/wallet.repo";
+import { WALLET_FEATURE_ENABLED } from "@/lib/feature-flags";
 import { Button } from "@/components/ui/button";
 import { AddCreditForm } from "./add-credit-form";
 
@@ -23,11 +24,9 @@ export default async function DashboardCustomerDetailPage({
   const customer = await findCustomerById(customerId);
   if (!customer) notFound();
 
-  const [orders, wallet, walletTxs] = await Promise.all([
-    findOrdersByCustomerEmailWithItems(customer.email, 100),
-    getOrCreateWallet(customerId),
-    getWalletTransactions(customerId),
-  ]);
+  const orders = await findOrdersByCustomerEmailWithItems(customer.email, 100);
+  const wallet = WALLET_FEATURE_ENABLED ? await getOrCreateWallet(customerId) : null;
+  const walletTxs = WALLET_FEATURE_ENABLED ? await getWalletTransactions(customerId) : [];
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -55,46 +54,47 @@ export default async function DashboardCustomerDetailPage({
         </div>
       </div>
 
-      {/* Wallet Section */}
-      <div className="rounded-xl border bg-card p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="font-medium">Wallet</h2>
-            <p className="text-2xl font-bold text-green-600 tabular-nums">
-              ฿{wallet.balance.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
-            </p>
+      {WALLET_FEATURE_ENABLED && wallet && (
+        <div className="rounded-xl border bg-card p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-medium">Wallet</h2>
+              <p className="text-2xl font-bold text-green-600 tabular-nums">
+                ฿{wallet.balance.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+            <AddCreditForm customerId={customerId} />
           </div>
-          <AddCreditForm customerId={customerId} />
-        </div>
-        {walletTxs.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b bg-muted/30">
-                  <th className="px-3 py-2 text-left">วันที่</th>
-                  <th className="px-3 py-2 text-left">ประเภท</th>
-                  <th className="px-3 py-2 text-left">คำอธิบาย</th>
-                  <th className="px-3 py-2 text-right">จำนวน</th>
-                  <th className="px-3 py-2 text-right">คงเหลือ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {walletTxs.slice(0, 5).map((tx) => (
-                  <tr key={tx.id} className="border-b last:border-0">
-                    <td className="px-3 py-1.5 text-muted-foreground">{new Date(tx.createdAt).toLocaleDateString("th-TH")}</td>
-                    <td className="px-3 py-1.5">{tx.type}</td>
-                    <td className="px-3 py-1.5">{tx.description}</td>
-                    <td className={`px-3 py-1.5 text-right tabular-nums font-medium ${tx.amount >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {tx.amount >= 0 ? "+" : ""}฿{Math.abs(tx.amount).toLocaleString("th-TH")}
-                    </td>
-                    <td className="px-3 py-1.5 text-right tabular-nums">฿{tx.balanceAfter.toLocaleString("th-TH")}</td>
+          {walletTxs.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="px-3 py-2 text-left">วันที่</th>
+                    <th className="px-3 py-2 text-left">ประเภท</th>
+                    <th className="px-3 py-2 text-left">คำอธิบาย</th>
+                    <th className="px-3 py-2 text-right">จำนวน</th>
+                    <th className="px-3 py-2 text-right">คงเหลือ</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {walletTxs.slice(0, 5).map((tx) => (
+                    <tr key={tx.id} className="border-b last:border-0">
+                      <td className="px-3 py-1.5 text-muted-foreground">{new Date(tx.createdAt).toLocaleDateString("th-TH")}</td>
+                      <td className="px-3 py-1.5">{tx.type}</td>
+                      <td className="px-3 py-1.5">{tx.description}</td>
+                      <td className={`px-3 py-1.5 text-right tabular-nums font-medium ${tx.amount >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {tx.amount >= 0 ? "+" : ""}฿{Math.abs(tx.amount).toLocaleString("th-TH")}
+                      </td>
+                      <td className="px-3 py-1.5 text-right tabular-nums">฿{tx.balanceAfter.toLocaleString("th-TH")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="rounded-xl border bg-card">
         <div className="border-b px-4 py-3">

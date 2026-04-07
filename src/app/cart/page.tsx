@@ -5,7 +5,6 @@ import { getCustomerSession } from "@/lib/auth-customer-server";
 import { findActiveMembershipByCustomerId } from "@/features/membership/membership.repo";
 import { getActivePromotionDiscountMap } from "@/features/promotion/promotion.repo";
 import { getCartByCustomerId } from "@/features/cart/cart.repo";
-import { getWalletBalance } from "@/features/wallet/wallet.repo";
 import { CartClient } from "./cart-client";
 
 export default async function CartPage() {
@@ -20,10 +19,9 @@ export default async function CartPage() {
     redirect("/customer-login?from=" + encodeURIComponent("/cart"));
   }
 
-  const [activeMembership, initialCart, walletBalance] = await Promise.all([
+  const [activeMembership, initialCart] = await Promise.all([
     findActiveMembershipByCustomerId(customer.id),
     getCartByCustomerId(customer.id),
-    getWalletBalance(customer.id),
   ]);
   const membership =
     activeMembership?.plan != null
@@ -40,7 +38,6 @@ export default async function CartPage() {
       membership={membership}
       productDiscountMap={productDiscountMap}
       initialCart={initialCart}
-      walletBalance={walletBalance}
     />
   );
 }

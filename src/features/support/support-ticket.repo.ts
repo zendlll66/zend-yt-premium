@@ -1,9 +1,9 @@
 import { db } from "@/db";
 import { supportTickets, TICKET_STATUS_LABELS, type TicketStatus } from "@/db/schema/support-ticket.schema";
 import { customers } from "@/db/schema/customer.schema";
-import { orders } from "@/db/schema/order.schema";
+import { orderItems, orders } from "@/db/schema/order.schema";
 import { adminUsers } from "@/db/schema/admin-user.schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 
 export type TicketRow = typeof supportTickets.$inferSelect;
 
@@ -148,17 +148,38 @@ export async function updateTicketStatus(
 
 /** Orders ของลูกค้าที่ใช้เลือกใน ticket form */
 export async function getCustomerOrdersForTicket(customerId: number) {
-  return db
+  const baseOrders = await db
     .select({
       id: orders.id,
       orderNumber: orders.orderNumber,
       status: orders.status,
+      customerEmail: orders.customerEmail,
       createdAt: orders.createdAt,
     })
     .from(orders)
     .where(eq(orders.customerId, customerId))
     .orderBy(desc(orders.createdAt))
     .limit(50);
+
+  if (baseOrders.length === 0) return [];
+
+  const items = await db
+    .select({
+      orderId: orderItems.orderId,
+      productName: orderItems.productName,
+    })
+    .from(orderItems)
+    .where(inArray(orderItems.orderId, baseOrders.map((o) => o.id)));
+
+  const packageMap = new Map<number, string>();
+  for (const item of items) {
+    if (!packageMap.has(item.orderId)) packageMap.set(item.orderId, item.productName);
+  }
+
+  return baseOrders.map((o) => ({
+    ...o,
+    packageTitle: packageMap.get(o.id) ?? null,
+  }));
 }
 
 /** แปลงสถานะเป็นภาษาไทย */

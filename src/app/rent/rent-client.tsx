@@ -183,7 +183,7 @@ export function RentClient({
   const [waitlistedProducts, setWaitlistedProducts] = useState<Set<number>>(new Set());
   // Coupon + Wallet from cart page URL params
   const [checkoutCoupon, setCheckoutCoupon] = useState<{ couponId: number; couponCode: string; discountAmount: number } | null>(null);
-  const [checkoutWalletCredit, setCheckoutWalletCredit] = useState(0);
+  const checkoutWalletCredit = 0;
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [bookingProduct, setBookingProduct] = useState<MenuProduct | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
@@ -217,11 +217,9 @@ export function RentClient({
       const couponId = searchParams.get("couponId");
       const couponCode = searchParams.get("couponCode");
       const couponDiscount = searchParams.get("couponDiscount");
-      const walletCredit = searchParams.get("walletCredit");
       if (couponId && couponCode && couponDiscount) {
         setCheckoutCoupon({ couponId: Number(couponId), couponCode, discountAmount: Number(couponDiscount) });
       }
-      if (walletCredit) setCheckoutWalletCredit(Number(walletCredit));
 
       setCheckoutOpen(true);
       setCheckoutStep(1);
@@ -260,16 +258,16 @@ export function RentClient({
     quantity: number,
     mods: { modifierName: string; price: number }[],
     inviteRecipientEmails?: string[]
-  ) {
+  ): Promise<boolean> {
     if (!customer) {
       router.push("/customer-login?from=" + encodeURIComponent("/rent"));
-      return;
+      return false;
     }
     setError(null);
     const inCart = cart.filter((i) => i.productId === product.id).reduce((s, i) => s + i.quantity, 0);
     const maxCanAdd = Math.max(0, product.stock - inCart);
     const qty = Math.min(quantity, maxCanAdd);
-    if (qty < 1) return;
+    if (qty < 1) return false;
     const emails =
       product.stockType === "invite"
         ? resizeInviteEmailsForQty(inviteRecipientEmails ?? [], qty)
@@ -288,10 +286,11 @@ export function RentClient({
     });
     if (result.error) {
       setError(result.error);
-      return;
+      return false;
     }
     if (result.cart) setCart(result.cart);
     router.refresh();
+    return true;
   }
 
   async function updateQty(index: number, delta: number) {
@@ -602,9 +601,19 @@ export function RentClient({
             cart={cart}
             stockTypeDescription={stockTypeDescriptions.find((d) => d.slug === bookingProduct.stockType) ?? null}
             onClose={() => setBookingProduct(null)}
-            onAdd={(qty, mods, opts) => {
-              addToCart(bookingProduct, qty, mods, opts?.inviteRecipientEmails);
+            onAdd={async (qty, mods, opts) => {
+              const ok = await addToCart(bookingProduct, qty, mods, opts?.inviteRecipientEmails);
+              if (ok) setBookingProduct(null);
+            }}
+            onBuyNow={async (qty, mods, opts) => {
+              const ok = await addToCart(bookingProduct, qty, mods, opts?.inviteRecipientEmails);
+              if (!ok) return;
               setBookingProduct(null);
+              setCartOpen(false);
+              setCheckoutStep(1);
+              setBankCheckoutData(null);
+              setBankSlipImageKey("");
+              setCheckoutOpen(true);
             }}
             formatMoney={formatMoney}
             discountPercent={productDiscountMap[bookingProduct.id] ?? 0}
@@ -1046,6 +1055,7 @@ function BookingModal({
   stockTypeDescription,
   onClose,
   onAdd,
+  onBuyNow,
   formatMoney,
   discountPercent = 0,
 }: {
@@ -1057,7 +1067,12 @@ function BookingModal({
     quantity: number,
     modifiers: { modifierName: string; price: number }[],
     options?: { inviteRecipientEmails?: string[] }
-  ) => void;
+  ) => Promise<void> | void;
+  onBuyNow: (
+    quantity: number,
+    modifiers: { modifierName: string; price: number }[],
+    options?: { inviteRecipientEmails?: string[] }
+  ) => Promise<void> | void;
   formatMoney: (n: number) => string;
   discountPercent?: number;
 }) {
@@ -1428,10 +1443,35 @@ function BookingModal({
                   type="button"
                   onClick={handleAdd}
                   disabled={!canSubmit}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3.5 font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-neutral-300 bg-white py-3.5 font-semibold text-neutral-900 transition hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
                 >
                   <Plus className="h-5 w-5" />
                   เพิ่มลงตะกร้า
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!canSubmit) return;
+                    const mods = product.modifierGroups
+                      .filter((g) => selected[g.id])
+                      .map((g) => ({ modifierName: selected[g.id].name, price: selected[g.id].price }));
+                    const finalMods =
+                      product.stockType === "customer_account"
+                        ? appendCustomerAccountCredentialsModifiers(
+                            mods,
+                            customerAccountEmail.trim(),
+                            customerAccountPassword
+                          )
+                        : mods;
+                    const inviteList =
+                      product.stockType === "invite" ? inviteEmails.map((e) => e.trim()) : undefined;
+                    onBuyNow(Math.min(safeQty, maxCanAdd), finalMods, { inviteRecipientEmails: inviteList });
+                  }}
+                  disabled={!canSubmit}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3.5 font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                >
+                  <CreditCard className="h-5 w-5" />
+                  เลือกซื้อเลย
                 </button>
               </div>
             )}

@@ -4,10 +4,13 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adminAddCreditAction } from "@/features/wallet/wallet.actions";
+import { WALLET_FEATURE_ENABLED } from "@/lib/feature-flags";
 
 export function AddCreditForm({ customerId }: { customerId: number }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(adminAddCreditAction, { success: false });
+
+  if (!WALLET_FEATURE_ENABLED) return null;
 
   if (!open) {
     return (

@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, Package, User, Wallet, Bell, TicketCheck, MoveRight } from "lucide-react";
+import { ShoppingBag, Package, User, Bell, TicketCheck, MoveRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/account/orders", label: "ประวัติการซื้อ", icon: ShoppingBag },
   { href: "/account/inventory", label: "รหัสของฉัน", icon: Package },
-  { href: "/account/wallet", label: "Wallet", icon: Wallet },
   { href: "/account/waitlist", label: "รอ stock", icon: Bell },
   { href: "/account/support", label: "แจ้งปัญหา", icon: TicketCheck },
   { href: "/migrate", label: "ย้ายข้อมูลเดิม", icon: MoveRight },

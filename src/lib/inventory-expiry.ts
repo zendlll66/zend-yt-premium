@@ -35,7 +35,7 @@ export function getInventoryExpiryWarningDays(
 export function daysLeft(expiresAt: Date | null, now = new Date()) {
   if (!expiresAt) return null;
   const diff = expiresAt.getTime() - now.getTime();
-  return Math.floor(diff / (24 * 60 * 60 * 1000));
+  return Math.ceil(diff / (24 * 60 * 60 * 1000));
 }
 
 export function getDaysLeftDisplay(expiresAt: Date | null, warningDays: number) {
@@ -43,7 +43,7 @@ export function getDaysLeftDisplay(expiresAt: Date | null, warningDays: number) 
   if (d == null) {
     return { text: "-", className: "text-muted-foreground" };
   }
-  if (d < 0) {
+  if (d <= 0) {
     return { text: "หมดอายุ", className: "text-destructive font-medium" };
   }
   return {

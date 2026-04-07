@@ -10,23 +10,41 @@ import { Badge } from "@/components/ui/badge";
 
 function formatDate(d: Date | null) {
   if (!d) return "-";
-  return new Date(d).toLocaleString("th-TH");
+  return new Date(d).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" });
 }
 
 function daysLeft(expiresAt: Date | null) {
   if (!expiresAt) return null;
   const now = new Date();
   const diff = expiresAt.getTime() - now.getTime();
-  return Math.floor(diff / (24 * 60 * 60 * 1000));
+  return Math.ceil(diff / (24 * 60 * 60 * 1000));
 }
 
-export default async function ExpiringInventoryOrdersPage() {
+export default async function ExpiringInventoryOrdersPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ q?: string }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const q = (params.q ?? "").trim().toLowerCase();
   const settings = await getShopSettings();
   const warningDays = Math.max(
     1,
     Number.parseInt(settings.inventoryExpiryWarningDays || "5", 10) || 5
   );
   const rows = await findExpiringInventories(warningDays);
+  const filteredRows = !q
+    ? rows
+    : rows.filter((row) => {
+        const orderNumber = String(row.orderNumber ?? row.orderId ?? "");
+        const customerText = `${row.customerName ?? ""} ${row.customerEmail ?? ""} ${row.customerLineDisplayName ?? ""}`;
+        const title = row.title ?? "";
+        return (
+          orderNumber.toLowerCase().includes(q) ||
+          customerText.toLowerCase().includes(q) ||
+          title.toLowerCase().includes(q)
+        );
+      });
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -38,6 +56,15 @@ export default async function ExpiringInventoryOrdersPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <form className="flex items-center gap-2" method="get">
+            <input
+              name="q"
+              defaultValue={params.q ?? ""}
+              placeholder="ค้นหาลูกค้า / ออเดอร์ / แพ็กเกจ"
+              className="h-9 w-[260px] rounded-md border bg-background px-3 text-sm"
+            />
+            <Button type="submit" size="sm" variant="outline">ค้นหา</Button>
+          </form>
           <Button size="sm" asChild>
             <Link href="/dashboard/inventory/orders/add">+ เพิ่ม Order</Link>
           </Button>
@@ -69,7 +96,7 @@ export default async function ExpiringInventoryOrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 ? (
+              {filteredRows.length === 0 ? (
                 <tr>
                   <td
                     colSpan={8}
@@ -79,7 +106,7 @@ export default async function ExpiringInventoryOrdersPage() {
                   </td>
                 </tr>
               ) : (
-                rows.map((row) => {
+                filteredRows.map((row) => {
                   const d = daysLeft(row.expiresAt);
                   return (
                     <tr key={row.id} className="border-b last:border-0">
