@@ -1,6 +1,9 @@
 import { getShopSettings } from "@/features/settings/settings.repo";
 import { SettingsForm } from "./settings-form";
 
+/** หลีกเลี่ยง HTML/RSC ถูกแคชหลัง deploy — หน้าตั้งค่าควรสดเสมอ */
+export const dynamic = "force-dynamic";
+
 export default async function SettingsPage() {
   const initial = await getShopSettings();
 
