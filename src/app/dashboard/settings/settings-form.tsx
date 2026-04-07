@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageUpload } from "@/components/image-upload";
 import { saveSettingsAction, type SaveSettingsState } from "@/features/settings/settings.actions";
+import { InventoryNotifyTimeSlotsField } from "@/components/settings/inventory-notify-time-slots-field";
 import { THEME_OPTIONS, type ShopSettings } from "@/features/settings/settings.repo";
 
 type Props = { initial: ShopSettings };
@@ -292,124 +293,223 @@ export function SettingsForm({ initial }: Props) {
               disabled={isPending}
             />
           </div>
-          <div>
-            <label
-              htmlFor="inventoryExpiryWarningDays"
-              className="mb-1.5 block text-sm font-medium"
-            >
-              เตือน order inventory ใกล้หมดอายุก่อน (วัน)
-            </label>
-            <Input
-              id="inventoryExpiryWarningDays"
-              name="inventoryExpiryWarningDays"
-              type="number"
-              min="1"
-              defaultValue={initial.inventoryExpiryWarningDays}
-              disabled={isPending}
-            />
-          </div>
         </div>
       </section>
 
       {/* แจ้งเตือน inventory (LINE) */}
       <section className="rounded-xl border bg-card p-6">
         <h2 className="mb-2 font-semibold">แจ้งเตือนอายุการใช้งาน Inventory (LINE)</h2>
-        <p className="mb-4 text-sm text-muted-foreground">
-          กำหนดข้อความและรูปแบบการส่งแจ้งเตือนให้ลูกค้าเมื่อรายการ inventory ใกล้หมดอายุหรือหมดอายุแล้ว
+        <p className="mb-6 text-sm text-muted-foreground">
+          แบ่งตั้งค่าเป็น 2 ช่วง — <strong className="font-medium text-foreground">ก่อนหมดอายุ</strong>{" "}
+          (ยังใช้งานได้) กับ <strong className="font-medium text-foreground">หลังหมดอายุแล้ว</strong>{" "}
+          (ครบกำหนดแล้ว) แต่ละช่วงมีข้อความ โหมดส่ง และเวลาส่งแยกกัน
         </p>
-        <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="inventoryExpiryWarningMessage"
-              className="mb-1.5 block text-sm font-medium"
-            >
-              ข้อความแจ้งเตือนใกล้หมดอายุ
-            </label>
-            <textarea
-              id="inventoryExpiryWarningMessage"
-              name="inventoryExpiryWarningMessage"
-              defaultValue={initial.inventoryExpiryWarningMessage}
-              rows={3}
-              disabled={isPending}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              ใช้ตัวแปรได้: {"{{name}}"}, {"{{title}}"}, {"{{orderNumber}}"},{" "}
-              {"{{expiresAt}}"}, {"{{daysLeft}}"}
-            </p>
-          </div>
-          <div className="max-w-xs">
-            <label
-              htmlFor="inventoryExpiryWarningMode"
-              className="mb-1.5 block text-sm font-medium"
-            >
-              โหมดการส่งแจ้งเตือนใกล้หมดอายุ
-            </label>
-            <select
-              id="inventoryExpiryWarningMode"
-              name="inventoryExpiryWarningMode"
-              defaultValue={initial.inventoryExpiryWarningMode || "once"}
-              disabled={isPending}
-              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-            >
-              <option value="once">ส่งครั้งเดียว (เมื่อเข้าโซนเตือน)</option>
-              <option value="daily">ส่งทุกวันจนถึงวันหมดอายุ</option>
-            </select>
-          </div>
-          <div>
-            <label
-              htmlFor="inventoryExpiredMessage"
-              className="mb-1.5 block text-sm font-medium"
-            >
-              ข้อความแจ้งเตือนเมื่อหมดอายุแล้ว
-            </label>
-            <textarea
-              id="inventoryExpiredMessage"
-              name="inventoryExpiredMessage"
-              defaultValue={initial.inventoryExpiredMessage}
-              rows={3}
-              disabled={isPending}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              ใช้ตัวแปรได้: {"{{name}}"}, {"{{title}}"}, {"{{orderNumber}}"},{" "}
-              {"{{expiresAt}}"}, {"{{daysSinceExpired}}"}
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label
-                htmlFor="inventoryExpiredMode"
-                className="mb-1.5 block text-sm font-medium"
-              >
-                โหมดการส่งแจ้งเตือนเมื่อหมดอายุแล้ว
-              </label>
-              <select
-                id="inventoryExpiredMode"
-                name="inventoryExpiredMode"
-                defaultValue={initial.inventoryExpiredMode || "once"}
-                disabled={isPending}
-                className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-              >
-                <option value="once">ส่งครั้งเดียว (วันที่หมดอายุ)</option>
-                <option value="daily">ส่งทุกวันหลังหมดอายุ</option>
-              </select>
+
+        <div className="space-y-8">
+          {/* —— ใกล้หมดอายุ —— */}
+          <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-5 dark:border-amber-400/20 dark:bg-amber-950/20">
+            <div className="mb-4 border-b border-amber-500/20 pb-3 dark:border-amber-400/15">
+              <h3 className="text-base font-semibold text-amber-950 dark:text-amber-100">
+                1) เตือนใกล้หมดอายุ
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                ใช้เมื่อรายการยังไม่ถึงวันหมดอายุ แต่เข้าช่วงเตือน — จำนวนวันกำหนดอยู่ในหมวดภาษีและค่าบริการด้านบน
+              </p>
             </div>
-            <div>
-              <label
-                htmlFor="inventoryExpiredRepeatDays"
-                className="mb-1.5 block text-sm font-medium"
-              >
-                ส่งซ้ำกี่วันหลังหมดอายุ (ใช้กับโหมด daily)
-              </label>
-              <Input
-                id="inventoryExpiredRepeatDays"
-                name="inventoryExpiredRepeatDays"
-                type="number"
-                min="1"
-                defaultValue={initial.inventoryExpiredRepeatDays || "3"}
-                disabled={isPending}
-              />
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="inventoryExpiryWarningMessage"
+                  className="mb-1.5 block text-sm font-medium"
+                >
+                  ข้อความแจ้งเตือน
+                </label>
+                <textarea
+                  id="inventoryExpiryWarningMessage"
+                  name="inventoryExpiryWarningMessage"
+                  defaultValue={initial.inventoryExpiryWarningMessage}
+                  rows={3}
+                  disabled={isPending}
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  ตัวแปร: {"{{name}}"}, {"{{title}}"}, {"{{orderNumber}}"}, {"{{expiresAt}}"},{" "}
+                  {"{{daysLeft}}"}
+                </p>
+              </div>
+              <div className="max-w-xs">
+                <label
+                  htmlFor="inventoryExpiryWarningMode"
+                  className="mb-1.5 block text-sm font-medium"
+                >
+                  โหมดส่ง
+                </label>
+                <select
+                  id="inventoryExpiryWarningMode"
+                  name="inventoryExpiryWarningMode"
+                  defaultValue={initial.inventoryExpiryWarningMode || "once"}
+                  disabled={isPending}
+                  className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                >
+                  <option value="once">ส่งครั้งเดียว (เมื่อเข้าโซนเตือน)</option>
+                  <option value="daily">ส่งทุกวันจนถึงวันหมดอายุ</option>
+                </select>
+              </div>
+              <div className="rounded-lg border border-border/60 bg-background/80 p-4">
+                <p className="text-sm font-medium">เวลาส่ง (ตาม timezone ร้าน)</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  เลือกหลายรอบได้ — ขั้น 5 นาที ให้ตรงกับ cron
+                </p>
+                <div className="mt-4 space-y-5">
+                  <div>
+                    <label
+                      htmlFor="inventoryExpiryWarningTimesOnce-slot"
+                      className="mb-1.5 block text-sm font-medium"
+                    >
+                      เมื่อเลือกโหมด «ส่งครั้งเดียวเมื่อเข้าโซน»
+                    </label>
+                    <InventoryNotifyTimeSlotsField
+                      key={`warn-once-${initial.inventoryExpiryWarningTimesOnce}`}
+                      name="inventoryExpiryWarningTimesOnce"
+                      defaultValue={initial.inventoryExpiryWarningTimesOnce}
+                      disabled={isPending}
+                      firstInputId="inventoryExpiryWarningTimesOnce-slot"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      ส่งเฉพาะวันแรกที่เข้าโซน — กำหนดหลายรอบในวันนั้นได้
+                    </p>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="inventoryExpiryWarningTimesDaily-slot"
+                      className="mb-1.5 block text-sm font-medium"
+                    >
+                      เมื่อเลือกโหมด «ส่งทุกวันจนถึงวันหมดอายุ»
+                    </label>
+                    <InventoryNotifyTimeSlotsField
+                      key={`warn-daily-${initial.inventoryExpiryWarningTimesDaily}`}
+                      name="inventoryExpiryWarningTimesDaily"
+                      defaultValue={initial.inventoryExpiryWarningTimesDaily}
+                      disabled={isPending}
+                      firstInputId="inventoryExpiryWarningTimesDaily-slot"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      ทุกวันที่อยู่ในโซนเตือนจนถึงวันหมดอายุ
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* —— หมดอายุแล้ว —— */}
+          <div className="rounded-xl border border-rose-500/25 bg-rose-500/5 p-5 dark:border-rose-400/20 dark:bg-rose-950/25">
+            <div className="mb-4 border-b border-rose-500/20 pb-3 dark:border-rose-400/15">
+              <h3 className="text-base font-semibold text-rose-950 dark:text-rose-100">
+                2) เตือนหมดอายุแล้ว
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                ใช้เมื่อถึงหรือเลยวันหมดอายุแล้ว (รายการหมดอายุแล้ว)
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="inventoryExpiredMessage"
+                  className="mb-1.5 block text-sm font-medium"
+                >
+                  ข้อความแจ้งเตือน
+                </label>
+                <textarea
+                  id="inventoryExpiredMessage"
+                  name="inventoryExpiredMessage"
+                  defaultValue={initial.inventoryExpiredMessage}
+                  rows={3}
+                  disabled={isPending}
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  ตัวแปร: {"{{name}}"}, {"{{title}}"}, {"{{orderNumber}}"}, {"{{expiresAt}}"},{" "}
+                  {"{{daysSinceExpired}}"}
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="inventoryExpiredMode"
+                    className="mb-1.5 block text-sm font-medium"
+                  >
+                    โหมดส่ง
+                  </label>
+                  <select
+                    id="inventoryExpiredMode"
+                    name="inventoryExpiredMode"
+                    defaultValue={initial.inventoryExpiredMode || "once"}
+                    disabled={isPending}
+                    className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                  >
+                    <option value="once">ส่งครั้งเดียว (วันที่หมดอายุ)</option>
+                    <option value="daily">ส่งทุกวันหลังหมดอายุ</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    htmlFor="inventoryExpiredRepeatDays"
+                    className="mb-1.5 block text-sm font-medium"
+                  >
+                    ส่งซ้ำกี่วันหลังหมดอายุ (โหมดส่งทุกวัน)
+                  </label>
+                  <Input
+                    id="inventoryExpiredRepeatDays"
+                    name="inventoryExpiredRepeatDays"
+                    type="number"
+                    min="1"
+                    defaultValue={initial.inventoryExpiredRepeatDays || "3"}
+                    disabled={isPending}
+                  />
+                </div>
+              </div>
+              <div className="rounded-lg border border-border/60 bg-background/80 p-4">
+                <p className="text-sm font-medium">เวลาส่ง (ตาม timezone ร้าน)</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  เลือกหลายรอบได้ — ขั้น 5 นาที ให้ตรงกับ cron
+                </p>
+                <div className="mt-4 space-y-5">
+                  <div>
+                    <label
+                      htmlFor="inventoryExpiredTimesOnce-slot"
+                      className="mb-1.5 block text-sm font-medium"
+                    >
+                      เมื่อเลือกโหมด «ส่งครั้งเดียว (วันหมดอายุ)»
+                    </label>
+                    <InventoryNotifyTimeSlotsField
+                      key={`exp-once-${initial.inventoryExpiredTimesOnce}`}
+                      name="inventoryExpiredTimesOnce"
+                      defaultValue={initial.inventoryExpiredTimesOnce}
+                      disabled={isPending}
+                      firstInputId="inventoryExpiredTimesOnce-slot"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="inventoryExpiredTimesDaily-slot"
+                      className="mb-1.5 block text-sm font-medium"
+                    >
+                      เมื่อเลือกโหมด «ส่งทุกวันหลังหมดอายุ»
+                    </label>
+                    <InventoryNotifyTimeSlotsField
+                      key={`exp-daily-${initial.inventoryExpiredTimesDaily}`}
+                      name="inventoryExpiredTimesDaily"
+                      defaultValue={initial.inventoryExpiredTimesDaily}
+                      disabled={isPending}
+                      firstInputId="inventoryExpiredTimesDaily-slot"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      ใช้คู่กับจำนวนวันส่งซ้ำด้านบน — แต่ละวันในช่วงนั้นส่งตามรอบที่กำหนด
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

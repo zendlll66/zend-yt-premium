@@ -106,7 +106,7 @@ export async function updateInventoryOrderAction(
   const activatedAt = parseDate((formData.get("activatedAt") as string) ?? null);
   const expiresAt = parseDate((formData.get("expiresAt") as string) ?? null);
   const loginEmail = (formData.get("loginEmail") as string)?.trim() || null;
-  const loginPassword = (formData.get("loginPassword") as string)?.trim() || null;
+  const loginPasswordTrim = ((formData.get("loginPassword") as string) ?? "").trim();
   const inviteLink = (formData.get("inviteLink") as string)?.trim() || null;
   const note = (formData.get("note") as string)?.trim() || null;
 
@@ -123,7 +123,7 @@ export async function updateInventoryOrderAction(
     itemType,
     title,
     loginEmail,
-    loginPassword,
+    ...(loginPasswordTrim !== "" ? { loginPassword: loginPasswordTrim } : {}),
     inviteLink,
     durationMonths,
     activatedAt,

@@ -3,6 +3,11 @@ import { db } from "@/db";
 import { auditLogs } from "@/db/schema/audit-log.schema";
 import { adminUsers } from "@/db/schema/admin-user.schema";
 
+function isMissingAuditTableError(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  return /no such table:\s*audit_logs/i.test(msg);
+}
+
 export type AuditLogEntry = {
   id: number;
   adminUserId: number | null;
@@ -50,6 +55,12 @@ export async function createAuditLog(params: {
         .returning();
       return row ?? null;
     } catch (fallbackError) {
+      if (isMissingAuditTableError(error) || isMissingAuditTableError(fallbackError)) {
+        console.warn(
+          "[AUDIT] ไม่มีตาราง audit_logs — รัน `npm run db:migrate` แล้วรีสตาร์ท dev server"
+        );
+        return null;
+      }
       console.error("[AUDIT] Failed to write audit log", {
         error,
         fallbackError,

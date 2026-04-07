@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/inventory-notify",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/auto-renewal",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}

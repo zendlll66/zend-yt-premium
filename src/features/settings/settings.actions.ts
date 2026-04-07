@@ -44,6 +44,14 @@ export async function saveSettingsAction(
       ((formData.get("inventoryExpiredMode") as string) || "once") as string,
     inventoryExpiredRepeatDays:
       (formData.get("inventoryExpiredRepeatDays") as string)?.trim() ?? "3",
+    inventoryExpiryWarningTimesOnce:
+      (formData.get("inventoryExpiryWarningTimesOnce") as string)?.trim() ?? "",
+    inventoryExpiryWarningTimesDaily:
+      (formData.get("inventoryExpiryWarningTimesDaily") as string)?.trim() ?? "",
+    inventoryExpiredTimesOnce:
+      (formData.get("inventoryExpiredTimesOnce") as string)?.trim() ?? "",
+    inventoryExpiredTimesDaily:
+      (formData.get("inventoryExpiredTimesDaily") as string)?.trim() ?? "",
     maintenanceMode: formData.get("maintenanceMode") === "1" ? "1" : "0",
     maintenanceMessage:
       (formData.get("maintenanceMessage") as string)?.trim() ??

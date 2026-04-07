@@ -22,7 +22,8 @@
     "db:seed-promotions": "tsx src/db/seed-promotions.ts",
     "db:seed-settings": "tsx src/db/seed-settings.ts",
     "db:seed-stock-type-descriptions": "tsx src/db/seed-stock-type-descriptions.ts",
-    "db:seed-all": "tsx src/db/seed-all.ts"
+    "db:seed-all": "tsx src/db/seed-all.ts",
+    "test:inventory-notify": "tsx scripts/test-inventory-notify.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1004.0",

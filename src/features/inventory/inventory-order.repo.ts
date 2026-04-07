@@ -163,39 +163,42 @@ export async function updateInventoryOrderById(
     if (data.inviteLink !== undefined) set.inviteLink = data.inviteLink;
 
     if (data.durationMonths !== undefined) {
-      const months = Math.max(1, data.durationMonths);
-      set.durationMonths = months;
+      set.durationMonths = Math.max(1, data.durationMonths);
+    }
+
+    if (data.activatedAt !== undefined) {
+      set.activatedAt = data.activatedAt;
+    }
+
+    // ค่าจากฟอร์ม (วันหมดอายุ) ต้องได้รับการเคารพ — อย่าคำนวณทับจาก duration ทุกครั้ง
+    if (data.expiresAt !== undefined) {
+      set.expiresAt = data.expiresAt;
+    } else if (data.durationMonths !== undefined) {
       const [existing] = await db
-        .select({ activatedAt: customerInventories.activatedAt, durationMonths: customerInventories.durationMonths })
+        .select({ activatedAt: customerInventories.activatedAt })
         .from(customerInventories)
         .where(eq(customerInventories.id, id))
         .limit(1);
       const raw =
         data.activatedAt !== undefined ? data.activatedAt : existing?.activatedAt ?? new Date();
       const base = raw instanceof Date ? raw : raw != null ? new Date(raw) : new Date();
+      const months = Math.max(1, data.durationMonths);
       set.expiresAt = expiresAtFromDurationMonths(base, months);
-    } else if (data.expiresAt !== undefined) {
-      set.expiresAt = data.expiresAt;
-    }
-
-    if (data.activatedAt !== undefined) {
-      set.activatedAt = data.activatedAt;
-      if (data.durationMonths === undefined && data.expiresAt === undefined) {
-        const [existing] = await db
-          .select({ durationMonths: customerInventories.durationMonths })
-          .from(customerInventories)
-          .where(eq(customerInventories.id, id))
-          .limit(1);
-        const months = Math.max(1, existing?.durationMonths ?? 1);
-        const rawAct = data.activatedAt;
-        const act =
-          rawAct instanceof Date
-            ? rawAct
-            : rawAct != null
-              ? new Date(rawAct)
-              : new Date();
-        set.expiresAt = expiresAtFromDurationMonths(act, months);
-      }
+    } else if (data.activatedAt !== undefined) {
+      const [existing] = await db
+        .select({ durationMonths: customerInventories.durationMonths })
+        .from(customerInventories)
+        .where(eq(customerInventories.id, id))
+        .limit(1);
+      const months = Math.max(1, existing?.durationMonths ?? 1);
+      const rawAct = data.activatedAt;
+      const act =
+        rawAct instanceof Date
+          ? rawAct
+          : rawAct != null
+            ? new Date(rawAct)
+            : new Date();
+      set.expiresAt = expiresAtFromDurationMonths(act, months);
     }
     if (data.note !== undefined) set.note = data.note;
     if (Object.keys(set).length === 0) return null;
@@ -227,37 +230,40 @@ export async function updateInventoryOrderById(
   if (data.durationMonths !== undefined) {
     const months = Math.max(1, data.durationMonths);
     set.durationDays = monthsToDurationDaysApprox(months);
+  }
+
+  if (data.activatedAt !== undefined) {
+    set.activatedAt = data.activatedAt;
+  }
+
+  if (data.expiresAt !== undefined) {
+    set.expiresAt = data.expiresAt;
+  } else if (data.durationMonths !== undefined) {
     const [existing] = await db
-      .select({ activatedAt: customerInventoriesHybrid.activatedAt, durationDays: customerInventoriesHybrid.durationDays })
+      .select({ activatedAt: customerInventoriesHybrid.activatedAt })
       .from(customerInventoriesHybrid)
       .where(eq(customerInventoriesHybrid.id, id))
       .limit(1);
     const raw =
       data.activatedAt !== undefined ? data.activatedAt : existing?.activatedAt ?? new Date();
     const base = raw instanceof Date ? raw : raw != null ? new Date(raw) : new Date();
+    const months = Math.max(1, data.durationMonths);
     set.expiresAt = expiresAtFromDurationMonths(base, months);
-  } else if (data.expiresAt !== undefined) {
-    set.expiresAt = data.expiresAt;
-  }
-
-  if (data.activatedAt !== undefined) {
-    set.activatedAt = data.activatedAt;
-    if (data.durationMonths === undefined && data.expiresAt === undefined) {
-      const [existing] = await db
-        .select({ durationDays: customerInventoriesHybrid.durationDays })
-        .from(customerInventoriesHybrid)
-        .where(eq(customerInventoriesHybrid.id, id))
-        .limit(1);
-      const months = durationDaysToMonthsApprox(existing?.durationDays ?? 30);
-      const rawAct = data.activatedAt;
-      const act =
-        rawAct instanceof Date
-          ? rawAct
-          : rawAct != null
-            ? new Date(rawAct)
-            : new Date();
-      set.expiresAt = expiresAtFromDurationMonths(act, months);
-    }
+  } else if (data.activatedAt !== undefined) {
+    const [existing] = await db
+      .select({ durationDays: customerInventoriesHybrid.durationDays })
+      .from(customerInventoriesHybrid)
+      .where(eq(customerInventoriesHybrid.id, id))
+      .limit(1);
+    const months = durationDaysToMonthsApprox(existing?.durationDays ?? 30);
+    const rawAct = data.activatedAt;
+    const act =
+      rawAct instanceof Date
+        ? rawAct
+        : rawAct != null
+          ? new Date(rawAct)
+          : new Date();
+    set.expiresAt = expiresAtFromDurationMonths(act, months);
   }
   if (data.note !== undefined) set.note = data.note;
   if (Object.keys(set).length === 0) return null;

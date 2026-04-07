@@ -32,6 +32,18 @@ export const SETTING_KEYS = {
   inventoryExpiredMessage: "inventory_expired_message",
   inventoryExpiredMode: "inventory_expired_mode",
   inventoryExpiredRepeatDays: "inventory_expired_repeat_days",
+  /** รายการเวลา HH:mm คั่นด้วยจุลภาค — ใกล้หมดอายุ โหมด once (วันแรกที่เข้าโซน) */
+  inventoryExpiryWarningTimesOnce: "inventory_expiry_warning_times_once",
+  /** รายการเวลา HH:mm — ใกล้หมดอายุ โหมด daily (แต่ละวันในโซน) */
+  inventoryExpiryWarningTimesDaily: "inventory_expiry_warning_times_daily",
+  /** รายการเวลา HH:mm — หมดอายุแล้ว โหมด once (วันหมดอายุ) */
+  inventoryExpiredTimesOnce: "inventory_expired_times_once",
+  /** รายการเวลา HH:mm — หมดอายุแล้ว โหมด daily (แต่ละวันในช่วงซ้ำ) */
+  inventoryExpiredTimesDaily: "inventory_expired_times_daily",
+  /** @deprecated ใช้ inventoryExpiryWarningTimesDaily — คงไว้สำหรับอ่านค่าเก่า */
+  inventoryNotifyDailySlots: "inventory_notify_daily_slots",
+  /** @deprecated ใช้ inventoryExpiryWarningTimesOnce / inventoryExpiredTimesOnce */
+  inventoryNotifyOnceHour: "inventory_notify_once_hour",
   /** "1" = เปิดโหมดปิดปรับปรุง, "0" = ปกติ */
   maintenanceMode: "maintenance_mode",
   /** ข้อความที่แสดงเมื่อปิดปรับปรุง */
@@ -72,9 +84,36 @@ const DEFAULTS: Record<string, string> = {
     "รายการ {{title}} (ออเดอร์ {{orderNumber}}) หมดอายุแล้วตั้งแต่วันที่ {{expiresAt}}",
   [SETTING_KEYS.inventoryExpiredMode]: "once",
   [SETTING_KEYS.inventoryExpiredRepeatDays]: "3",
+  [SETTING_KEYS.inventoryExpiryWarningTimesOnce]: "09:00,12:00",
+  [SETTING_KEYS.inventoryExpiryWarningTimesDaily]: "09:00",
+  [SETTING_KEYS.inventoryExpiredTimesOnce]: "09:00",
+  [SETTING_KEYS.inventoryExpiredTimesDaily]: "09:00",
+  [SETTING_KEYS.inventoryNotifyDailySlots]: "morning,afternoon,evening",
+  [SETTING_KEYS.inventoryNotifyOnceHour]: "9",
   [SETTING_KEYS.maintenanceMode]: "0",
   [SETTING_KEYS.maintenanceMessage]: "ขณะนี้ระบบอยู่ระหว่างปิดปรับปรุง กรุณากลับมาใหม่ภายหลัง",
 };
+
+function legacyOnceHourToHhMm(map: Map<string, string>): string {
+  const h =
+    map.get(SETTING_KEYS.inventoryNotifyOnceHour) ?? DEFAULTS[SETTING_KEYS.inventoryNotifyOnceHour];
+  const hn = Number.parseInt(String(h), 10);
+  const hh = Number.isFinite(hn) ? Math.max(0, Math.min(23, hn)) : 9;
+  return `${String(hh).padStart(2, "0")}:00`;
+}
+
+function legacyDailySlotsToTimes(map: Map<string, string>): string {
+  const raw =
+    map.get(SETTING_KEYS.inventoryNotifyDailySlots) ??
+    DEFAULTS[SETTING_KEYS.inventoryNotifyDailySlots];
+  const parts: string[] = [];
+  for (const t of raw.split(",").map((s) => s.trim())) {
+    if (t === "morning") parts.push("09:00");
+    else if (t === "afternoon") parts.push("13:00");
+    else if (t === "evening") parts.push("18:00");
+  }
+  return parts.length > 0 ? parts.join(", ") : "09:00";
+}
 
 export type ShopSettings = {
   shopName: string;
@@ -114,6 +153,18 @@ export type ShopSettings = {
   inventoryExpiredMode: string;
   /** จำนวนวันหลังหมดอายุที่จะส่งซ้ำ (ใช้กับโหมด daily) */
   inventoryExpiredRepeatDays: string;
+  /** เวลาส่ง (timezone ร้าน) คั่นด้วยจุลภาค เช่น 09:00,12:00 — ใกล้หมดอายุ โหมด once */
+  inventoryExpiryWarningTimesOnce: string;
+  /** เวลาส่งแต่ละวัน — ใกล้หมดอายุ โหมด daily */
+  inventoryExpiryWarningTimesDaily: string;
+  /** เวลาส่ง — หมดอายุแล้ว โหมด once */
+  inventoryExpiredTimesOnce: string;
+  /** เวลาส่งแต่ละวัน — หมดอายุแล้ว โหมด daily */
+  inventoryExpiredTimesDaily: string;
+  /** @deprecated อ่านจาก DB เท่านั้น — migrate ไป inventoryExpiryWarningTimesDaily */
+  inventoryNotifyDailySlots: string;
+  /** @deprecated migrate ไป inventoryExpiryWarningTimesOnce */
+  inventoryNotifyOnceHour: string;
   /** "1" = ปิดปรับปรุง, "0" = ปกติ */
   maintenanceMode: string;
   maintenanceMessage: string;
@@ -163,6 +214,22 @@ export async function getShopSettings(): Promise<ShopSettings> {
     inventoryExpiredRepeatDays:
       map.get(SETTING_KEYS.inventoryExpiredRepeatDays) ??
       DEFAULTS[SETTING_KEYS.inventoryExpiredRepeatDays],
+    inventoryExpiryWarningTimesOnce:
+      map.get(SETTING_KEYS.inventoryExpiryWarningTimesOnce)?.trim() ||
+      legacyOnceHourToHhMm(map),
+    inventoryExpiryWarningTimesDaily:
+      map.get(SETTING_KEYS.inventoryExpiryWarningTimesDaily)?.trim() ||
+      legacyDailySlotsToTimes(map),
+    inventoryExpiredTimesOnce:
+      map.get(SETTING_KEYS.inventoryExpiredTimesOnce)?.trim() || legacyOnceHourToHhMm(map),
+    inventoryExpiredTimesDaily:
+      map.get(SETTING_KEYS.inventoryExpiredTimesDaily)?.trim() || legacyDailySlotsToTimes(map),
+    inventoryNotifyDailySlots:
+      map.get(SETTING_KEYS.inventoryNotifyDailySlots) ??
+      DEFAULTS[SETTING_KEYS.inventoryNotifyDailySlots],
+    inventoryNotifyOnceHour:
+      map.get(SETTING_KEYS.inventoryNotifyOnceHour) ??
+      DEFAULTS[SETTING_KEYS.inventoryNotifyOnceHour],
     maintenanceMode:
       map.get(SETTING_KEYS.maintenanceMode) ?? DEFAULTS[SETTING_KEYS.maintenanceMode],
     maintenanceMessage:
@@ -221,6 +288,30 @@ export async function saveShopSettings(data: Partial<ShopSettings>): Promise<voi
     entries.push([
       SETTING_KEYS.inventoryExpiredRepeatDays,
       String(data.inventoryExpiredRepeatDays),
+    ]);
+  if (data.inventoryExpiryWarningTimesOnce !== undefined)
+    entries.push([
+      SETTING_KEYS.inventoryExpiryWarningTimesOnce,
+      String(data.inventoryExpiryWarningTimesOnce),
+    ]);
+  if (data.inventoryExpiryWarningTimesDaily !== undefined)
+    entries.push([
+      SETTING_KEYS.inventoryExpiryWarningTimesDaily,
+      String(data.inventoryExpiryWarningTimesDaily),
+    ]);
+  if (data.inventoryExpiredTimesOnce !== undefined)
+    entries.push([SETTING_KEYS.inventoryExpiredTimesOnce, String(data.inventoryExpiredTimesOnce)]);
+  if (data.inventoryExpiredTimesDaily !== undefined)
+    entries.push([SETTING_KEYS.inventoryExpiredTimesDaily, String(data.inventoryExpiredTimesDaily)]);
+  if (data.inventoryNotifyDailySlots !== undefined)
+    entries.push([
+      SETTING_KEYS.inventoryNotifyDailySlots,
+      String(data.inventoryNotifyDailySlots),
+    ]);
+  if (data.inventoryNotifyOnceHour !== undefined)
+    entries.push([
+      SETTING_KEYS.inventoryNotifyOnceHour,
+      String(data.inventoryNotifyOnceHour),
     ]);
   if (data.maintenanceMode !== undefined)
     entries.push([SETTING_KEYS.maintenanceMode, String(data.maintenanceMode)]);
